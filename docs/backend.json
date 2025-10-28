@@ -47,6 +47,10 @@
         "mimeType": {
           "type": "string",
           "description": "MIME type of the uploaded image (e.g., image/jpeg, image/png)."
+        },
+        "likeCount": {
+          "type": "number",
+          "description": "Number of likes the image has received."
         }
       },
       "required": [
@@ -59,7 +63,8 @@
         "uploadTimestamp",
         "originalName",
         "fileSize",
-        "mimeType"
+        "mimeType",
+        "likeCount"
       ]
     },
     "User": {

@@ -5,9 +5,10 @@ import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Copy, ExternalLink, AlertCircle } from "lucide-react";
+import { Copy, ExternalLink, AlertCircle, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { incrementImageLike } from "@/lib/firestore";
 
 export function ImageGallery() {
     const { user } = useUser();
@@ -16,7 +17,6 @@ export function ImageGallery() {
 
     const imagesQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
-        // Ordonne les images par date de téléversement, les plus récentes en premier
         return query(collection(firestore, `users/${user.uid}/images`), orderBy('uploadTimestamp', 'desc'));
     }, [user, firestore]);
 
@@ -31,6 +31,10 @@ export function ImageGallery() {
         }
     };
 
+    const handleLike = (imageId: string, ownerId: string) => {
+        if (!firestore) return;
+        incrementImageLike(firestore, ownerId, imageId);
+    };
 
     if (isLoading) {
         return (
@@ -94,13 +98,23 @@ export function ImageGallery() {
                                 height={300}
                                 className="aspect-square object-cover w-full transition-transform group-hover:scale-105"
                             />
-                            <div className="absolute inset-0 bg-black/40 flex flex-col justify-end p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                             <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent">
                                 <p className="text-white text-xs font-semibold truncate">{image.originalName}</p>
-                                <div className="flex gap-1 mt-1">
-                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-white/20 hover:text-white" onClick={() => copyToClipboard(image.directUrl, "L'URL directe")}><Copy className="w-4 h-4"/></Button>
-                                      <a href={image.directUrl} target="_blank" rel="noopener noreferrer">
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-white/20 hover:text-white"><ExternalLink className="w-4 h-4"/></Button>
-                                      </a>
+                            </div>
+                            <div className="absolute inset-0 bg-black/40 flex flex-col justify-end p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="flex justify-between items-center">
+                                    <div className="flex gap-1">
+                                          <Button variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-white/20 hover:text-white" onClick={() => copyToClipboard(image.directUrl, "L'URL directe")}><Copy className="w-4 h-4"/></Button>
+                                          <a href={image.directUrl} target="_blank" rel="noopener noreferrer">
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-white/20 hover:text-white"><ExternalLink className="w-4 h-4"/></Button>
+                                          </a>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-white/20 hover:text-white" onClick={() => handleLike(image.id, image.userId)}>
+                                            <Heart className="w-4 h-4" />
+                                        </Button>
+                                        <span className="text-white text-xs font-bold">{image.likeCount || 0}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

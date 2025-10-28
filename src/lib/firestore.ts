@@ -6,6 +6,8 @@ import {
   Firestore,
   serverTimestamp,
   collection,
+  updateDoc,
+  increment,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -24,6 +26,7 @@ type ImageMetadata = {
   mimeType: string;
   fileSize: number;
   uploadTimestamp: any; // Firestore server timestamp.
+  likeCount: number;
 };
 
 // Ce type représente les données de base que nous recevons de la page principale.
@@ -48,12 +51,11 @@ export function saveImageMetadata(
   metadata: InputMetadata
 ) {
   // 1. Génère un nouvel ID unique pour le document d'image.
-  const imageId = doc(collection(firestore, 'users', user.uid, 'images')).id;
+  const imageCollectionRef = collection(firestore, 'users', user.uid, 'images');
+  const imageDocRef = doc(imageCollectionRef);
+  const imageId = imageDocRef.id;
 
-  // 2. Crée une référence à l'emplacement du document.
-  const imageRef = doc(firestore, `users/${user.uid}/images/${imageId}`);
-  
-  // 3. Construit l'objet de données complet à sauvegarder.
+  // 2. Construit l'objet de données complet à sauvegarder.
   const dataToSave: ImageMetadata = {
     id: imageId, // L'ID propre du document.
     userId: user.uid, // L'ID du propriétaire, requis par les règles.
@@ -65,20 +67,45 @@ export function saveImageMetadata(
     mimeType: metadata.mimeType,
     fileSize: metadata.fileSize,
     uploadTimestamp: serverTimestamp(),
+    likeCount: 0, // Initialise le compteur de "J'aime" à 0
   };
 
-  // 4. Tente d'écrire le document dans Firestore.
-  setDoc(imageRef, dataToSave).catch((error) => {
+  // 3. Tente d'écrire le document dans Firestore.
+  setDoc(imageDocRef, dataToSave).catch((error) => {
     console.error('Erreur lors de la sauvegarde des métadonnées de l\'image :', error);
     
     // Crée une erreur contextuelle détaillée pour un meilleur débogage.
     const permissionError = new FirestorePermissionError({
-      path: imageRef.path,
+      path: imageDocRef.path,
       operation: 'create',
       requestResourceData: dataToSave,
     });
 
     // Émet l'erreur globalement pour qu'elle puisse être interceptée et affichée.
+    errorEmitter.emit('permission-error', permissionError);
+  });
+}
+
+/**
+ * Incrémente le compteur de "J'aime" pour une image spécifique.
+ * @param firestore L'instance Firestore.
+ * @param imageUserId L'ID de l'utilisateur qui a posté l'image.
+ * @param imageId L'ID de l'image à aimer.
+ */
+export function incrementImageLike(firestore: Firestore, imageUserId: string, imageId: string) {
+  const imageRef = doc(firestore, `users/${imageUserId}/images/${imageId}`);
+  
+  updateDoc(imageRef, {
+    likeCount: increment(1)
+  }).catch((error) => {
+    console.error("Erreur lors de l'incrémentation du 'J'aime' :", error);
+    
+    const permissionError = new FirestorePermissionError({
+      path: imageRef.path,
+      operation: 'update',
+      requestResourceData: { likeCount: 'increment(1)' },
+    });
+
     errorEmitter.emit('permission-error', permissionError);
   });
 }
