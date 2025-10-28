@@ -140,7 +140,7 @@ export default function Home() {
       },
       (downloadURL, storagePath) => {
         saveImageMetadata(firestore, user, {
-          name: file.name,
+          name: customName || file.name,
           downloadURL,
           storagePath,
           contentType: file.type,
