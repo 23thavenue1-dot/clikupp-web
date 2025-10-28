@@ -1,11 +1,11 @@
 
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useUser, useAuth, useStorage, useFirestore } from '@/firebase';
-import { signOut } from 'firebase/auth';
+import { useUser } from '@/firebase';
+import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,11 +25,11 @@ import {
   FileText,
   Code,
   Image as ImageIcon,
-  LogOut,
   Loader2,
 } from 'lucide-react';
 import { uploadImage } from '@/lib/storage';
 import { saveImageMetadata } from '@/lib/firestore';
+import { useAuth, useStorage, useFirestore } from '@/firebase';
 import { ImageGallery } from './gallery';
 
 
@@ -58,11 +58,18 @@ export default function Home() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const router = useRouter();
 
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const storage = useStorage();
   const firestore = useFirestore();
+  
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, isUserLoading, router]);
 
   const handleFile = useCallback(
     (selectedFile: File | undefined) => {
@@ -178,21 +185,7 @@ export default function Home() {
     setStage('idle');
   };
 
-  const handleSignOut = async () => {
-    if (!auth) return;
-    try {
-      await signOut(auth);
-      toast({ title: 'Déconnexion réussie' });
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur de déconnexion',
-        description: (error as Error).message,
-      });
-    }
-  };
-
-  if (isUserLoading) {
+  if (isUserLoading || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -200,31 +193,8 @@ export default function Home() {
     );
   }
 
-  if (!user) {
-    return (
-      <main className="flex items-center justify-center min-h-full p-4 sm:p-6 lg:p-8">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Bienvenue</CardTitle>
-            <CardDescription>
-              Veuillez vous connecter ou vous inscrire pour continuer.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <Button asChild>
-              <Link href="/login">Se connecter</Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href="/signup">S'inscrire</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </main>
-    );
-  }
-
   return (
-    <main className="flex items-center justify-center min-h-full p-4 sm:p-6 lg:p-8">
+    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-3xl mx-auto space-y-6">
         <header className="flex justify-between items-center">
           <div className="text-center flex-grow">
@@ -236,14 +206,6 @@ export default function Home() {
               obtiendras une URL directe.
             </p>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleSignOut}
-            aria-label="Sign out"
-          >
-            <LogOut className="h-5 w-5" />
-          </Button>
         </header>
 
         <Card className="overflow-hidden">
@@ -430,6 +392,6 @@ export default function Home() {
         <ImageGallery />
 
       </div>
-    </main>
+    </div>
   );
 }
