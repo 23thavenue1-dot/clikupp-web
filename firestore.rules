@@ -1,89 +1,130 @@
 /**
- * @file Firebase Security Rules for the image uploading application.
+ * @fileoverview Firestore Security Rules for the image uploading application.
  *
  * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for user profiles and images.
+ * This ruleset enforces a strict user-ownership model for user profiles and uploaded images.
  * Only authenticated users can create, update, or delete their own profiles and images.
- * Additionally, it supports an admin role based on document existence in the `/roles_admin` collection.
+ * Additionally, it supports admin users who have read/write access to all the data.
  *
  * Data Structure:
- * - `/users/{userId}`: Stores user profile data.
- * - `/users/{userId}/images/{imageId}`: Stores images associated with a specific user.
- * - `/roles_admin/{adminId}`: Documents representing admin users.
+ * - /users/{userId}: Stores user profile information.  Only the user with the matching {userId}
+ *   can read and write their profile data.
+ * - /users/{userId}/images/{imageId}: Stores image data associated with a specific user.
+ *   Only the user with the matching {userId} can manage images under their profile.
+ * - /roles_admin/{adminId}: Documents in this collection represent admin users.
+ *   The existence of a document in this collection grants admin privileges to the user.
  *
  * Key Security Decisions:
- * - Users can only manage their own profiles and images.
- * - Admin privileges are granted based on the presence of a user ID in the `/roles_admin` collection.
- * - Listing all users is disallowed.
- * - No data schema validation is enforced in this prototyping phase except for relational integrity.
- *
- * Denormalization for Authorization:
- * - Path-based ownership is used for images, eliminating the need for denormalized `ownerId` fields within the image documents themselves. The `userId` path parameter inherently represents the owner.
+ * - User listing is explicitly denied.
+ * - Path-based ownership is enforced for images, simplifying security rules.
+ * - The 'id' field in both User and Image entities is validated to match the document ID
+ *   on creation and is immutable on update to maintain relational integrity.
+ * - Admin privileges are granted based on the presence of a document in the `/roles_admin` collection.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to user profile documents.
-     * @path /users/{userId}
-     * @allow (create) - User with UID 'user123' can create their profile if request.auth.uid == 'user123'.
-     * @allow (get, update, delete) - User with UID 'user123' can get, update, or delete their profile if request.auth.uid == 'user123'.
-     * @deny (create) - User with UID 'user456' cannot create a profile with ID 'user123'.
-     * @deny (get, update, delete) - User with UID 'user456' cannot get, update, or delete the profile for 'user123'.
-     * @principle Enforces document ownership for user profiles.  Only the authenticated user can manage their own profile.
+     * @description Checks if the current user is signed in.
+     * @path N/A (Helper function)
+     * @allow N/A (Helper function)
+     * @deny N/A (Helper function)
+     * @principle Authentication is required for most operations.
      */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the current user is the owner of the resource, based on the provided userId.
+     * @path N/A (Helper function)
+     * @allow N/A (Helper function)
+     * @deny N/A (Helper function)
+     * @principle Enforces ownership-based access control.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the current user is the owner of the resource, and that the resource already exists.
+     * @path N/A (Helper function)
+     * @allow N/A (Helper function)
+     * @deny N/A (Helper function)
+     * @principle Enforces ownership-based access control and prevents changes to non-existent documents.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Checks if the current user is an admin.
+     * @path N/A (Helper function)
+     * @allow N/A (Helper function)
+     * @deny N/A (Helper function)
+     * @principle Checks admin privileges based on document existence in the /roles_admin collection.
+     */
+    function isAdmin() {
+        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-      allow get: if isOwner(userId);
-      allow list: if false; // Listing all users is not permitted.
+      /**
+       * @description Manages user profile data.
+       * @path /users/{userId}
+       * @allow (create) - User with matching UID can create their profile.
+       * @allow (get) - User with matching UID can get their profile.
+       * @allow (update) - User with matching UID can update their profile.
+       * @allow (delete) - User with matching UID can delete their profile.
+       * @deny (create) - User tries to create a profile with an ID that doesn't match their UID.
+       * @deny (list) - Listing users is not allowed.
+       * @principle Enforces document ownership for reads and writes.
+       */
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if false;
       allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwner(userId) && resource.data.id == userId;
-      allow delete: if isOwner(userId) && resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && resource.data.id == request.resource.data.id;
+      allow delete: if isExistingOwner(userId);
     }
 
-    /**
-     * @description Controls access to image documents within a user's profile.
-     * @path /users/{userId}/images/{imageId}
-     * @allow (create) - User with UID 'user123' can create an image document under their profile.
-     * @allow (get, list, update, delete) - User with UID 'user123' can get, list, update, or delete their own images.
-     * @deny (create) - User with UID 'user456' cannot create an image document under 'user123' profile.
-     * @deny (get, list, update, delete) - User with UID 'user456' cannot get, list, update, or delete images under 'user123' profile.
-     * @principle Enforces document ownership for images.  Only the authenticated user can manage their own images.
-     */
     match /users/{userId}/images/{imageId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isOwner(userId) && resource.data.userId == userId;
-      allow delete: if isOwner(userId) && resource.data.userId == userId;
+      /**
+       * @description Manages image data for a specific user.
+       * @path /users/{userId}/images/{imageId}
+       * @allow (create) - User with matching UID can create an image under their profile.
+       * @allow (get) - User with matching UID can get an image under their profile.
+       * @allow (update) - User with matching UID can update an image under their profile.
+       * @allow (delete) - User with matching UID can delete an image under their profile.
+       * @deny (create) - User tries to create an image under a profile that doesn't match their UID.
+       * @deny (list) - Listing images for a different user is not allowed.
+       * @principle Enforces document ownership for reads and writes within a user's image subcollection.
+       */
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && request.resource.data.userId == userId && request.resource.data.id == imageId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == userId && resource.data.id == request.resource.data.id;
+      allow delete: if isExistingOwner(userId);
     }
 
-    /**
-     * @description Grants admin privileges based on the existence of a document in this collection.
-     * @path /roles_admin/{adminId}
-     * @allow (get) - Any signed-in user can check if an admin role exists for a user
-     * @allow (create, update, delete) - Only a user with existing admin role can create, update, or delete other admin roles.
-     * @deny (list) - Listing the admin roles is not permitted
-     * @principle DBAC (Database-Based Access Control): Admin privileges are determined by document presence.
-     */
-    match /roles_admin/{adminId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-        function isAdmin() {
-          return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-        }
-        allow get: if isSignedIn();
-        allow list: if false;
-        allow create: if isAdmin();
-        allow update: if isAdmin();
-        allow delete: if isAdmin();
+      match /roles_admin/{adminId} {
+      /**
+       * @description Manages admin role assignment.
+       * @path /roles_admin/{adminId}
+       * @allow (get) - Only admins can get documents in this collection.
+       * @allow (list) - Listing admins is not allowed.
+       * @allow (create) - Only admins can create documents in this collection.
+       * @allow (update) - Only admins can update documents in this collection.
+       * @allow (delete) - Only admins can delete documents in this collection.
+       * @deny (create) - Non-admins cannot create documents in this collection.
+       * @deny (delete) - Non-admins cannot delete documents in this collection.
+       * @principle Restricts access to admin role management to existing admins.
+       */
+      allow get: if isAdmin();
+      allow list: if false;
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
   }
 }
