@@ -29,8 +29,9 @@ export function uploadImage(
   const baseName = customName.trim()
     ? sanitize(customName.trim())
     : sanitize(file.name.replace(/\.[^/.]+$/, ''));
-  const finalFileName = `${user.uid}/${baseName}-${Date.now()}.${ext}`;
-  const storagePath = `uploads/${finalFileName}`;
+  
+  // Chemin de stockage sécurisé : uploads/{userId}/{nom-fichier}
+  const storagePath = `uploads/${user.uid}/${baseName}-${Date.now()}.${ext}`;
   const storageRef = ref(storage, storagePath);
 
   const uploadTask = uploadBytesResumable(storageRef, file, {
