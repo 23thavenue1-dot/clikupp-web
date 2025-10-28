@@ -8,12 +8,8 @@ import { getStorage } from 'firebase/storage';
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
-  if (getApps().length) {
-    return getSdks(getApp());
-  }
-
-  const firebaseApp = initializeApp(firebaseConfig);
-  return getSdks(firebaseApp);
+  const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+  return getSdks(app);
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
