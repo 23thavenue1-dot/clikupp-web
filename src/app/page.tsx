@@ -168,14 +168,14 @@ export default function Home() {
     try {
       await navigator.clipboard.writeText(text);
       toast({
-        title: 'Copié!',
+        title: "Copié!",
         description: `${type} a été copié dans le presse-papiers.`,
       });
     } catch (err) {
       toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: 'La copie a échoué.',
+        variant: "destructive",
+        title: "Erreur",
+        description: "La copie a échoué.",
       });
     }
   };
