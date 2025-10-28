@@ -112,5 +112,3 @@ export function incrementImageLike(firestore: Firestore, imageUserId: string, im
     errorEmitter.emit('permission-error', permissionError);
   });
 }
-
-    
