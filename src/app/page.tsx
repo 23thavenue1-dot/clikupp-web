@@ -139,8 +139,9 @@ export default function Home() {
         setStage('preview');
       },
       (downloadURL, storagePath) => {
+        const imageName = customName || file.name;
         const bbCode = `[img]${downloadURL}[/img]`;
-        const htmlCode = `<img src="${downloadURL}" alt="${customName || file.name}" />`;
+        const htmlCode = `<img src="${downloadURL}" alt="${imageName}" />`;
         
         saveImageMetadata(firestore, user, {
           originalName: file.name,
@@ -148,8 +149,6 @@ export default function Home() {
           directUrl: downloadURL,
           mimeType: file.type,
           fileSize: file.size,
-          bbCode: bbCode,
-          htmlCode: htmlCode,
         });
   
         setResult({

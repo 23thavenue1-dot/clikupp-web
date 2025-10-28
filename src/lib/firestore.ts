@@ -37,8 +37,6 @@ type InputMetadata = {
   directUrl: string;
   mimeType: string;
   fileSize: number;
-  bbCode: string;
-  htmlCode: string;
 };
 
 /**
@@ -65,8 +63,8 @@ export function saveImageMetadata(
     originalName: metadata.originalName,
     storagePath: metadata.storagePath,
     directUrl: metadata.directUrl,
-    bbCode: metadata.bbCode,
-    htmlCode: metadata.htmlCode,
+    bbCode: `[img]${metadata.directUrl}[/img]`, // Généré ici pour la cohérence
+    htmlCode: `<img src="${metadata.directUrl}" alt="${metadata.originalName}" />`, // Généré ici
     mimeType: metadata.mimeType,
     fileSize: metadata.fileSize,
     uploadTimestamp: serverTimestamp(),
