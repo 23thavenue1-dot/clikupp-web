@@ -82,11 +82,11 @@ export default function Home() {
         });
         return;
       }
-      if (selectedFile.size > 10 * 1024 * 1024) {
+      if (selectedFile.size > 50 * 1024 * 1024) {
         toast({
           variant: 'destructive',
           title: 'Erreur',
-          description: "L'image est trop lourde (>10 Mo).",
+          description: "L'image est trop lourde (>50 Mo).",
         });
         return;
       }
@@ -238,7 +238,7 @@ export default function Home() {
                   ou glissez-déposez
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  PNG, JPG, GIF jusqu'à 10Mo
+                  PNG, JPG, GIF jusqu'à 50Mo
                 </p>
                 <input
                   ref={fileInputRef}
@@ -402,5 +402,7 @@ export default function Home() {
     </div>
   );
 }
+
+    
 
     
