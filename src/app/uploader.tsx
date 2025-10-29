@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 // État pour gérer le processus de téléversement
 type UploadStatus = 
   | { state: 'idle' } // Attente
-  | { state: 'uploading' } // En cours (sans progression)
+  | { state: 'uploading'; progress: number } // En cours avec progression
   | { state: 'success'; url: string; bbCode: string; htmlCode: string } // Terminé
   | { state: 'error'; message: string }; // Erreur
 
@@ -83,7 +83,7 @@ export function Uploader() {
         return;
     }
     
-    setStatus({ state: 'uploading' }); 
+    setStatus({ state: 'uploading', progress: 0 }); 
 
     try {
       const bbCode = `[img]${imageUrl}[/img]`;
@@ -113,54 +113,50 @@ export function Uploader() {
       return;
     }
     
-    setStatus({ state: 'uploading' });
+    setStatus({ state: 'uploading', progress: 0 });
 
-    try {
-        await uploadImage(
-            storage,
-            user,
-            selectedFile,
-            customName,
-            // onComplete
-            async (directUrl, storagePath) => {
-                const bbCode = `[img]${directUrl}[/img]`;
-                const htmlCode = `<img src="${directUrl}" alt="Image téléversée" />`;
+    uploadImage(
+        storage,
+        user,
+        selectedFile,
+        customName,
+        // onProgress
+        (progress) => {
+            setStatus({ state: 'uploading', progress });
+        },
+        // onComplete
+        async (directUrl, storagePath) => {
+            const bbCode = `[img]${directUrl}[/img]`;
+            const htmlCode = `<img src="${directUrl}" alt="Image téléversée" />`;
 
-                try {
-                    await saveImageMetadata(firestore, user, {
-                        originalName: selectedFile.name,
-                        fileSize: selectedFile.size,
-                        mimeType: selectedFile.type,
-                        storagePath,
-                        directUrl,
-                        bbCode,
-                        htmlCode,
-                    });
+            try {
+                await saveImageMetadata(firestore, user, {
+                    originalName: selectedFile.name,
+                    fileSize: selectedFile.size,
+                    mimeType: selectedFile.type,
+                    storagePath,
+                    directUrl,
+                    bbCode,
+                    htmlCode,
+                });
 
-                    setStatus({ state: 'success', url: directUrl, bbCode, htmlCode });
-                    toast({ title: 'Succès', description: 'Votre image a été téléversée et enregistrée.' });
-                    resetFileInput();
-                    setCustomName('');
-                } catch(firestoreError) {
-                     const errorMessage = (firestoreError as Error).message;
-                     setStatus({ state: 'error', message: `Erreur Firestore: ${errorMessage}` });
-                     toast({ variant: 'destructive', title: 'Erreur Firestore', description: errorMessage });
-                }
-            },
-            // onError
-            (error) => {
-                 setStatus({ state: 'error', message: error.message });
-                 toast({ variant: 'destructive', title: 'Erreur de téléversement', description: error.message });
-                 resetFileInput();
+                setStatus({ state: 'success', url: directUrl, bbCode, htmlCode });
+                toast({ title: 'Succès', description: 'Votre image a été téléversée et enregistrée.' });
+                resetFileInput();
+                setCustomName('');
+            } catch(firestoreError) {
+                 const errorMessage = (firestoreError as Error).message;
+                 setStatus({ state: 'error', message: `Erreur Firestore: ${errorMessage}` });
+                 toast({ variant: 'destructive', title: 'Erreur Firestore', description: errorMessage });
             }
-        );
-    } catch (error) {
-        // This catch block might be redundant if uploadImage handles all its errors, but it's safe to keep.
-        const errorMessage = (error as Error).message;
-        setStatus({ state: 'error', message: errorMessage });
-        toast({ variant: 'destructive', title: 'Erreur inattendue', description: errorMessage });
-        resetFileInput();
-    }
+        },
+        // onError
+        (error) => {
+             setStatus({ state: 'error', message: error.message });
+             toast({ variant: 'destructive', title: 'Erreur de téléversement', description: error.message });
+             resetFileInput();
+        }
+    );
   }, [selectedFile, customName, user, storage, firestore, toast]);
 
   const copyToClipboard = async (text: string, type: 'url' | 'bb' | 'html') => {
@@ -263,9 +259,11 @@ export function Uploader() {
         </Tabs>
         
         {status.state === 'uploading' && (
-          <div className="text-sm text-center text-muted-foreground flex items-center justify-center">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            <span>Téléversement, veuillez patienter...</span>
+          <div className="space-y-2">
+              <Progress value={status.progress} className="w-full" />
+              <p className="text-sm text-center text-muted-foreground">
+                Téléversement, veuillez patienter... {status.progress.toFixed(0)}%
+              </p>
           </div>
         )}
         

@@ -2,7 +2,7 @@
 
 import {
   ref as storageRef,
-  uploadBytes,
+  uploadBytesResumable,
   getDownloadURL,
   deleteObject,
   type FirebaseStorage,
@@ -34,7 +34,7 @@ export const buildStoragePath = (uid: string, fileName: string) =>
 
 // Mapping d’erreurs pour messages UX
 const friendlyStorageError = (e: unknown) => {
-  const fe = e as FirebaseError;
+  const fe = e as FirebaseError & { serverResponse?: string };
   switch (fe?.code) {
     case 'storage/unauthorized':
       return 'Permission refusée : vérifiez les règles de sécurité de Storage et l’authentification de l\'utilisateur.';
@@ -47,7 +47,13 @@ const friendlyStorageError = (e: unknown) => {
     case 'storage/object-not-found':
       return 'Le fichier est introuvable dans l\'espace de stockage.';
     default:
-      return fe?.message || 'Une erreur inconnue est survenue lors de l’opération de stockage.';
+        console.group('[Storage Error Details]');
+        console.error('Full Firebase Error:', fe);
+        console.error('Error Code:', fe?.code);
+        console.error('Error Message:', fe?.message);
+        console.error('Server Response:', fe?.serverResponse);
+        console.groupEnd();
+        return fe?.message || 'Une erreur inconnue est survenue lors de l’opération de stockage.';
   }
 };
 
@@ -78,37 +84,38 @@ const inferImageMimeFromName = (name: string): string | null => {
 
 
 // -----------------------------
-// Upload (avec uploadBytes)
+// Upload (avec uploadBytesResumable)
 // -----------------------------
-export async function uploadImage(
+export function uploadImage(
   storage: FirebaseStorage,
   user: User,
   file: File,
   customName: string,
+  onProgress: (progress: number) => void,
   onComplete: (downloadURL: string, storagePath: string) => void,
   onError: (error: Error) => void
-): Promise<void> {
+): void {
   
   if (!user?.uid) {
     const error = new Error('Utilisateur non authentifié.');
     onError(error);
-    throw error;
+    return;
   }
    if (!file) {
     const error = new Error('Aucun fichier fourni.');
     onError(error);
-    throw error;
+    return;
   }
 
   if (file.size > MAX_BYTES) {
     const error = new Error('Fichier trop volumineux (> 10 Mo).');
     onError(error);
-    throw error;
+    return;
   }
   if (!(ALLOWED_MIME.test(file.type) || NAME_EXT_FALLBACK.test(file.name))) {
     const error = new Error('Type de fichier non autorisé (images uniquement).');
     onError(error);
-    throw error;
+    return;
   }
 
   const safeCustom = (customName || '').trim();
@@ -127,35 +134,42 @@ export async function uploadImage(
     guessedMime ||
     'image/jpeg'; // Fallback
 
-  try {
-    // Étape 1 : S'assurer que le token d'authentification est à jour
-    await getIdToken(user, true);
-
-    // Étape 2 : Utiliser uploadBytes pour un téléversement direct et simple
-    const snapshot = await uploadBytes(ref, file, {
-      contentType: finalContentType,
-      customMetadata: { uid: user.uid },
+  // Forcer le rafraîchissement du token avant de démarrer l'upload
+  getIdToken(user, true).then(() => {
+    const task = uploadBytesResumable(ref, file, {
+        contentType: finalContentType,
+        customMetadata: { uid: user.uid },
     });
 
-    // Étape 3 : Obtenir l'URL de téléchargement
-    const url = await getDownloadURL(snapshot.ref);
+    task.on('state_changed',
+        (snapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            onProgress(progress);
+        },
+        (error) => {
+            // Gérer toutes les erreurs ici
+            console.group('[Storage Upload Error]');
+            console.log('code:', error.code);
+            console.log('message:', error.message);
+            console.log('name:', error.name);
+            console.log('serverResponse:', (error as any).serverResponse);
+            console.log('>> debug contentType used:', finalContentType);
+            console.log('>> file.type seen by browser:', file.type);
+            console.log('>> path:', ref.fullPath, 'bucket:', ref.storage.bucket);
+            console.groupEnd();
+            onError(new Error(friendlyStorageError(error)));
+        },
+        () => {
+            getDownloadURL(task.snapshot.ref).then((url) => {
+                onComplete(url, finalStoragePath);
+            });
+        }
+    );
 
-    // Étape 4 : Appeler le callback de succès
-    onComplete(url, finalStoragePath);
-
-  } catch (err: any) {
-    // Gérer toutes les erreurs ici
-    console.group('[Storage Upload Error with uploadBytes]');
-    console.log('code:', err?.code);
-    console.log('message:', err?.message);
-    console.log('name:', err?.name);
-    console.log('>> debug contentType used:', finalContentType);
-    console.log('>> file.type seen by browser:', file.type);
-    console.log('>> path:', ref.fullPath, 'bucket:', ref.storage.bucket);
-    console.groupEnd();
-
-    onError(new Error(friendlyStorageError(err)));
-  }
+  }).catch((tokenError) => {
+    console.error('Failed to refresh auth token:', tokenError);
+    onError(new Error('Impossible de rafraîchir le token d\'authentification.'));
+  });
 }
 
 
