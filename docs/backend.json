@@ -57,14 +57,10 @@
       "required": [
         "id",
         "userId",
-        "storagePath",
         "directUrl",
         "bbCode",
         "htmlCode",
         "uploadTimestamp",
-        "originalName",
-        "fileSize",
-        "mimeType",
         "likeCount"
       ]
     },

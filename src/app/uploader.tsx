@@ -5,13 +5,15 @@ import { useState, useRef, useCallback } from 'react';
 import { useFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { uploadImage } from '@/lib/storage';
-import { saveImageMetadata } from '@/lib/firestore';
+import { saveImageMetadata, saveImageFromUrl } from '@/lib/firestore';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { UploadCloud, Copy, Check } from 'lucide-react';
+import { UploadCloud, Copy, Check, Link } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
 
 // État pour gérer le processus de téléversement
 type UploadStatus = 
@@ -26,14 +28,54 @@ export function Uploader() {
   const [status, setStatus] = useState<UploadStatus>({ state: 'idle' });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [customName, setCustomName] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [copied, setCopied] = useState<'url' | 'bb' | 'html' | null>(null);
+  
+  const resetState = () => {
+    setStatus({ state: 'idle' });
+    setSelectedFile(null);
+    setCustomName('');
+    setImageUrl('');
+    setCopied(null);
+  }
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setSelectedFile(file);
+      resetState();
       setStatus({ state: 'idle' });
+    }
+  };
+  
+  const handleTabChange = () => {
+    resetState();
+  };
+
+  const handleUrlUpload = async () => {
+    if (!imageUrl.trim() || !user || !firestore) {
+      toast({ variant: 'destructive', title: 'Erreur', description: 'URL invalide ou utilisateur non connecté.' });
+      return;
+    }
+    
+    setStatus({ state: 'uploading', progress: 50 });
+
+    try {
+      const bbCode = `[img]${imageUrl}[/img]`;
+      const htmlCode = `<img src="${imageUrl}" alt="Image depuis URL" />`;
+      
+      await saveImageFromUrl(firestore, user, {
+        directUrl: imageUrl,
+        bbCode,
+        htmlCode,
+      });
+
+      setStatus({ state: 'success', url: imageUrl, bbCode, htmlCode });
+      toast({ title: 'Succès', description: 'Votre image a été référencée.' });
+    } catch (error) {
+       setStatus({ state: 'error', message: "L'enregistrement dans Firestore a échoué. Vérifiez les règles de sécurité de Firestore." });
+       toast({ variant: 'destructive', title: "Erreur d'enregistrement", description: (error as Error).message });
     }
   };
 
@@ -91,47 +133,76 @@ export function Uploader() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Téléverser une image</CardTitle>
+        <CardTitle>Ajouter une image</CardTitle>
         <CardDescription>
-          Sélectionnez un fichier depuis votre ordinateur pour le téléverser.
+          Téléversez un fichier ou ajoutez une image depuis une URL externe.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div 
-          className="border-2 border-dashed border-muted-foreground/50 rounded-lg p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/50 transition-colors"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            className="hidden"
-            accept="image/png, image/jpeg, image/gif, image/webp"
-          />
-          <UploadCloud className="h-12 w-12 text-muted-foreground" />
-          <p className="mt-4 text-sm text-muted-foreground">
-            {selectedFile ? `Fichier sélectionné : ${selectedFile.name}` : 'Glissez-déposez ou cliquez pour choisir un fichier'}
-          </p>
-        </div>
 
-        {selectedFile && (
-          <div className="space-y-4">
-             <Input
-                type="text"
-                placeholder="Nom personnalisé (optionnel)"
-                value={customName}
-                onChange={(e) => setCustomName(e.target.value)}
-              />
-            <Button 
-              onClick={handleUpload} 
-              disabled={status.state === 'uploading'} 
-              className="w-full"
+        <Tabs defaultValue="upload" className="w-full" onValueChange={handleTabChange}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="upload"><UploadCloud className="mr-2"/>Téléverser</TabsTrigger>
+            <TabsTrigger value="url"><Link className="mr-2"/>Depuis une URL</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="upload" className="mt-4 space-y-4">
+            <div 
+              className="border-2 border-dashed border-muted-foreground/50 rounded-lg p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => fileInputRef.current?.click()}
             >
-              {status.state === 'uploading' ? 'Téléversement en cours...' : 'Démarrer le téléversement'}
-            </Button>
-          </div>
-        )}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+                accept="image/png, image/jpeg, image/gif, image/webp"
+              />
+              <UploadCloud className="h-12 w-12 text-muted-foreground" />
+              <p className="mt-4 text-sm text-muted-foreground">
+                {selectedFile ? `Fichier sélectionné : ${selectedFile.name}` : 'Glissez-déposez ou cliquez pour choisir un fichier'}
+              </p>
+            </div>
 
+            {selectedFile && (
+              <div className="space-y-4">
+                <Input
+                    type="text"
+                    placeholder="Nom personnalisé (optionnel)"
+                    value={customName}
+                    onChange={(e) => setCustomName(e.target.value)}
+                  />
+                <Button 
+                  onClick={handleUpload} 
+                  disabled={status.state === 'uploading'} 
+                  className="w-full"
+                >
+                  {status.state === 'uploading' ? 'Téléversement en cours...' : 'Démarrer le téléversement'}
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="url" className="mt-4 space-y-4">
+            <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">Collez l'URL d'une image accessible publiquement.</p>
+                <Input
+                    type="url"
+                    placeholder="https://exemple.com/image.jpg"
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                />
+            </div>
+            <Button 
+                onClick={handleUrlUpload} 
+                disabled={status.state === 'uploading' || !imageUrl.trim()} 
+                className="w-full"
+            >
+                {status.state === 'uploading' ? 'Enregistrement...' : 'Ajouter le lien'}
+            </Button>
+          </TabsContent>
+        </Tabs>
+        
         {status.state === 'uploading' && <Progress value={status.progress} />}
         
         {status.state === 'error' && (
@@ -140,7 +211,7 @@ export function Uploader() {
 
         {status.state === 'success' && (
           <div className="space-y-3 rounded-md border bg-muted/50 p-4">
-            <h4 className="font-medium text-sm">Téléversement réussi !</h4>
+            <h4 className="font-medium text-sm">Opération réussie !</h4>
             <div className="flex items-center gap-2">
                 <Input readOnly value={status.url} className="bg-background"/>
                 <Button variant="ghost" size="icon" onClick={() => copyToClipboard(status.url, 'url')}>

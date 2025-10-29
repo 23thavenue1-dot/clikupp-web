@@ -20,13 +20,13 @@ import type { User } from 'firebase/auth';
 export type ImageMetadata = {
   id: string;
   userId: string;
-  originalName: string;
-  storagePath: string;
+  originalName?: string;
+  storagePath?: string;
   directUrl: string;
   bbCode: string;
   htmlCode: string;
-  mimeType: string;
-  fileSize: number;
+  mimeType?: string;
+  fileSize?: number;
   uploadTimestamp: any; // Firestore server timestamp.
   likeCount: number;
 };
@@ -72,6 +72,38 @@ export function saveImageMetadata(firestore: Firestore, user: User, metadata: Om
         });
 }
 
+/**
+ * Sauvegarde les métadonnées d'une image depuis une URL dans Firestore.
+ * @param firestore L'instance Firestore.
+ * @param user L'objet utilisateur authentifié.
+ * @param metadata Les métadonnées de l'image à sauvegarder.
+ */
+export function saveImageFromUrl(firestore: Firestore, user: User, metadata: Omit<ImageMetadata, 'id' | 'userId' | 'uploadTimestamp' | 'likeCount' | 'originalName' | 'storagePath' | 'mimeType' | 'fileSize'>) {
+    const imagesCollectionRef = collection(firestore, 'users', user.uid, 'images');
+
+    const dataToSave = {
+        ...metadata,
+        userId: user.uid,
+        uploadTimestamp: serverTimestamp(),
+        likeCount: 0,
+        originalName: new URL(metadata.directUrl).pathname.split('/').pop() || 'image-from-url',
+    };
+
+    return addDoc(imagesCollectionRef, dataToSave)
+        .then(docRef => {
+            return updateDoc(docRef, { id: docRef.id });
+        })
+        .catch(error => {
+            console.error("Erreur lors de la sauvegarde des métadonnées de l'image :", error);
+            const permissionError = new FirestorePermissionError({
+                path: imagesCollectionRef.path,
+                operation: 'create',
+                requestResourceData: dataToSave,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            throw error;
+        });
+}
 
 /**
  * Sauvegarde une nouvelle note pour l'utilisateur dans Firestore.
