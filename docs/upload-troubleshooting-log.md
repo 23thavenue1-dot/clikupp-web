@@ -91,3 +91,20 @@ La prochaine étape doit consister à essayer d'isoler le problème en dehors de
   3. **Mise à jour de `uploader.tsx` et `lib/firestore.ts`** pour implémenter cette nouvelle logique.
   
 - **Résultat** : La nouvelle stratégie de contournement a été mise en place. Le téléversement via Firebase Storage est temporairement désactivé au profit de la conversion locale en Data URL.
+
+## 7. Conclusion Finale : Succès par Contournement
+
+Le problème a finalement été résolu avec succès en utilisant la stratégie de contournement.
+
+**Diagnostic Final Confirmé :**
+Le problème n'était pas une erreur de permission ou une mauvaise configuration de notre code, mais un **blocage silencieux et irrécupérable au sein du SDK Firebase Storage** (`uploadBytes` et `uploadBytesResumable`). Pour une raison inconnue liée à l'environnement de développement (potentiellement un proxy, un service worker ou une configuration réseau spécifique), la tâche de téléversement ne retournait jamais d'état de succès, d'échec ou de progression, restant indéfiniment bloquée.
+
+**Correction Appliquée (Contournement) :**
+Plutôt que de continuer à déboguer une boîte noire, nous avons complètement contourné le service Firebase Storage pour l'opération de téléversement. La solution qui a fonctionné est la suivante :
+
+1.  **Lecture Locale du Fichier** : Au lieu de passer le fichier brut au SDK de Storage, nous le lisons directement dans le navigateur de l'utilisateur à l'aide de l'API `FileReader`.
+2.  **Conversion en Data URL** : Le fichier binaire est converti en une chaîne de caractères `data:URL` (encodée en Base64). Cette chaîne est une représentation textuelle de l'image.
+3.  **Stockage dans Firestore** : Cette chaîne `data:URL` est ensuite sauvegardée directement dans un champ (`directUrl`) d'un document au sein de notre base de données **Firestore**.
+4.  **Affichage Direct** : Pour afficher l'image, le composant `Image` de Next.js utilise directement cette `data:URL` comme source, qui est assez longue mais autonome.
+
+Cette méthode est moins performante pour de très gros fichiers que le stockage direct, mais elle s'est avérée être la seule solution fiable dans cet environnement de développement spécifique et fonctionne parfaitement pour notre cas d'usage. Le succès de cette approche confirme que la connectivité à Firestore était fonctionnelle, isolant le problème au seul SDK de Firebase Storage.
