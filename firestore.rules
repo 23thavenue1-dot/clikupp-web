@@ -1,101 +1,142 @@
+/**
+ * @file Firebase Security Rules for the image uploading application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for user profiles, images, and notes, ensuring that users can only access their own data.
+ * Additionally, it incorporates an admin role which can be granted to specific user to allow for elevated access.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profile information.  Access is restricted to the user themselves.
+ * - /users/{userId}/images/{imageId}: Stores images uploaded by a specific user. Access is restricted to the owning user.
+ * - /users/{userId}/notes/{noteId}: Stores notes created by a specific user. Access is restricted to the owning user.
+ * - /roles_admin/{adminId}: Documents in this collection grant admin privileges to the user whose ID matches the document ID.
+ *
+ * Key Security Decisions:
+ * - User data is private and only accessible to the owning user.
+ * - Listing of user documents is disallowed to prevent enumeration.
+ * - Admin roles are managed through the /roles_admin collection. The existence of a document for a given user ID confers admin status.
+ *
+ * Denormalization for Authorization:
+ * - The rules rely on path-based ownership.  The `userId` is embedded in the path.
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper Functions
+    /**
+     * @description Checks if the request is authenticated.
+     * @return {boolean} True if the request is authenticated, false otherwise.
+     */
     function isSignedIn() {
       return request.auth != null;
     }
 
+    /**
+     * @description Checks if the authenticated user's ID matches the provided userId.
+     * @param {string} userId - The user ID to compare against the authenticated user's ID.
+     * @return {boolean} True if the user IDs match, false otherwise.
+     */
     function isOwner(userId) {
-      return request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId;
     }
 
+    /**
+     * @description Checks if the authenticated user is an existing owner of the document.
+     * @param {string} userId - The user ID to check for ownership.
+     * @return {boolean} True if the user is an existing owner, false otherwise.
+     */
     function isExistingOwner(userId) {
       return isOwner(userId) && resource != null;
     }
 
+    /**
+     * @description Checks if the authenticated user is an admin.
+     * @return {boolean} True if the user is an admin, false otherwise.
+     */
     function isAdmin() {
       return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
     /**
-     * @description Enforces owner-only access for user profiles.
+     * @description Rules for user profile documents.
      * @path /users/{userId}
      * @allow (create) User 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' can create their own profile.
-     * @allow (get) User 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' can get their own profile.
+     * @allow (get) User 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' can read their own profile.
      * @allow (update) User 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' can update their own profile.
      * @allow (delete) User 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' can delete their own profile.
-     * @deny (create) User 'otherUserId' cannot create a profile for 'lflVJTBNAJQZWlAucsmCg8ZqcZv1'.
-     * @deny (get) User 'otherUserId' cannot get the profile for 'lflVJTBNAJQZWlAucsmCg8ZqcZv1'.
-     * @deny (update) User 'otherUserId' cannot update the profile for 'lflVJTBNAJQZWlAucsmCg8ZqcZv1'.
-     * @deny (delete) User 'otherUserId' cannot delete the profile for 'lflVJTBNAJQZWlAucsmCg8ZqcZv1'.
-     * @principle Enforces document ownership for writes and reads.
+     * @deny (create) User 'otherUserId' cannot create a profile with ID 'lflVJTBNAJQZWlAucsmCg8ZqcZv1'.
+     * @deny (get) User 'otherUserId' cannot read the profile of user 'lflVJTBNAJQZWlAucsmCg8ZqcZv1'.
+     * @deny (update) User 'otherUserId' cannot update the profile of user 'lflVJTBNAJQZWlAucsmCg8ZqcZv1'.
+     * @deny (delete) User 'otherUserId' cannot delete the profile of user 'lflVJTBNAJQZWlAucsmCg8ZqcZv1'.
+     * @principle Enforces document ownership for writes and restricts access to a user's own profile.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Enforces owner-only access for images within a user's subcollection.
+     * @description Rules for image documents within a user's subcollection.
      * @path /users/{userId}/images/{imageId}
-     * @allow (create) User 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' can create an image in their own subcollection.
-     * @allow (get) Any user can read the image data.
-     * @allow (list) User 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' can list images in their own subcollection.
-     * @allow (update) User 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' can update an image in their own subcollection.
-     * @allow (delete) User 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' can delete an image in their own subcollection.
-     * @deny (create) User 'otherUserId' cannot create an image in 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' subcollection.
-     * @deny (update) User 'otherUserId' cannot update an image in 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' subcollection.
-     * @deny (delete) User 'otherUserId' cannot delete an image in 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' subcollection.
-     * @principle Enforces document ownership for writes, allows public reads.
+     * @allow (create) User 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' can create an image document under their profile.
+     * @allow (get) User 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' can read an image document under their profile.
+     * @allow (list) User 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' can list image documents under their profile.
+     * @allow (update) User 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' can update an image document under their profile.
+     * @allow (delete) User 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' can delete an image document under their profile.
+     * @deny (create) User 'otherUserId' cannot create an image document under user 'lflVJTBNAJQZWlAucsmCg8ZqcZv1's profile.
+     * @deny (get) User 'otherUserId' cannot read an image document under user 'lflVJTBNAJQZWlAucsmCg8ZqcZv1's profile.
+     * @deny (list) User 'otherUserId' cannot list image documents under user 'lflVJTBNAJQZWlAucsmCg8ZqcZv1's profile.
+     * @deny (update) User 'otherUserId' cannot update an image document under user 'lflVJTBNAJQZWlAucsmCg8ZqcZv1's profile.
+     * @deny (delete) User 'otherUserId' cannot delete an image document under user 'lflVJTBNAJQZWlAucsmCg8ZqcZv1's profile.
+     * @principle Enforces document ownership for writes and restricts access to a user's own images.
      */
     match /users/{userId}/images/{imageId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
-    }
-
-     /**
-      * @description Enforces owner-only access for notes within a user's subcollection.
-      * @path /users/{userId}/notes/{noteId}
-      * @allow (create) User 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' can create a note in their own subcollection.
-      * @allow (get) User 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' can get a note in their own subcollection.
-      * @allow (list) User 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' can list notes in their own subcollection.
-      * @allow (update) User 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' can update a note in their own subcollection.
-      * @allow (delete) User 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' can delete a note in their own subcollection.
-      * @deny (create) User 'otherUserId' cannot create a note in 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' subcollection.
-      * @deny (get) User 'otherUserId' cannot get a note in 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' subcollection.
-      * @deny (list) User 'otherUserId' cannot list notes in 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' subcollection.
-      * @deny (update) User 'otherUserId' cannot update a note in 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' subcollection.
-      * @deny (delete) User 'otherUserId' cannot delete a note in 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' subcollection.
-      * @principle Enforces document ownership for reads and writes.
-      */
-     match /users/{userId}/notes/{noteId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Grants admin access to users with a document in this collection.
+     * @description Rules for note documents within a user's subcollection.
+     * @path /users/{userId}/notes/{noteId}
+     * @allow (create) User 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' can create a note under their profile.
+     * @allow (get) User 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' can read a note under their profile.
+     * @allow (list) User 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' can list notes under their profile.
+     * @allow (update) User 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' can update a note under their profile.
+     * @allow (delete) User 'lflVJTBNAJQZWlAucsmCg8ZqcZv1' can delete a note under their profile.
+     * @deny (create) User 'otherUserId' cannot create a note under user 'lflVJTBNAJQZWlAucsmCg8ZqcZv1's profile.
+     * @deny (get) User 'otherUserId' cannot read a note under user 'lflVJTBNAJQZWlAucsmCg8ZqcZv1's profile.
+     * @deny (list) User 'otherUserId' cannot list notes under user 'lflVJTBNAJQZWlAucsmCg8ZqcZv1's profile.
+     * @deny (update) User 'otherUserId' cannot update a note under user 'lflVJTBNAJQZWlAucsmCg8ZqcZv1's profile.
+     * @deny (delete) User 'otherUserId' cannot delete a note under user 'lflVJTBNAJQZWlAucsmCg8ZqcZv1's profile.
+     * @principle Enforces document ownership for writes and restricts access to a user's own notes.
+     */
+    match /users/{userId}/notes/{noteId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rules for admin role documents. The existence of a document in this collection grants admin privileges to the user.
      * @path /roles_admin/{adminId}
-     * @allow (create) Only admins can create admin roles (unusual, but supported for completeness).
-     * @allow (get) Any admin can read any admin role.
-     * @allow (update) Any admin can update any admin role.
-     * @allow (delete) Any admin can delete any admin role.
-     * @deny (create) Non-admins cannot create admin roles.
-     * @deny (get) Non-admins cannot read admin roles.
-     * @deny (update) Non-admins cannot update admin roles.
-     * @deny (delete) Non-admins cannot delete admin roles.
-     * @principle Role-based access control for administrative privileges.
+     * @allow (create) Only an existing admin can create a new admin role document.
+     * @allow (get) Only an existing admin can read an admin role document.
+     * @allow (list) Listing of admin roles is disallowed.
+     * @allow (update) Only an existing admin can update an admin role document.
+     * @allow (delete) Only an existing admin can delete an admin role document.
+     * @deny (create) A non-admin user cannot create an admin role document.
+     * @deny (get) A non-admin user cannot read an admin role document.
+     * @deny (update) A non-admin user cannot update an admin role document.
+     * @deny (delete) A non-admin user cannot delete an admin role document.
+     * @principle Implements role-based access control for admin privileges.
      */
     match /roles_admin/{adminId} {
       allow get: if isAdmin();
