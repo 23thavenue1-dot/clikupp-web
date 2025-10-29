@@ -9,7 +9,11 @@ export type ImagePlaceholder = {
   originalName?: string;
   directUrl?: string;
   userId?: string;
-  likeCount?: number;
+  likeCount: number; // Make this required
 };
 
-export const PlaceHolderImages: ImagePlaceholder[] = data.placeholderImages;
+// Map over the raw data to add the default likeCount
+export const PlaceHolderImages: ImagePlaceholder[] = data.placeholderImages.map(img => ({
+  ...img,
+  likeCount: 0,
+}));
