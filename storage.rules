@@ -1,18 +1,9 @@
-
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Règle par défaut : refuser tout par défaut pour plus de sécurité.
-    allow read, write: if false;
-
-    // Autoriser un utilisateur authentifié à lire et écrire dans son propre dossier d'images.
     match /users/{userId}/images/{imageId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      // Permettre la lecture et l'écriture uniquement si l'utilisateur est le propriétaire.
-      allow read, write: if isOwner(userId);
+      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
