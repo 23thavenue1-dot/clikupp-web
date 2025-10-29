@@ -2,10 +2,9 @@
 
 import {
   ref as storageRef,
-  uploadBytesResumable,
+  uploadBytes,
   getDownloadURL,
   deleteObject,
-  type UploadTask,
   type FirebaseStorage,
 } from 'firebase/storage';
 import type { User } from 'firebase/auth';
@@ -48,7 +47,7 @@ const friendlyStorageError = (e: unknown) => {
     case 'storage/object-not-found':
       return 'Le fichier est introuvable dans l\'espace de stockage.';
     default:
-      return fe?.message || 'Une erreur inconnue est survenue lors de l\'opération de stockage.';
+      return fe?.message || 'Une erreur inconnue est survenue lors de l’opération de stockage.';
   }
 };
 
@@ -79,17 +78,16 @@ const inferImageMimeFromName = (name: string): string | null => {
 
 
 // -----------------------------
-// Upload
+// Upload (avec uploadBytes)
 // -----------------------------
-export function uploadImage(
+export async function uploadImage(
   storage: FirebaseStorage,
   user: User,
   file: File,
   customName: string,
-  onProgress: (progress: number) => void,
-  onError: (error: Error) => void,
-  onComplete: (downloadURL: string, storagePath: string) => void
-): UploadTask {
+  onComplete: (downloadURL: string, storagePath: string) => void,
+  onError: (error: Error) => void
+): Promise<void> {
   
   if (!user?.uid) {
     const error = new Error('Utilisateur non authentifié.');
@@ -113,7 +111,6 @@ export function uploadImage(
     throw error;
   }
 
-
   const safeCustom = (customName || '').trim();
   const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
   const baseName = safeCustom
@@ -128,47 +125,37 @@ export function uploadImage(
   const finalContentType =
     (file.type && /^image\/.+/i.test(file.type) ? file.type : null) ||
     guessedMime ||
-    'image/jpeg'; // Fallback to a valid image MIME type
+    'image/jpeg'; // Fallback
 
-  const task = uploadBytesResumable(ref, file, {
-    contentType: finalContentType,
-    customMetadata: { uid: user.uid },
-  });
+  try {
+    // Étape 1 : S'assurer que le token d'authentification est à jour
+    await getIdToken(user, true);
 
-  task.on(
-    'state_changed',
-    (snap) => {
-      const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
-      onProgress(pct);
-    },
-    async (err: any) => {
-      // Force token refresh on error to ensure auth state is not stale
-      await getIdToken(user, true);
+    // Étape 2 : Utiliser uploadBytes pour un téléversement direct et simple
+    const snapshot = await uploadBytes(ref, file, {
+      contentType: finalContentType,
+      customMetadata: { uid: user.uid },
+    });
 
-      console.group('[Storage Upload Error]');
-      console.log('code:', err?.code);
-      console.log('message:', err?.message);
-      console.log('name:', err?.name);
-      console.log('serverResponse:', err?.serverResponse);
-      console.log('httpStatus:', err?.httpStatus);
-      console.log('>> debug contentType used:', finalContentType);
-      console.log('>> file.type seen by browser:', file.type);
-      console.log('>> path:', ref.fullPath, 'bucket:', ref.storage.bucket);
-      console.groupEnd();
+    // Étape 3 : Obtenir l'URL de téléchargement
+    const url = await getDownloadURL(snapshot.ref);
 
-      onError(new Error(friendlyStorageError(err)));
-    },
-    async () => {
-      try {
-        const url = await getDownloadURL(task.snapshot.ref);
-        onComplete(url, finalStoragePath);
-      } catch (e) {
-          onError(new Error(friendlyStorageError(e)));
-      }
-    }
-  );
+    // Étape 4 : Appeler le callback de succès
+    onComplete(url, finalStoragePath);
 
-  return task;
+  } catch (err: any) {
+    // Gérer toutes les erreurs ici
+    console.group('[Storage Upload Error with uploadBytes]');
+    console.log('code:', err?.code);
+    console.log('message:', err?.message);
+    console.log('name:', err?.name);
+    console.log('>> debug contentType used:', finalContentType);
+    console.log('>> file.type seen by browser:', file.type);
+    console.log('>> path:', ref.fullPath, 'bucket:', ref.storage.bucket);
+    console.groupEnd();
+
+    onError(new Error(friendlyStorageError(err)));
+  }
 }
 
 

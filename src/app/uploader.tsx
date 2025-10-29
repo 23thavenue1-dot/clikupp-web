@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
@@ -15,13 +14,11 @@ import { UploadCloud, Copy, Check, Link, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import type { UploadTask } from 'firebase/storage';
-
 
 // État pour gérer le processus de téléversement
 type UploadStatus = 
   | { state: 'idle' } // Attente
-  | { state: 'uploading'; progress: number } // En cours
+  | { state: 'uploading' } // En cours (sans progression)
   | { state: 'success'; url: string; bbCode: string; htmlCode: string } // Terminé
   | { state: 'error'; message: string }; // Erreur
 
@@ -39,7 +36,6 @@ export function Uploader() {
   const [customName, setCustomName] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const taskRef = useRef<UploadTask | null>(null);
   const [copied, setCopied] = useState<'url' | 'bb' | 'html' | null>(null);
 
   const resetFileInput = () => {
@@ -87,7 +83,7 @@ export function Uploader() {
         return;
     }
     
-    setStatus({ state: 'uploading', progress: 50 }); // On peut choisir de montrer un spinner simple
+    setStatus({ state: 'uploading' }); 
 
     try {
       const bbCode = `[img]${imageUrl}[/img]`;
@@ -117,44 +113,52 @@ export function Uploader() {
       return;
     }
     
-    setStatus({ state: 'uploading', progress: 0 });
+    setStatus({ state: 'uploading' });
 
     try {
-        taskRef.current = uploadImage(
+        await uploadImage(
             storage,
             user,
             selectedFile,
             customName,
-            (progress) => setStatus({ state: 'uploading', progress }),
-            (error) => {
-                 setStatus({ state: 'error', message: error.message });
-                 toast({ variant: 'destructive', title: 'Erreur de téléversement', description: error.message });
-                 resetFileInput();
-            },
+            // onComplete
             async (directUrl, storagePath) => {
                 const bbCode = `[img]${directUrl}[/img]`;
                 const htmlCode = `<img src="${directUrl}" alt="Image téléversée" />`;
 
-                await saveImageMetadata(firestore, user, {
-                    originalName: selectedFile.name,
-                    fileSize: selectedFile.size,
-                    mimeType: selectedFile.type,
-                    storagePath,
-                    directUrl,
-                    bbCode,
-                    htmlCode,
-                });
+                try {
+                    await saveImageMetadata(firestore, user, {
+                        originalName: selectedFile.name,
+                        fileSize: selectedFile.size,
+                        mimeType: selectedFile.type,
+                        storagePath,
+                        directUrl,
+                        bbCode,
+                        htmlCode,
+                    });
 
-                setStatus({ state: 'success', url: directUrl, bbCode, htmlCode });
-                toast({ title: 'Succès', description: 'Votre image a été téléversée et enregistrée.' });
-                resetFileInput();
-                setCustomName('');
+                    setStatus({ state: 'success', url: directUrl, bbCode, htmlCode });
+                    toast({ title: 'Succès', description: 'Votre image a été téléversée et enregistrée.' });
+                    resetFileInput();
+                    setCustomName('');
+                } catch(firestoreError) {
+                     const errorMessage = (firestoreError as Error).message;
+                     setStatus({ state: 'error', message: `Erreur Firestore: ${errorMessage}` });
+                     toast({ variant: 'destructive', title: 'Erreur Firestore', description: errorMessage });
+                }
+            },
+            // onError
+            (error) => {
+                 setStatus({ state: 'error', message: error.message });
+                 toast({ variant: 'destructive', title: 'Erreur de téléversement', description: error.message });
+                 resetFileInput();
             }
         );
     } catch (error) {
+        // This catch block might be redundant if uploadImage handles all its errors, but it's safe to keep.
         const errorMessage = (error as Error).message;
         setStatus({ state: 'error', message: errorMessage });
-        toast({ variant: 'destructive', title: 'Erreur de téléversement', description: errorMessage });
+        toast({ variant: 'destructive', title: 'Erreur inattendue', description: errorMessage });
         resetFileInput();
     }
   }, [selectedFile, customName, user, storage, firestore, toast]);
@@ -258,7 +262,12 @@ export function Uploader() {
           </TabsContent>
         </Tabs>
         
-        {status.state === 'uploading' && <Progress value={status.progress} />}
+        {status.state === 'uploading' && (
+          <div className="text-sm text-center text-muted-foreground flex items-center justify-center">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <span>Téléversement, veuillez patienter...</span>
+          </div>
+        )}
         
         {status.state === 'error' && (
           <p className="text-sm text-destructive">{status.message}</p>
