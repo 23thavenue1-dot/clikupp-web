@@ -1,102 +1,129 @@
 /**
- * @file Firebase Security Rules for Image Uploading Application
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for images and notes,
- * ensuring that only authenticated users can access their own data.
- * Additionally, it provides a mechanism for granting admin privileges.
+ * @file Firebase Security Rules for Firestore.
+ * @description This ruleset enforces a strict user-ownership model for user profiles, images, and notes,
+ *              with an additional admin role based on document existence in a dedicated collection.
  *
  * Data Structure:
- * - Users: `/users/{userId}` stores user profile information.
- * - Images: `/users/{userId}/images/{imageId}` stores image data associated with a user.
- * - Notes: `/users/{userId}/notes/{noteId}` stores user's notes.
- * - Admins: `/roles_admin/{adminId}` stores admin role, the mere existence of this doc grants admin permissions.
+ * - /users/{userId}: Stores user profile information; only the user can read/write their own profile.
+ * - /users/{userId}/images/{imageId}: Stores image metadata; only the user can read/write images they own.
+ * - /users/{userId}/notes/{noteId}: Stores notes; only the user can read/write their own notes.
+ * - /roles_admin/{adminId}: Presence of a document grants admin privileges.
  *
  * Key Security Decisions:
- * - Users can only create, read, update, and delete their own user documents.
- * - Users can only create, read, update, and delete images associated with their own user ID.
- * - Users can only create, read, update, and delete notes associated with their own user ID.
- * - Listing images and notes is restricted to the owner.
- * - Admin privileges are granted to users who have a document in the `/roles_admin/{adminId}` collection.
+ * - Users can only access their own data (profiles, images, notes).
+ * - Listing of all users is disallowed.
+ * - Admin privileges are granted based on the presence of a document in the /roles_admin collection.
  *
  * Denormalization for Authorization:
- * - The `userId` is embedded in the path for both images and notes,
- *   allowing us to easily check ownership without additional `get()` calls.
+ *   Path-based ownership is used to avoid additional reads. The userId is embedded in the document path
+ *   (e.g., /users/{userId}/images/{imageId}), which simplifies authorization checks.
+ *
+ * Structural Segregation:
+ *   User data and admin roles are stored in separate collections to simplify access control.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows users to manage their own profile data.
+     * @description Checks if the requesting user is signed in.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the requesting user is the owner of the resource based on the provided userId.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the requesting user is the owner of the resource, and the resource exists
+     *              This is used for update and delete operations to ensure the document exists before attempting to modify it.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Checks if the requesting user has admin privileges based on the existence of a document
+     *              in the /roles_admin/{adminId} collection where the document ID matches the user's UID.
+     */
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+
+    /**
+     * @description Defines access rules for user profile documents.
      * @path /users/{userId}
-     * @allow (create) - User 'abc' can create their profile if request.auth.uid == 'abc'.
-     * @allow (get, update, delete) - User 'abc' can get, update or delete their profile if request.auth.uid == 'abc'.
-     * @deny (create, get, update, delete) - User 'def' cannot perform any operation on user 'abc' profile.
-     * @principle Enforces document ownership for user profiles.
+     * @allow (create) Signed-in user can create their own profile.
+     * @allow (get, update, delete) Signed-in user can only access their own profile.
+     * @deny (create) An unauthenticated user cannot create a user profile.
+     * @deny (get, update, delete) Signed-in user cannot access another user's profile.
+     * @principle Enforces user-ownership for accessing profile information.
      */
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-      allow create: if isOwner(userId) && request.resource.data.id == request.auth.uid;
-      allow get, update, delete: if isOwner(userId) && resource.data.id == userId;
+      allow get: if isOwner(userId);
       allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == request.auth.uid;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Allows users to manage their own images.
+     * @description Defines access rules for image documents nested under a user's profile.
      * @path /users/{userId}/images/{imageId}
-     * @allow (create) - User 'abc' can create an image in their images collection if request.auth.uid == 'abc'.
-     * @allow (get, update, delete) - User 'abc' can get, update or delete an image in their images collection if request.auth.uid == 'abc'.
-     * @deny (create, get, update, delete) - User 'def' cannot perform any operation on user 'abc' images.
-     * @principle Enforces document ownership for images.
+     * @allow (create) Signed-in user can create images under their own profile.
+     * @allow (get, list, update, delete) Signed-in user can only access images under their own profile.
+     * @deny (create) An unauthenticated user cannot create images.
+     * @deny (get, list, update, delete) Signed-in user cannot access images under another user's profile.
+     * @principle Enforces user-ownership for accessing images.
      */
     match /users/{userId}/images/{imageId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
-      allow get, update, delete: if isOwner(userId) && resource.data.userId == userId;
+      allow get: if isOwner(userId);
       allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
     }
 
-    /**
-     * @description Allows users to manage their own notes.
-     * @path /users/{userId}/notes/{noteId}
-     * @allow (create) - User 'abc' can create a note in their notes collection if request.auth.uid == 'abc'.
-     * @allow (get, update, delete) - User 'abc' can get, update or delete a note in their notes collection if request.auth.uid == 'abc'.
-     * @deny (create, get, update, delete) - User 'def' cannot perform any operation on user 'abc' notes.
-     * @principle Enforces document ownership for notes.
-     */
+     /**
+      * @description Defines access rules for notes documents nested under a user's profile.
+      * @path /users/{userId}/notes/{noteId}
+      * @allow (create) Signed-in user can create notes under their own profile.
+      * @allow (get, list, update, delete) Signed-in user can only access notes under their own profile.
+      * @deny (create) An unauthenticated user cannot create notes.
+      * @deny (get, list, update, delete) Signed-in user cannot access notes under another user's profile.
+      * @principle Enforces user-ownership for accessing notes.
+      */
     match /users/{userId}/notes/{noteId} {
-          function isOwner(userId) {
-            return request.auth != null && request.auth.uid == userId;
-          }
-
-          allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
-          allow get, update, delete: if isOwner(userId) && resource.data.userId == userId;
-          allow list: if isOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Allows admin users to be defined by their presence in the collection.
+     * @description Defines access rules for admin role documents.
      * @path /roles_admin/{adminId}
-     * @allow (create) - Any authorized user with ID 'abc' can create an admin record for themselves.
-     * @allow (get) - Any authorized user with ID 'abc' can read the admin record for themselves.
-     * @allow (update, delete) - Only the user can update or delete their admin record.
-     * @deny (create, get, update, delete) - User 'def' cannot perform any operation on user 'abc' admin records.
-     * @principle Implements a simple admin role based on document existence.
+     * @allow (get) Any signed-in user can check if an admin role exists.
+     * @allow (create) Only an existing admin can create another admin role.
+     * @allow (update) Only an existing admin can update another admin role.
+     * @allow (delete) Only an existing admin can delete another admin role.
+     * @deny (get) An unauthenticated user cannot get admin roles.
+     * @deny (create, update, delete) A non-admin user cannot create, update, or delete admin roles.
+     * @principle Enforces admin-only access for managing admin roles.
      */
     match /roles_admin/{adminId} {
-      function isOwner(adminId) {
-        return request.auth != null && request.auth.uid == adminId;
-      }
-      allow create: if isOwner(adminId);
-      allow get: if isOwner(adminId);
-      allow update, delete: if isOwner(adminId);
+      allow get: if isSignedIn();
       allow list: if false;
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
   }
 }
