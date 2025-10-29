@@ -1,32 +1,10 @@
-
 rules_version = '2';
 
-/**
- * @name Firebase Storage Security Rules
- * @description
- * These rules grant access to a node, the paths below it, and the files
- * stored in those paths. They DON'T grant access to nodes elsewhere in your
- * database. You can find more information about these rules in the Firebase
- * documentation.
- */
 service firebase.storage {
-  /**
-   * @name Bucket Match
-   * @description
-   * The {bucket} wildcard indicates we want our rules to apply to any of the
-   * storage buckets in our project.
-   */
   match /b/{bucket}/o {
-
-    /**
-     * @name User Uploads
-     * @description
-     * The rule below allows an authenticated user to read, write, and delete
-     * files within their own user-specific folder under the 'uploads/' directory.
-     * The {userId} wildcard ensures that users can only access their own files.
-     * For example, a user with ID '123' can access 'uploads/123/image.jpg', but
-     * not 'uploads/456/image.jpg'.
-     */
+    // Les utilisateurs ne peuvent lire et écrire que dans leur propre dossier.
+    // Le chemin d'accès doit correspondre à ce qui est utilisé dans le code (src/lib/storage.ts),
+    // qui est `uploads/{userId}/{fileName}`.
     match /uploads/{userId}/{allPaths=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
