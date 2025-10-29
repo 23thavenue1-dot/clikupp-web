@@ -1,9 +1,12 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    match /users/{userId}/images/{imageId} {
-      allow write: if request.auth != null && request.auth.uid == userId;
-      allow read: if request.auth != null && request.auth.uid == userId;
+    // Fait correspondre n'importe quel fichier dans le dossier images d'un utilisateur.
+    match /users/{userId}/images/{fileName} {
+      // Permet la lecture (read) et l'écriture (create, update, delete)
+      // si et seulement si l'utilisateur demandeur est authentifié
+      // et que son UID correspond au {userId} dans le chemin du fichier.
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
