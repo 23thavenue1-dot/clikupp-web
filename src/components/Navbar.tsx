@@ -34,7 +34,7 @@ export function Navbar() {
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
         <Link href="/" className="flex items-center gap-2 text-lg font-bold">
           <ImageIcon className="h-6 w-6 text-primary" />
-          <span>Firebase Uploader</span>
+          <span>Téléchargeur Firebase</span>
         </Link>
 
         <div className="flex items-center gap-4">
