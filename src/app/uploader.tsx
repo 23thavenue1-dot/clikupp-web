@@ -35,9 +35,6 @@ export function Uploader() {
   
   const resetState = () => {
     setStatus({ state: 'idle' });
-    setSelectedFile(null);
-    setCustomName('');
-    setImageUrl('');
     setCopied(null);
   }
 
@@ -45,13 +42,23 @@ export function Uploader() {
     const file = event.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      resetState();
+      // Réinitialiser l'état spécifique au téléversement de fichier
       setStatus({ state: 'idle' });
+      setCustomName('');
+      setCopied(null);
     }
   };
   
   const handleTabChange = () => {
-    resetState();
+    // Réinitialisation complète lors du changement d'onglet
+    setStatus({ state: 'idle' });
+    setSelectedFile(null);
+    setCustomName('');
+    setImageUrl('');
+    setCopied(null);
+    if(fileInputRef.current) {
+        fileInputRef.current.value = '';
+    }
   };
 
   const handleUrlUpload = async () => {
