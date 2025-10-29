@@ -46,32 +46,32 @@ export type Note = {
  * @param metadata Les métadonnées de l'image à sauvegarder.
  */
 export async function saveImageMetadata(firestore: Firestore, user: User, metadata: Omit<ImageMetadata, 'id' | 'userId' | 'uploadTimestamp' | 'likeCount'>) {
-    // Crée une référence à un nouveau document avec un ID unique dans la sous-collection 'images' de l'utilisateur.
-    const imageDocRef = doc(collection(firestore, 'users', user.uid, 'images'));
+    const imagesCollectionRef = collection(firestore, 'users', user.uid, 'images');
 
-    // Construit l'objet de données complet à sauvegarder.
-    // L'ID du document est inclus dans les données pour respecter les règles de sécurité.
-    const dataToSave: ImageMetadata = {
+    // On utilise addDoc, comme pour les notes.
+    const dataToSave: Omit<ImageMetadata, 'id'> = {
         ...metadata,
-        id: imageDocRef.id,
         userId: user.uid,
         uploadTimestamp: serverTimestamp(),
-        likeCount: 0
+        likeCount: 0,
+        // On laisse l'ID vide pour le moment
+        id: '' 
     };
 
-    // Utilise setDoc pour enregistrer le document.
-    return setDoc(imageDocRef, dataToSave)
+    return addDoc(imagesCollectionRef, dataToSave)
+        .then(docRef => {
+            // Une fois le document créé, on le met à jour avec son propre ID.
+            // C'est une étape cruciale pour que les règles de sécurité fonctionnent.
+            return updateDoc(docRef, { id: docRef.id });
+        })
         .catch(error => {
             console.error("Erreur lors de la sauvegarde des métadonnées de l'image :", error);
-            // Crée une erreur contextuelle pour le débogage.
             const permissionError = new FirestorePermissionError({
-                path: imageDocRef.path,
+                path: imagesCollectionRef.path,
                 operation: 'create',
                 requestResourceData: dataToSave,
             });
-            // Émet l'erreur pour qu'elle soit interceptée et affichée.
             errorEmitter.emit('permission-error', permissionError);
-            // Relaie l'erreur pour que le composant appelant puisse réagir.
             throw error;
         });
 }
