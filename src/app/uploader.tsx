@@ -202,8 +202,11 @@ export function Uploader() {
                 disabled={status.state === 'uploading'}
               />
               <UploadCloud className="h-12 w-12 text-muted-foreground" />
-              <p className="mt-4 text-sm text-muted-foreground">
+              <p className="mt-4 text-sm font-medium text-foreground">
                 {selectedFile ? `Fichier sélectionné : ${selectedFile.name}` : 'Glissez-déposez ou cliquez pour choisir un fichier'}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Fichiers supportés : JPG, PNG, GIF, WEBP
               </p>
             </div>
 
@@ -297,5 +300,3 @@ export function Uploader() {
     </Card>
   );
 }
-
-    
