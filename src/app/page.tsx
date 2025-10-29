@@ -31,6 +31,7 @@ import { uploadImage } from '@/lib/storage';
 import { saveImageMetadata } from '@/lib/firestore';
 import { useAuth, useStorage, useFirestore } from '@/firebase';
 import { ImageGallery } from './gallery';
+import { doc, collection } from 'firebase/firestore';
 
 
 type Stage = 'idle' | 'preview' | 'uploading' | 'success';
@@ -143,12 +144,19 @@ export default function Home() {
         const bbCode = `[img]${downloadURL}[/img]`;
         const htmlCode = `<img src="${downloadURL}" alt="${imageName}" />`;
         
+        // Generate a new document ID client-side
+        const imageId = doc(collection(firestore, 'users', user.uid, 'images')).id;
+
         saveImageMetadata(firestore, user, {
+          id: imageId,
           originalName: file.name,
           storagePath: storagePath,
           directUrl: downloadURL,
           mimeType: file.type,
           fileSize: file.size,
+          bbCode: bbCode,
+          htmlCode: htmlCode,
+          likeCount: 0,
         });
   
         setResult({
