@@ -32,11 +32,6 @@ export function Uploader() {
   const [imageUrl, setImageUrl] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [copied, setCopied] = useState<'url' | 'bb' | 'html' | null>(null);
-  
-  const resetState = () => {
-    setStatus({ state: 'idle' });
-    setCopied(null);
-  }
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -81,6 +76,7 @@ export function Uploader() {
 
       setStatus({ state: 'success', url: imageUrl, bbCode, htmlCode });
       toast({ title: 'Succès', description: 'Votre image a été référencée.' });
+      setImageUrl(''); // Clear input on success
     } catch (error) {
        setStatus({ state: 'error', message: "L'enregistrement dans Firestore a échoué. Vérifiez les règles de sécurité de Firestore." });
        toast({ variant: 'destructive', title: "Erreur d'enregistrement", description: (error as Error).message });

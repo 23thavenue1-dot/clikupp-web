@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { NotesSection } from './notes';
 import { Uploader } from './uploader';
+import { ImageList } from './ImageList';
 
 export default function Home() {
   const router = useRouter();
@@ -43,6 +44,8 @@ export default function Home() {
         </header>
 
         <Uploader />
+
+        <ImageList />
 
         <NotesSection />
 
