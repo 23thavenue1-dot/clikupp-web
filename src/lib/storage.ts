@@ -30,8 +30,9 @@ export function uploadImage(
     ? sanitize(customName.trim())
     : sanitize(file.name.replace(/\.[^/.]+$/, ''));
   
-  // Chemin de stockage sécurisé : uploads/{userId}/{nom-fichier}
-  const storagePath = `uploads/${user.uid}/${baseName}-${Date.now()}.${ext}`;
+  // Chemin de stockage mis à jour pour correspondre aux nouvelles règles de sécurité
+  const fileName = `${baseName}-${Date.now()}.${ext}`;
+  const storagePath = `users/${user.uid}/images/${fileName}`;
   const storageRef = ref(storage, storagePath);
 
   const uploadTask = uploadBytesResumable(storageRef, file, {

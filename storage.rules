@@ -1,32 +1,21 @@
 rules_version = '2';
-
-/**
- * @fileoverview Firebase Storage Security Rules
- * @description These rules enforce user-based ownership for uploaded files.
- *
- * - Users can only write to their own dedicated folder (`uploads/{userId}`).
- * - Anyone can read any file (e.g., for public image URLs). This can be tightened if needed.
- * - A size limit of 10MB is enforced on all uploads.
- */
 service firebase.storage {
   match /b/{bucket}/o {
+    // Par défaut, refuser toutes les lectures et écritures pour plus de sécurité.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
 
-    // Match the path used by the client-side code: `uploads/{userId}/{fileName}`
-    match /uploads/{userId}/{fileName} {
+    // Autoriser les utilisateurs à gérer leurs propres images dans un chemin spécifique.
+    match /users/{userId}/images/{imageId} {
+      // Seul le propriétaire peut lire ses images.
+      allow read: if request.auth != null && request.auth.uid == userId;
 
-      /**
-       * @description Allows a user to upload files into their own folder.
-       * - The user must be authenticated (`request.auth != null`).
-       * - The `userId` in the path must match the authenticated user's UID.
-       * - The file size must be less than 10MB.
-       */
-      allow write: if request.auth != null && request.auth.uid == userId && request.resource.size < 10 * 1024 * 1024;
-
-      /**
-       * @description Allows anyone to read files. This is common for public images.
-       * If images should be private, change to: `if request.auth != null && request.auth.uid == userId;`
-       */
-      allow read;
+      // Seul le propriétaire peut écrire (créer, mettre à jour, supprimer).
+      // On ajoute aussi des validations pour la taille et le type de fichier.
+      allow write: if request.auth != null && request.auth.uid == userId
+                   && request.resource.size < 5 * 1024 * 1024 // Limite de 5MB
+                   && request.resource.contentType.matches('image/.*'); // N'accepter que les fichiers de type image
     }
   }
 }
