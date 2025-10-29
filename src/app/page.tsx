@@ -145,7 +145,6 @@ export default function Home() {
         const bbCode = `[img]${downloadURL}[/img]`;
         const htmlCode = `<img src="${downloadURL}" alt="${imageName}" />`;
         
-        // Generate a new document ID client-side
         const imageId = doc(collection(firestore, 'users', user.uid, 'images')).id;
 
         const metadata = {
@@ -158,7 +157,7 @@ export default function Home() {
           bbCode: bbCode,
           htmlCode: htmlCode,
           likeCount: 0,
-        }
+        };
 
         saveImageMetadata(firestore, user, metadata);
   
@@ -212,7 +211,6 @@ export default function Home() {
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-3xl mx-auto space-y-6">
-        <NotesSection />
         
         <header className="flex justify-between items-center">
           <div className="text-center flex-grow">
@@ -408,6 +406,8 @@ export default function Home() {
         </Card>
 
         <ImageGallery />
+
+        <NotesSection />
 
       </div>
     </div>
