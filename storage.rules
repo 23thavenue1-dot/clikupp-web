@@ -1,16 +1,19 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Dossier privé par utilisateur
-    match /uploads/{uid}/{allPaths=**} {
-      // Lecture/écriture strictement par le propriétaire
+    // Les utilisateurs ne peuvent écrire que dans leur propre dossier "uploads"
+    match /uploads/{uid}/{fileName} {
+      // La lecture et la suppression sont autorisées si l'utilisateur est authentifié
+      // et que son UID correspond à celui du dossier.
       allow read, delete: if request.auth != null && request.auth.uid == uid;
 
-      // Ecriture : propriétaire + garde taille/type (optionnel mais recommandé)
+      // L'écriture est autorisée si l'utilisateur est le propriétaire,
+      // que la taille du fichier est inférieure à 10 Mo,
+      // et que le type de contenu est une image.
       allow write: if request.auth != null
-        && request.auth.uid == uid
-        && request.resource.size < 10 * 1024 * 1024 // 10 Mo
-        && request.resource.contentType.matches('^image/.*');
+                   && request.auth.uid == uid
+                   && request.resource.size < 10 * 1024 * 1024
+                   && request.resource.contentType.matches('^image/.*');
     }
   }
 }
