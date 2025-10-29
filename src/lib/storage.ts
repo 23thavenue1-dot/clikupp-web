@@ -148,14 +148,18 @@ export function uploadImage(
         },
         (error) => {
             // Gérer toutes les erreurs ici
-            console.group('[Storage Upload Error]');
-            console.log('code:', error.code);
-            console.log('message:', error.message);
-            console.log('name:', error.name);
-            console.log('serverResponse:', (error as any).serverResponse);
-            console.log('>> debug contentType used:', finalContentType);
-            console.log('>> file.type seen by browser:', file.type);
-            console.log('>> path:', ref.fullPath, 'bucket:', ref.storage.bucket);
+            console.group('[DIAGNOSTIC ERREUR TÉLÉVERSEMENT]');
+            console.error('Code d\'erreur Firebase :', error.code);
+            console.error('Message d\'erreur Firebase :', error.message);
+            console.error('Nom de l\'erreur :', error.name);
+            console.error('Réponse du serveur (si disponible) :', (error as any).serverResponse);
+            console.log('--- Contexte de la requête ---');
+            console.log('Chemin de destination :', ref.fullPath);
+            console.log('Bucket de destination :', ref.storage.bucket);
+            console.log('Type de contenu envoyé (contentType) :', finalContentType);
+            console.log('Taille du fichier (octets) :', file.size);
+            console.log('Nom du fichier original :', file.name);
+            console.log('UID de l\'utilisateur :', user.uid);
             console.groupEnd();
             onError(new Error(friendlyStorageError(error)));
         },
@@ -167,8 +171,8 @@ export function uploadImage(
     );
 
   }).catch((tokenError) => {
-    console.error('Failed to refresh auth token:', tokenError);
-    onError(new Error('Impossible de rafraîchir le token d\'authentification.'));
+    console.error('Échec du rafraîchissement du token d\'authentification:', tokenError);
+    onError(new Error('Impossible de rafraîchir le token d\'authentification avant le téléversement.'));
   });
 }
 
