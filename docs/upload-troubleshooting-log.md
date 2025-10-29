@@ -73,3 +73,21 @@ Cela suggère fortement que la cause racine est externe au code que nous modifio
 - Un bug potentiel dans une des couches de l'infrastructure sous-jacente.
 
 La prochaine étape doit consister à essayer d'isoler le problème en dehors de l'application Next.js, par exemple via un simple fichier HTML statique, pour confirmer si le problème vient de la configuration du projet Firebase ou de l'intégration dans l'application.
+
+## 6. Analyse de la Console et Nouvelle Stratégie (Contournement)
+
+- **Observation Clé** : L'analyse de la console du navigateur, après l'ajout des logs de diagnostic, n'a révélé **aucune erreur Firebase Storage**. Le bloc de diagnostic n'a jamais été atteint. Le téléversement reste bloqué silencieusement, sans jamais retourner de succès ou d'échec.
+
+- **Hypothèse Actuelle** : Le problème n'est pas une erreur de permission classique, mais un **blocage silencieux au niveau du SDK Storage** (`uploadBytesResumable` ou `uploadBytes`). Cette situation est probablement due à une incompatibilité entre le SDK et l'environnement de développement (peut-être un proxy, un service worker ou une configuration réseau).
+
+- **Problème Secondaire Identifié** : La console affiche de nombreux avertissements Next.js concernant l'utilisation de la propriété `objectFit` (obsolète) sur le composant `Image`, qui doit être remplacée.
+
+- **Action / Stratégie de Contournement** :
+  1. **Nettoyage du code** : Correction des avertissements `objectFit` dans `ImageList.tsx` pour maintenir un code propre.
+  2. **Contournement du SDK Storage** : Abandon de l'utilisation de `uploadBytesResumable` et `uploadBytes`. La nouvelle stratégie consiste à :
+     - Lire le fichier directement dans le navigateur.
+     - Le convertir en une chaîne de caractères `data:URL` (encodée en Base64).
+     - Sauvegarder cette chaîne directement dans **Firestore**, en contournant complètement l'API Firebase Storage pour l'upload. Cette méthode est moins performante pour les très gros fichiers mais devrait fonctionner dans notre cas et permettre de débloquer la situation.
+  3. **Mise à jour de `uploader.tsx` et `lib/firestore.ts`** pour implémenter cette nouvelle logique.
+  
+- **Résultat** : La nouvelle stratégie de contournement a été mise en place. Le téléversement via Firebase Storage est temporairement désactivé au profit de la conversion locale en Data URL.
