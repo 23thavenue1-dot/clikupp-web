@@ -50,20 +50,26 @@ Le tournant décisif a été l'analyse détaillée et les règles de sécurité 
   1.  **Mise à jour de `storage.rules`** : Application d'une règle standard et robuste qui autorise un utilisateur (`request.auth.uid`) à écrire uniquement dans un dossier qui lui est propre : `match /uploads/{uid}/{fileId}`.
   2.  **Mise à jour de `src/lib/storage.ts`** : Modification du code client pour que le chemin de téléversement corresponde **exactement** à la nouvelle règle : `const storagePath = \`uploads/${user.uid}/${fileName}\`;`.
 
-- **Résultat (attendu)** : **SUCCÈS**. En alignant parfaitement la demande du client avec l'autorisation du serveur, le refus de permission aurait dû être levé, et le téléversement aurait dû se terminer avec succès.
+- **Résultat (attendu)** : **Échec**. Malgré l'alignement rigoureux du code et des règles, le téléversement a continué d'échouer avec l'erreur `storage/retry-limit-exceeded`.
 
-## 4. Persistance de l'Erreur (Post-Mortem en Cours)
+## 4. Diagnostic "Chirurgical" et Correction du Token
 
-Malgré l'application rigoureuse de la solution ci-dessus, le problème de téléversement persiste. L'erreur `storage/retry-limit-exceeded` est toujours présente, ce qui est extrêmement surprenant étant donné que le code et les règles sont maintenant synchronisés.
+- **Hypothèse** : Le problème ne venait pas des règles elles-mêmes, mais d'un token d'authentification stale (non rafraîchi) au moment de l'appel à Storage. Même si l'objet `user` existe côté client, son état n'est peut-être pas encore reconnu par le backend de Storage.
 
-Cela suggère que le problème pourrait être plus profond ou différent de ce que nous pensions :
-- Un problème de configuration au niveau de l'initialisation de Firebase que nous n'avons pas encore vu.
-- Une interférence inattendue d'un autre morceau de code.
-- Un problème lié à l'environnement de développement lui-même.
+- **Action (basée sur une analyse experte de GPT)** :
+  1. **Forcer le rafraîchissement du token** : Ajout de l'appel `await getIdToken(user, true);` juste avant `uploadBytesResumable` dans `src/lib/storage.ts`. C'était la correction la plus critique et la plus probable.
+  2. **Ajout de logs détaillés** : Implémentation d'un `console.group` dans le callback d'erreur pour capturer des informations précises (code HTTP, réponse du serveur, etc.) et sortir de l'aveuglement de l'erreur générique `retry-limit-exceeded`.
+  3. **Robustesse du code** : Réintégration des "guards" (vérification de taille et de type de fichier) directement dans `src/lib/storage.ts` pour rendre la fonction plus sûre.
 
-La prochaine étape est de réexaminer l'ensemble du flux d'initialisation de Firebase dans l'application pour s'assurer qu'il n'y a pas d'erreur cachée à ce niveau.
+- **Résultat** : **ÉCHEC**. De manière inexplicable, même après cette correction ciblée et logique, le problème de téléversement persiste.
 
-## 5. Conclusion
+## 5. État Actuel et Prochaines Étapes
 
-Le problème était un cas classique de **désynchronisation entre la logique applicative et les règles de sécurité**. La résolution a été retardée par des corrections partielles et une mauvaise interprétation initiale des symptômes. La solution a consisté à appliquer une règle de sécurité standard et à s'assurer que le code client la respectait à la lettre.
-Malgré cela, le problème persiste, indiquant une cause racine différente qui reste à identifier.
+Nous sommes dans une situation très inhabituelle. Le code, les règles de sécurité et la logique de rafraîchissement du token semblent tous corrects, mais l'opération échoue toujours avec une erreur de permission.
+
+Cela suggère fortement que la cause racine est externe au code que nous modifions directement :
+- Un problème de configuration au niveau du projet Firebase lui-même (une API non activée, un problème de facturation, une configuration de bucket inattendue).
+- Une interférence d'une couche réseau ou d'un proxy dans l'environnement de développement.
+- Un bug potentiel dans une des couches de l'infrastructure sous-jacente.
+
+La prochaine étape doit consister à essayer d'isoler le problème en dehors de l'application Next.js, par exemple via un simple fichier HTML statique, pour confirmer si le problème vient de la configuration du projet Firebase ou de l'intégration dans l'application.
