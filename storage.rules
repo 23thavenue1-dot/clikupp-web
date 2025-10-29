@@ -1,16 +1,32 @@
 rules_version = '2';
 
+/**
+ * @fileoverview Firebase Storage Security Rules
+ * @description These rules enforce user-based ownership for uploaded files.
+ *
+ * - Users can only write to their own dedicated folder (`uploads/{userId}`).
+ * - Anyone can read any file (e.g., for public image URLs). This can be tightened if needed.
+ * - A size limit of 10MB is enforced on all uploads.
+ */
 service firebase.storage {
   match /b/{bucket}/o {
-    // Les utilisateurs peuvent uniquement écrire dans leur propre dossier "uploads".
-    // Le nom du fichier est vérifié par le /{fileName}
-    match /uploads/{userId}/{fileName} {
-      // Autorise l'écriture (upload) si l'utilisateur est authentifié
-      // et que son ID correspond au {userId} dans le chemin.
-      allow write: if request.auth != null && request.auth.uid == userId;
 
-      // Autorise la lecture (téléchargement) si l'utilisateur est le propriétaire.
-      allow read: if request.auth != null && request.auth.uid == userId;
+    // Match the path used by the client-side code: `uploads/{userId}/{fileName}`
+    match /uploads/{userId}/{fileName} {
+
+      /**
+       * @description Allows a user to upload files into their own folder.
+       * - The user must be authenticated (`request.auth != null`).
+       * - The `userId` in the path must match the authenticated user's UID.
+       * - The file size must be less than 10MB.
+       */
+      allow write: if request.auth != null && request.auth.uid == userId && request.resource.size < 10 * 1024 * 1024;
+
+      /**
+       * @description Allows anyone to read files. This is common for public images.
+       * If images should be private, change to: `if request.auth != null && request.auth.uid == userId;`
+       */
+      allow read;
     }
   }
 }
