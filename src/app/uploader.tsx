@@ -13,6 +13,8 @@ import { Progress } from '@/components/ui/progress';
 import { UploadCloud, Copy, Check, Link, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
+import type { UploadTask } from 'firebase/storage';
 
 
 // État pour gérer le processus de téléversement
@@ -22,6 +24,9 @@ type UploadStatus =
   | { state: 'success'; url: string; bbCode: string; htmlCode: string } // Terminé
   | { state: 'error'; message: string }; // Erreur
 
+const isLikelyImageUrl = (u: string) =>
+  /^https?:\/\/.+\.(png|jpe?g|gif|webp|avif|heic|heif|svg)(\?.*)?$/i.test(u);
+
 export function Uploader() {
   const { user, storage, firestore } = useFirebase();
   const { toast } = useToast();
@@ -30,17 +35,27 @@ export function Uploader() {
   const [customName, setCustomName] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const taskRef = useRef<UploadTask | null>(null);
   const [copied, setCopied] = useState<'url' | 'bb' | 'html' | null>(null);
+
+  const resetFileInput = () => {
+    if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+    }
+    setSelectedFile(null);
+  }
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       if (file.size > MAX_BYTES) {
         toast({ variant: 'destructive', title: 'Erreur', description: 'Fichier trop volumineux (> 10 Mo).' });
+        resetFileInput();
         return;
       }
       if (!ALLOWED_MIME.test(file.type)) {
         toast({ variant: 'destructive', title: 'Erreur', description: 'Type de fichier non autorisé (images uniquement).' });
+        resetFileInput();
         return;
       }
       setSelectedFile(file);
@@ -52,13 +67,10 @@ export function Uploader() {
   
   const handleTabChange = () => {
     setStatus({ state: 'idle' });
-    setSelectedFile(null);
+    resetFileInput();
     setCustomName('');
     setImageUrl('');
     setCopied(null);
-    if(fileInputRef.current) {
-        fileInputRef.current.value = '';
-    }
   };
 
   const handleUrlUpload = async () => {
@@ -66,8 +78,12 @@ export function Uploader() {
       toast({ variant: 'destructive', title: 'Erreur', description: 'URL invalide ou utilisateur non connecté.' });
       return;
     }
+     if (!isLikelyImageUrl(imageUrl)) {
+        toast({ variant:'destructive', title:'URL invalide', description:"Fournissez l'URL directe d'une image (png, jpg, webp…)" });
+        return;
+    }
     
-    setStatus({ state: 'uploading', progress: 50 });
+    setStatus({ state: 'uploading', progress: 50 }); // On peut choisir de montrer un spinner simple
 
     try {
       const bbCode = `[img]${imageUrl}[/img]`;
@@ -99,7 +115,7 @@ export function Uploader() {
     
     setStatus({ state: 'uploading', progress: 0 });
 
-    uploadImage(
+    taskRef.current = uploadImage(
       storage,
       user,
       selectedFile,
@@ -108,6 +124,7 @@ export function Uploader() {
       (error) => {
         setStatus({ state: 'error', message: error.message });
         toast({ variant: 'destructive', title: 'Erreur de téléversement', description: error.message });
+        resetFileInput();
       },
       async (directUrl, storagePath) => {
         try {
@@ -126,7 +143,7 @@ export function Uploader() {
 
           setStatus({ state: 'success', url: directUrl, bbCode, htmlCode });
           toast({ title: 'Succès', description: 'Votre image a été téléversée et enregistrée.' });
-          setSelectedFile(null);
+          resetFileInput();
           setCustomName('');
         } catch (error) {
           const errorMessage = (error as Error).message;
@@ -137,10 +154,14 @@ export function Uploader() {
     );
   }, [selectedFile, customName, user, storage, firestore, toast]);
 
-  const copyToClipboard = (text: string, type: 'url' | 'bb' | 'html') => {
-    navigator.clipboard.writeText(text);
-    setCopied(type);
-    setTimeout(() => setCopied(null), 2000);
+  const copyToClipboard = async (text: string, type: 'url' | 'bb' | 'html') => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(type);
+      setTimeout(() => setCopied(null), 2000);
+    } catch {
+      toast({ variant:'destructive', title:'Copie impossible', description:'Autorisez l’accès au presse-papier ou copiez manuellement.' });
+    }
   };
 
   return (
@@ -161,8 +182,16 @@ export function Uploader() {
           
           <TabsContent value="upload" className="mt-4 space-y-4">
             <div 
-              className="border-2 border-dashed border-muted-foreground/50 rounded-lg p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/50 transition-colors"
-              onClick={() => fileInputRef.current?.click()}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && status.state !== 'uploading' && fileInputRef.current?.click()}
+              aria-disabled={status.state === 'uploading'}
+              className={cn(
+                "border-2 border-dashed border-muted-foreground/50 rounded-lg p-8 flex flex-col items-center justify-center text-center transition-colors",
+                status.state !== 'uploading' && 'cursor-pointer hover:bg-muted/50',
+                status.state === 'uploading' && 'pointer-events-none opacity-70'
+                )}
+              onClick={() => status.state !== 'uploading' && fileInputRef.current?.click()}
             >
               <input
                 type="file"
@@ -170,6 +199,7 @@ export function Uploader() {
                 onChange={handleFileChange}
                 className="hidden"
                 accept="image/*"
+                disabled={status.state === 'uploading'}
               />
               <UploadCloud className="h-12 w-12 text-muted-foreground" />
               <p className="mt-4 text-sm text-muted-foreground">
@@ -184,6 +214,7 @@ export function Uploader() {
                     placeholder="Nom personnalisé (optionnel)"
                     value={customName}
                     onChange={(e) => setCustomName(e.target.value)}
+                    disabled={status.state === 'uploading'}
                   />
                 <Button 
                   onClick={handleUpload} 
@@ -205,6 +236,7 @@ export function Uploader() {
                     placeholder="https://exemple.com/image.jpg"
                     value={imageUrl}
                     onChange={(e) => setImageUrl(e.target.value)}
+                    disabled={status.state === 'uploading'}
                 />
             </div>
             <Button 
@@ -212,8 +244,8 @@ export function Uploader() {
                 disabled={status.state === 'uploading' || !imageUrl.trim()} 
                 className="w-full"
             >
-                {status.state === 'uploading' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {status.state === 'uploading' ? 'Enregistrement...' : 'Ajouter le lien'}
+                {status.state === 'uploading' && !selectedFile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {status.state === 'uploading' && !selectedFile ? 'Enregistrement...' : 'Ajouter le lien'}
             </Button>
           </TabsContent>
         </Tabs>
@@ -265,3 +297,5 @@ export function Uploader() {
     </Card>
   );
 }
+
+    
