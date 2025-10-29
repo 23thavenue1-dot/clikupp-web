@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
@@ -104,7 +105,7 @@ export function Uploader() {
     }
   };
 
-  const handleUpload = useCallback(() => {
+  const handleUpload = useCallback(async () => {
     if (!selectedFile || !user || !storage || !firestore) {
       let description = 'Le fichier, l\'utilisateur, ou la configuration Firebase est manquant.';
       if (!selectedFile) description = 'Veuillez sélectionner un fichier à téléverser.';
@@ -115,43 +116,43 @@ export function Uploader() {
     
     setStatus({ state: 'uploading', progress: 0 });
 
-    taskRef.current = uploadImage(
-      storage,
-      user,
-      selectedFile,
-      customName,
-      (progress) => setStatus({ state: 'uploading', progress }),
-      (error) => {
-        setStatus({ state: 'error', message: error.message });
-        toast({ variant: 'destructive', title: 'Erreur de téléversement', description: error.message });
+    try {
+      const { directUrl, storagePath } = await new Promise<{directUrl: string, storagePath: string}>((resolve, reject) => {
+        taskRef.current = uploadImage(
+          storage,
+          user,
+          selectedFile,
+          customName,
+          (progress) => setStatus({ state: 'uploading', progress }),
+          (error) => reject(error),
+          (directUrl, storagePath) => resolve({ directUrl, storagePath })
+        );
+      });
+
+      const bbCode = `[img]${directUrl}[/img]`;
+      const htmlCode = `<img src="${directUrl}" alt="Image téléversée" />`;
+
+      await saveImageMetadata(firestore, user, {
+        originalName: selectedFile.name,
+        fileSize: selectedFile.size,
+        mimeType: selectedFile.type,
+        storagePath,
+        directUrl,
+        bbCode,
+        htmlCode,
+      });
+
+      setStatus({ state: 'success', url: directUrl, bbCode, htmlCode });
+      toast({ title: 'Succès', description: 'Votre image a été téléversée et enregistrée.' });
+      resetFileInput();
+      setCustomName('');
+
+    } catch (error) {
+        const errorMessage = (error as Error).message;
+        setStatus({ state: 'error', message: errorMessage });
+        toast({ variant: 'destructive', title: 'Erreur de téléversement', description: errorMessage });
         resetFileInput();
-      },
-      async (directUrl, storagePath) => {
-        try {
-          const bbCode = `[img]${directUrl}[/img]`;
-          const htmlCode = `<img src="${directUrl}" alt="Image téléversée" />`;
-
-          await saveImageMetadata(firestore, user, {
-            originalName: selectedFile.name,
-            fileSize: selectedFile.size,
-            mimeType: selectedFile.type,
-            storagePath,
-            directUrl,
-            bbCode,
-            htmlCode,
-          });
-
-          setStatus({ state: 'success', url: directUrl, bbCode, htmlCode });
-          toast({ title: 'Succès', description: 'Votre image a été téléversée et enregistrée.' });
-          resetFileInput();
-          setCustomName('');
-        } catch (error) {
-          const errorMessage = (error as Error).message;
-          setStatus({ state: 'error', message: `L'enregistrement dans Firestore a échoué: ${errorMessage}` });
-          toast({ variant: 'destructive', title: "Erreur d'enregistrement", description: errorMessage });
-        }
-      }
-    );
+    }
   }, [selectedFile, customName, user, storage, firestore, toast]);
 
   const copyToClipboard = async (text: string, type: 'url' | 'bb' | 'html') => {
