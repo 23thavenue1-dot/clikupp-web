@@ -105,13 +105,9 @@ export function uploadImage(
       onError(new Error(friendlyStorageError(err)));
     },
     async () => {
-      try {
-        const url = await getDownloadURL(task.snapshot.ref);
-        onComplete(url, finalStoragePath);
-      } catch (e) {
-        console.error('Erreur getDownloadURL:', e);
-        onError(new Error(friendlyStorageError(e)));
-      }
+      // DEBUG: Temporarily remove try/catch to see the raw error from getDownloadURL
+      const url = await getDownloadURL(task.snapshot.ref);
+      onComplete(url, finalStoragePath);
     }
   );
 
