@@ -7,10 +7,9 @@ import {
   getDownloadURL,
   deleteObject,
   type FirebaseStorage,
+  type UploadTaskSnapshot,
 } from 'firebase/storage';
 import type { User } from 'firebase/auth';
-import { FirebaseError } from 'firebase/app';
-import { getIdToken } from 'firebase/auth';
 
 // -----------------------------
 // Config côté client (guards)
@@ -31,7 +30,7 @@ const sanitize = (name: string): string =>
 
 // Construit un chemin qui MATCHE les règles Storage
 export const buildStoragePath = (uid: string, fileName: string) =>
-  `uploads/${uid}/${fileName}`;
+  `uploads/${uid}/${sanitize(fileName)}`;
 
 
 /**
@@ -61,6 +60,88 @@ export function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+// -----------------------------
+// NOUVELLE FONCTION POUR L'UPLOAD VIA STORAGE (TEST)
+// -----------------------------
+
+type UploadParams = {
+  storage: FirebaseStorage;
+  file: File;
+  user: User;
+  customName?: string;
+  onProgress: (progress: number) => void;
+};
+
+type UploadResult = {
+  originalName: string;
+  storagePath: string;
+  directUrl: string;
+  bbCode: string;
+  htmlCode: string;
+  mimeType: string;
+  fileSize: number;
+};
+
+export function uploadFileAndGetMetadata({ storage, file, user, customName, onProgress }: UploadParams): Promise<UploadResult> {
+    
+    // 1. Contrôles de sécurité côté client
+    if (file.size > MAX_BYTES) {
+        return Promise.reject(new Error(`Fichier trop volumineux (max ${MAX_BYTES / 1024 / 1024} Mo).`));
+    }
+    if (!ALLOWED_MIME.test(file.type) && !NAME_EXT_FALLBACK.test(file.name)) {
+        return Promise.reject(new Error('Type de fichier non autorisé (images uniquement).'));
+    }
+
+    // 2. Construire le chemin
+    const finalFileName = customName ? sanitize(customName) : sanitize(file.name);
+    const path = buildStoragePath(user.uid, finalFileName);
+    const fileRef = storageRef(storage, path);
+    console.log(`Tentative d'upload vers: ${path}`);
+    console.log(`Bucket de destination: ${fileRef.bucket}`);
+
+
+    return new Promise((resolve, reject) => {
+        // 3. Démarrer le téléversement
+        const uploadTask = uploadBytesResumable(fileRef, file, { contentType: file.type });
+
+        // 4. Écouter les événements
+        uploadTask.on(
+            'state_changed',
+            (snapshot: UploadTaskSnapshot) => {
+                // Progression
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                onProgress(progress);
+            },
+            (error) => {
+                // Erreur
+                console.error("Erreur détaillée de l'upload:", error);
+                console.error(`Code: ${error.code}, Message: ${error.message}, Nom: ${error.name}`);
+                reject(new Error(`Permission refusée: vérifiez les règles de sécurité de Storage et l'authentification de l'utilisateur.`));
+            },
+            async () => {
+                // Succès
+                try {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    
+                    const result: UploadResult = {
+                        originalName: finalFileName,
+                        storagePath: path,
+                        directUrl: downloadURL,
+                        bbCode: `[img]${downloadURL}[/img]`,
+                        htmlCode: `<img src="${downloadURL}" alt="${finalFileName}" />`,
+                        mimeType: file.type,
+                        fileSize: file.size,
+                    };
+                    
+                    resolve(result);
+                } catch (e) {
+                    reject(new Error("Impossible d'obtenir l'URL de téléchargement après l'upload."));
+                }
+            }
+        );
+    });
+}
+
 
 // -----------------------------
 // Delete
@@ -86,4 +167,3 @@ export async function deleteImageFile(
     // Dans ce contexte, on ne relance pas l'erreur pour ne pas bloquer l'UX si seule la suppression du fichier échoue
   }
 }
-
