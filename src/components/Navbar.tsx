@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { LogOut, User as UserIcon, Loader2, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { ThemeToggle } from './theme-toggle';
 
 export function Navbar() {
   const { user, isUserLoading } = useUser();
@@ -39,7 +38,6 @@ export function Navbar() {
         </Link>
 
         <div className="flex items-center gap-4">
-          <ThemeToggle />
           {isUserLoading ? (
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           ) : user ? (
