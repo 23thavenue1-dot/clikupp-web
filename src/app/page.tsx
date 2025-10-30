@@ -30,7 +30,9 @@ export default function Home() {
     }
   }, [user, isUserLoading, router]);
 
-  if (isUserLoading || isProfileLoading || !user) {
+  const isLoading = isUserLoading || (user && isProfileLoading);
+
+  if (isLoading || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -53,7 +55,7 @@ export default function Home() {
           </div>
         </header>
 
-        <Uploader userProfile={userProfile} />
+        <Uploader userProfile={userProfile} isProfileLoading={isProfileLoading} />
 
         <ImageList />
 
