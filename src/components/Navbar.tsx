@@ -33,7 +33,7 @@ export function Navbar() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-card border-b shadow-sm">
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
-        <Link href="/" className="flex items-center gap-2 text-xl font-bold tracking-tight">
+        <Link href="/" className="flex items-center gap-2 text-2xl font-bold tracking-tight">
           <ImageIcon className="h-6 w-6 text-primary" />
           <span>Clikup</span>
         </Link>
