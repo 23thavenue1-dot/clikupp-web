@@ -2,19 +2,21 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { useFirebase } from '@/firebase';
+import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { fileToDataUrl, uploadFileAndGetMetadata } from '@/lib/storage';
-import { saveImageMetadata, saveImageFromUrl } from '@/lib/firestore';
+import { saveImageMetadata, saveImageFromUrl, type UserProfile } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { UploadCloud, Link as LinkIcon, Loader2, HardDriveUpload } from 'lucide-react';
+import { UploadCloud, Link as LinkIcon, Loader2, HardDriveUpload, Ticket } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 type UploadStatus =
@@ -41,6 +43,13 @@ export function Uploader() {
   const [isUrlLoading, setIsUrlLoading] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, `users/${user.uid}`);
+  }, [user, firestore]);
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
   const resetState = () => {
     setStatus({ state: 'idle' });
@@ -199,10 +208,22 @@ export function Uploader() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Ajouter une image</CardTitle>
-        <CardDescription>
-          Choisissez une méthode pour ajouter une image à votre galerie.
-        </CardDescription>
+        <div className="flex justify-between items-start">
+            <div>
+                <CardTitle>Ajouter une image</CardTitle>
+                <CardDescription>
+                  Choisissez une méthode pour ajouter une image à votre galerie.
+                </CardDescription>
+            </div>
+            {isProfileLoading ? (
+                <Skeleton className="h-8 w-24 rounded-full" />
+            ) : userProfile ? (
+                <div className="flex items-center gap-2 bg-secondary text-secondary-foreground font-semibold px-3 py-1.5 rounded-full text-sm" title={`${userProfile.ticketCount} tickets restants`}>
+                    <Ticket className="h-5 w-5" />
+                    <span>{userProfile.ticketCount}</span>
+                </div>
+            ) : null }
+        </div>
       </CardHeader>
       <CardContent>
       <Tabs defaultValue="file" className="w-full" onValueChange={handleTabChange}>

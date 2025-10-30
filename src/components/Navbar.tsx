@@ -2,33 +2,21 @@
 'use client';
 
 import Link from 'next/link';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser } from '@/firebase';
 import { signOut } from 'firebase/auth';
-import { doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import { LogOut, User as UserIcon, Loader2, Image as ImageIcon, Ticket } from 'lucide-react';
+import { LogOut, User as UserIcon, Loader2, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from './theme-toggle';
-import { Skeleton } from './ui/skeleton';
-import type { UserProfile } from '@/lib/firestore'; // Importer le type
 
 export function Navbar() {
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
 
-  // Logique de useUserProfile intégrée ici
-  const userDocRef = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return doc(firestore, `users/${user.uid}`);
-  }, [user, firestore]);
-
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
-
   const handleSignOut = async () => {
-    if (!user) return; // auth est déjà inclus dans user
+    if (!user) return;
     try {
       await signOut(user.auth);
       toast({ title: 'Déconnexion réussie' });
@@ -56,21 +44,6 @@ export function Navbar() {
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           ) : user ? (
             <div className="flex items-center gap-4">
-              {isProfileLoading ? (
-                <Skeleton className="h-6 w-20" />
-              ) : userProfile ? (
-                 <div className="flex items-center gap-2" title={`${userProfile.ticketCount} tickets restants`}>
-                    <Ticket className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-sm font-bold text-primary">{userProfile.ticketCount}</span>
-                 </div>
-              ) : (
-                // Affiche un état de chargement ou un fallback si le profil n'est pas encore là
-                <div className="flex items-center gap-2" title="Chargement des tickets...">
-                  <Ticket className="h-5 w-5 text-muted-foreground" />
-                  <Skeleton className="h-4 w-4" />
-                </div>
-              )}
-
               <div className="flex items-center gap-2">
                 <UserIcon className="h-5 w-5 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground hidden sm:inline">{user.email}</span>
