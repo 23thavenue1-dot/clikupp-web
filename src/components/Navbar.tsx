@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -34,7 +35,7 @@ export function Navbar() {
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
         <Link href="/" className="flex items-center gap-2 text-lg font-bold">
           <ImageIcon className="h-6 w-6 text-primary" />
-          <span>Téléchargeur Firebase</span>
+          <span>Clikup</span>
         </Link>
 
         <div className="flex items-center gap-4">

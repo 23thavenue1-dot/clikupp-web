@@ -1,3 +1,4 @@
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -5,8 +6,8 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { Navbar } from '@/components/Navbar';
 
 export const metadata: Metadata = {
-  title: 'Firebase Uploader',
-  description: 'An image uploader using Firebase Storage',
+  title: 'Clikup',
+  description: 'Votre plateforme de partage d\'images.',
 };
 
 export default function RootLayout({
