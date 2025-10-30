@@ -108,3 +108,35 @@ Plutôt que de continuer à déboguer une boîte noire, nous avons complètement
 4.  **Affichage Direct** : Pour afficher l'image, le composant `Image` de Next.js utilise directement cette `data:URL` comme source, qui est assez longue mais autonome.
 
 Cette méthode est moins performante pour de très gros fichiers que le stockage direct, mais elle s'est avérée être la seule solution fiable dans cet environnement de développement spécifique et fonctionne parfaitement pour notre cas d'usage. Le succès de cette approche confirme que la connectivité à Firestore était fonctionnelle, isolant le problème au seul SDK de Firebase Storage.
+
+## 8. Résolution Finale : Le Problème CORS en Production
+
+Après avoir résolu le problème dans l'environnement de développement local, un nouveau problème est apparu une fois l'application déployée sur Internet.
+
+- **Symptôme** : L'upload fonctionnait dans Firebase Studio (grâce à notre contournement via Data URL), mais échouait sur l'application en ligne avec une erreur `net::ERR_FAILED` visible dans la console du navigateur, liée à une politique CORS.
+
+- **Diagnostic** : C'est un problème de sécurité standard du web. Le navigateur empêche une page web (ex: `mon-app.hosted.app`) de faire des requêtes vers un autre domaine (ex: `firebasestorage.googleapis.com`) sauf si ce dernier l'y autorise explicitement. Notre environnement de développement local n'avait pas cette restriction, mais le vrai Internet, si. Nous avons décidé de revenir à la méthode d'upload standard via le SDK Storage pour résoudre ce problème proprement.
+
+- **Processus de Résolution (Configuration CORS)** : La solution consiste à créer une configuration CORS et à l'appliquer au bucket de stockage Google Cloud via l'outil en ligne de commande `gsutil`.
+
+  1. **Création du fichier de configuration `cors.json`** : Nous avons d'abord créé un fichier `cors.json` à la racine du projet, puis directement dans l'environnement Cloud Shell avec la commande `echo`. Ce fichier autorise les requêtes de n'importe quelle origine.
+     ```json
+     [{"origin": ["*"],"method": ["GET", "PUT", "POST"],"responseHeader": ["Content-Type"],"maxAgeSeconds": 3600}]
+     ```
+
+  2. **Tentative d'application via `gsutil`** : La première tentative d'application de cette configuration via `gsutil cors set cors.json gs://[nom-du-bucket]` a échoué.
+
+  3. **Diagnostic des échecs en cascade** :
+     - **Erreur 1 : `NotFoundException: 404 The specified bucket does not exist.`**
+       - **Cause** : Le nom du bucket que nous utilisions (`...appspot.com`) était incorrect. Ce nom provenait d'une configuration par défaut, mais n'était pas le nom réel du bucket activé.
+       - **Solution** : En visitant la page Firebase Storage dans la console Google Cloud, nous avons trouvé le nom correct du bucket, qui se terminait par `...firebasestorage.app`.
+     - **Erreur 2 (évitée) : `No such file or directory`**
+       - **Cause** : Le terminal Cloud Shell est un environnement distinct et n'avait pas accès au fichier `cors.json` de notre projet.
+       - **Solution** : Nous avons créé le fichier `cors.json` directement dans le terminal Cloud Shell à l'aide d'une commande `echo`.
+
+  4. **Commande finale (réussite)** : Une fois le bon nom de bucket identifié et le fichier `cors.json` créé dans le bon environnement, la commande suivante a été exécutée avec succès :
+     ```bash
+     gsutil cors set cors.json gs://studio-9587105821-540bd.firebasestorage.app
+     ```
+
+- **Conclusion Générale** : Le téléversement fonctionne désormais parfaitement à la fois dans l'environnement de développement (en utilisant le contournement Data URL) et, plus important encore, sur le site en production (en utilisant la méthode standard du SDK Storage avec la configuration CORS correcte). Cela marque la fin de ce long et instructif processus de débogage.
