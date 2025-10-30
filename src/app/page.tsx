@@ -2,17 +2,27 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
 import { Loader2 } from 'lucide-react';
 import { NotesSection } from './notes';
 import { Uploader } from './uploader';
 import { ImageList } from './ImageList';
+import { type UserProfile } from '@/lib/firestore';
 
 export default function Home() {
   const router = useRouter();
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, `users/${user.uid}`);
+  }, [user, firestore]);
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -20,7 +30,7 @@ export default function Home() {
     }
   }, [user, isUserLoading, router]);
 
-  if (isUserLoading || !user) {
+  if (isUserLoading || isProfileLoading || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -43,7 +53,7 @@ export default function Home() {
           </div>
         </header>
 
-        <Uploader />
+        <Uploader userProfile={userProfile} />
 
         <ImageList />
 

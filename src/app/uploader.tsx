@@ -2,8 +2,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { fileToDataUrl, uploadFileAndGetMetadata } from '@/lib/storage';
 import { saveImageMetadata, saveImageFromUrl, type UserProfile } from '@/lib/firestore';
@@ -18,6 +17,9 @@ import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 
+type UploaderProps = {
+  userProfile: UserProfile | null;
+};
 
 type UploadStatus =
   | { state: 'idle' }
@@ -30,7 +32,7 @@ const looksLikeImage = (f: File) =>
   /^(image\/.*)$/i.test(f.type) || /\.(png|jpe?g|gif|webp|avif|heic|heif|svg)$/i.test(f.name);
 
 
-export function Uploader() {
+export function Uploader({ userProfile }: UploaderProps) {
   const { user, firestore, firebaseApp } = useFirebase();
   const { toast } = useToast();
   
@@ -43,13 +45,6 @@ export function Uploader() {
   const [isUrlLoading, setIsUrlLoading] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const userDocRef = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return doc(firestore, `users/${user.uid}`);
-  }, [user, firestore]);
-
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
   const resetState = () => {
     setStatus({ state: 'idle' });
@@ -215,14 +210,14 @@ export function Uploader() {
                   Choisissez une méthode pour ajouter une image à votre galerie.
                 </CardDescription>
             </div>
-            {isProfileLoading ? (
-                <Skeleton className="h-8 w-24 rounded-full" />
-            ) : userProfile ? (
+            {userProfile ? (
                 <div className="flex items-center gap-2 bg-secondary text-secondary-foreground font-semibold px-3 py-1.5 rounded-full text-sm" title={`${userProfile.ticketCount} tickets restants`}>
                     <Ticket className="h-5 w-5" />
                     <span>{userProfile.ticketCount}</span>
                 </div>
-            ) : null }
+            ) : (
+                <Skeleton className="h-8 w-24 rounded-full" />
+            ) }
         </div>
       </CardHeader>
       <CardContent>
