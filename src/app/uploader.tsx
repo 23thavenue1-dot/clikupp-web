@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { useFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { uploadImage, deleteImageFile } from '@/lib/storage';
+import { uploadImage, deleteImageFile, fileToDataUrl } from '@/lib/storage';
 import { saveImageMetadata, saveImageFromUrl } from '@/lib/firestore';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +26,9 @@ type UploadStatus =
 
 const looksLikeImage = (f: File) =>
   /^(image\/.*)$/i.test(f.type) || /\.(png|jpe?g|gif|webp|avif|heic|heif|svg)$/i.test(f.name);
+
+// Détecte si nous sommes en environnement de développement (Firebase Studio)
+const isDevelopment = process.env.NODE_ENV === 'development';
 
 export function Uploader() {
   const { user, firestore, storage } = useFirebase();
@@ -67,48 +70,69 @@ export function Uploader() {
     }
   };
 
-  const handleUpload = useCallback(() => {
-    if (!selectedFile || !user || !storage || !firestore) return;
+  // --- NOUVELLE LOGIQUE DE TÉLÉVERSEMENT ---
+  const handleUpload = useCallback(async () => {
+    if (!selectedFile || !user || !firestore) return;
 
-    uploadImage(
-      storage,
-      user,
-      selectedFile,
-      customName,
-      (progress) => {
-        setStatus({ state: 'uploading', progress });
-      },
-      async (downloadURL, storagePath) => {
-        setStatus({ state: 'processing' });
-        try {
-          const bbCode = `[img]${downloadURL}[/img]`;
-          const htmlCode = `<img src="${downloadURL}" alt="${customName || selectedFile.name}" />`;
-          
-          await saveImageMetadata(firestore, user, {
-              originalName: selectedFile.name,
-              storagePath,
-              directUrl: downloadURL,
-              bbCode,
-              htmlCode,
-              mimeType: selectedFile.type,
-              fileSize: selectedFile.size,
-          });
+    // Affiche l'état de traitement immédiatement
+    setStatus({ state: 'processing' });
 
-          setStatus({ state: 'success', url: downloadURL, bbCode, htmlCode });
-          toast({ title: 'Succès', description: 'Votre image a été téléversée et enregistrée.' });
-          resetState();
+    try {
+        let downloadURL: string;
+        let storagePath: string | undefined;
 
-        } catch (error) {
-           const errorMessage = (error as Error).message;
-           setStatus({ state: 'error', message: `Erreur Firestore: ${errorMessage}` });
-           // Attempt to delete the orphaned file from storage
-           await deleteImageFile(storage, storagePath);
+        if (isDevelopment) {
+            // == STRATÉGIE DE DÉVELOPPEMENT (STUDIO) : Data URL via Firestore ==
+            toast({ title: "Mode développeur", description: "Contournement de Storage via Data URL." });
+            downloadURL = await fileToDataUrl(selectedFile);
+            storagePath = 'data_url'; // Marqueur spécial pour indiquer que ce n'est pas dans Storage
+        } else {
+            // == STRATÉGIE DE PRODUCTION (SITE EN LIGNE) : SDK Firebase Storage ==
+            if (!storage) throw new Error("Le service de stockage n'est pas disponible.");
+            
+            await new Promise<void>((resolve, reject) => {
+                uploadImage(
+                    storage,
+                    user,
+                    selectedFile,
+                    customName,
+                    (progress) => setStatus({ state: 'uploading', progress }),
+                    (url, path) => {
+                        downloadURL = url;
+                        storagePath = path;
+                        setStatus({ state: 'processing' });
+                        resolve();
+                    },
+                    (error) => reject(error)
+                );
+            });
         }
-      },
-      (error) => {
-        setStatus({ state: 'error', message: error.message });
-      }
-    );
+        
+        // --- ÉTAPE COMMUNE : SAUVEGARDE DANS FIRESTORE ---
+        const bbCode = `[img]${downloadURL!}[/img]`;
+        const htmlCode = `<img src="${downloadURL!}" alt="${customName || selectedFile.name}" />`;
+        
+        await saveImageMetadata(firestore, user, {
+            originalName: selectedFile.name,
+            storagePath: storagePath!,
+            directUrl: downloadURL!,
+            bbCode,
+            htmlCode,
+            mimeType: selectedFile.type,
+            fileSize: selectedFile.size,
+        });
+
+        setStatus({ state: 'success', url: downloadURL!, bbCode, htmlCode });
+        toast({ title: 'Succès', description: 'Votre image a été enregistrée.' });
+        resetState();
+
+    } catch (error) {
+        const errorMessage = (error as Error).message;
+        setStatus({ state: 'error', message: `Erreur: ${errorMessage}` });
+        // En cas d'erreur en production, on pourrait essayer de supprimer le fichier orphelin,
+        // mais pour l'instant, on se contente d'afficher l'erreur.
+    }
+
   }, [selectedFile, customName, user, storage, firestore, toast]);
 
     const handleUrlUpload = async () => {
