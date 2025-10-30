@@ -4,13 +4,14 @@
 import { useState, useRef, useCallback } from 'react';
 import { useFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { fileToDataUrl } from '@/lib/storage';
+import { fileToDataUrl, uploadFileAndGetMetadata } from '@/lib/storage';
 import { saveImageMetadata, saveImageFromUrl } from '@/lib/firestore';
+import { getStorage } from 'firebase/storage';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { UploadCloud, Link as LinkIcon, Loader2 } from 'lucide-react';
+import { UploadCloud, Link as LinkIcon, Loader2, HardDriveUpload } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -19,6 +20,7 @@ import { Progress } from '@/components/ui/progress';
 type UploadStatus =
   | { state: 'idle' }
   | { state: 'processing' }
+  | { state: 'uploading'; progress: number }
   | { state: 'success'; url: string; }
   | { state: 'error'; message: string };
 
@@ -27,7 +29,7 @@ const looksLikeImage = (f: File) =>
 
 
 export function Uploader() {
-  const { user, firestore } = useFirebase();
+  const { user, firestore, firebaseApp } = useFirebase();
   const { toast } = useToast();
   
   const [status, setStatus] = useState<UploadStatus>({ state: 'idle' });
@@ -84,7 +86,7 @@ export function Uploader() {
             htmlCode: `<img src="${dataUrl}" alt="${customName || selectedFile.name}" />`,
             mimeType: selectedFile.type,
             fileSize: selectedFile.size,
-            storagePath: 'data_url', // Marqueur pour indiquer que ce n'est pas sur Storage
+            storagePath: 'data_url',
         });
 
         toast({ title: 'Succès', description: 'Votre image a été enregistrée.' });
@@ -121,19 +123,49 @@ export function Uploader() {
         setIsUrlLoading(false);
     }
   };
+  
+  const handleStorageUpload = useCallback(async () => {
+    if (!selectedFile || !user || !firebaseApp) return;
 
-  const renderFilePicker = () => (
+    setIsProcessing(true);
+    const storage = getStorage(firebaseApp);
+
+    try {
+        const metadata = await uploadFileAndGetMetadata(
+            storage,
+            user,
+            selectedFile,
+            customName,
+            (progress) => setStatus({ state: 'uploading', progress })
+        );
+
+        await saveImageMetadata(firestore, user, metadata);
+
+        toast({ title: 'Succès', description: 'Votre image a été téléversée via Storage.' });
+        resetState();
+
+    } catch (error) {
+        const errorMessage = (error as Error).message;
+        setStatus({ state: 'error', message: `Erreur Storage: ${errorMessage}` });
+        toast({ variant: 'destructive', title: 'Erreur Storage', description: errorMessage });
+    } finally {
+        setIsProcessing(false);
+    }
+  }, [selectedFile, customName, user, firebaseApp, firestore, toast]);
+
+
+  const renderFilePicker = (disabled: boolean) => (
     <div 
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && !isProcessing && fileInputRef.current?.click()}
-        aria-disabled={isProcessing}
+        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && !disabled && fileInputRef.current?.click()}
+        aria-disabled={disabled}
         className={cn(
         "border-2 border-dashed border-muted-foreground/50 rounded-lg p-8 flex flex-col items-center justify-center text-center transition-colors",
-        !isProcessing && 'cursor-pointer hover:bg-muted/50',
-        isProcessing && 'pointer-events-none opacity-70'
+        !disabled && 'cursor-pointer hover:bg-muted/50',
+        disabled && 'pointer-events-none opacity-70'
         )}
-        onClick={() => !isProcessing && fileInputRef.current?.click()}
+        onClick={() => !disabled && fileInputRef.current?.click()}
     >
         <input
         type="file"
@@ -141,14 +173,14 @@ export function Uploader() {
         onChange={handleFileChange}
         className="hidden"
         accept="image/*"
-        disabled={isProcessing}
+        disabled={disabled}
         />
         <UploadCloud className="h-12 w-12 text-muted-foreground" />
         <p className="mt-4 text-sm font-medium text-foreground">
-        {selectedFile ? `Fichier sélectionné : ${selectedFile.name}` : 'Cliquez pour choisir un fichier'}
+        {selectedFile ? `Fichier : ${selectedFile.name}` : 'Cliquez pour choisir un fichier'}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Téléversement sécurisé via Data URL.
+          Les deux onglets utiliseront ce fichier.
         </p>
     </div>
   );
@@ -158,52 +190,68 @@ export function Uploader() {
       <CardHeader>
         <CardTitle>Ajouter une image</CardTitle>
         <CardDescription>
-          Téléversez une image depuis votre ordinateur ou ajoutez-la depuis une URL.
+          Choisissez un fichier puis téléversez-le via la méthode de votre choix.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="file" className="w-full" onValueChange={handleTabChange}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="file"><UploadCloud className="mr-2 h-4 w-4"/>Via Fichier</TabsTrigger>
-            <TabsTrigger value="url"><LinkIcon className="mr-2 h-4 w-4"/>Via URL</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="file" className="space-y-4 pt-4">
-            {renderFilePicker()}
-            {selectedFile && (
-                <div className="space-y-4">
-                    <Input
+        {renderFilePicker(isProcessing || isUrlLoading)}
+
+        {selectedFile && (
+            <div className="mt-4">
+                <Input
                     placeholder="Nom personnalisé (optionnel)"
                     value={customName}
                     onChange={(e) => setCustomName(e.target.value)}
-                    disabled={isProcessing}
-                    />
-                    <Button 
-                    onClick={handleDataUrlUpload} 
-                    disabled={isProcessing || !selectedFile} 
-                    className="w-full"
-                    >
-                    {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    {isProcessing ? 'Traitement...' : 'Téléverser'}
-                    </Button>
-                </div>
-            )}
-          </TabsContent>
+                    disabled={isProcessing || isUrlLoading}
+                    className="mb-4"
+                />
+                <Tabs defaultValue="file" className="w-full" onValueChange={handleTabChange}>
+                    <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="file"><UploadCloud className="mr-2 h-4 w-4"/>Via Fichier (sécurisé)</TabsTrigger>
+                        <TabsTrigger value="storage"><HardDriveUpload className="mr-2 h-4 w-4"/>Via Storage (Test)</TabsTrigger>
+                        <TabsTrigger value="url"><LinkIcon className="mr-2 h-4 w-4"/>Via URL</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="file" className="space-y-4 pt-4">
+                        <p className="text-sm text-muted-foreground text-center">Cette méthode convertit l'image en texte et la sauvegarde dans la base de données. C'est la plus fiable dans cet environnement.</p>
+                        <Button 
+                            onClick={handleDataUrlUpload} 
+                            disabled={isProcessing || !selectedFile} 
+                            className="w-full"
+                        >
+                            {isProcessing && status.state === 'processing' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                            {isProcessing && status.state === 'processing' ? 'Conversion...' : 'Téléverser via Fichier'}
+                        </Button>
+                    </TabsContent>
 
-          <TabsContent value="url" className="space-y-4 pt-4">
-            <Input
-                placeholder="https://example.com/image.png"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                disabled={isUrlLoading}
-            />
-            <Button onClick={handleUrlUpload} disabled={isUrlLoading || !imageUrl.trim()} className="w-full">
-                {isUrlLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Ajouter depuis l'URL
-            </Button>
-          </TabsContent>
+                    <TabsContent value="storage" className="space-y-4 pt-4">
+                         <p className="text-sm text-muted-foreground text-center">Cette méthode envoie directement le fichier vers Firebase Storage. C'est le test final.</p>
+                         {status.state === 'uploading' && <Progress value={status.progress} className="w-full" />}
+                         <Button 
+                            onClick={handleStorageUpload} 
+                            disabled={isProcessing || !selectedFile} 
+                            className="w-full"
+                         >
+                            {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                            {isProcessing ? 'Téléversement...' : 'Téléverser via Storage'}
+                        </Button>
+                    </TabsContent>
 
-        </Tabs>
+                    <TabsContent value="url" className="space-y-4 pt-4">
+                        <Input
+                            placeholder="https://example.com/image.png"
+                            value={imageUrl}
+                            onChange={(e) => setImageUrl(e.target.value)}
+                            disabled={isUrlLoading}
+                        />
+                        <Button onClick={handleUrlUpload} disabled={isUrlLoading || !imageUrl.trim()} className="w-full">
+                            {isUrlLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                            Ajouter depuis l'URL
+                        </Button>
+                    </TabsContent>
+                </Tabs>
+            </div>
+        )}
         
         {status.state === 'error' && (
           <p className="mt-4 text-sm text-center text-destructive">{status.message}</p>
