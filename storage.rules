@@ -2,18 +2,21 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Autorise l'écriture uniquement dans le dossier personnel de l'utilisateur.
-    // Le chemin doit correspondre à celui construit dans le code client (`src/lib/storage.ts`).
+    // Fichiers téléversés par les utilisateurs
+    // Le chemin doit correspondre exactement à celui construit dans le code client.
     match /uploads/{uid}/{fileId} {
-      // Un utilisateur authentifié peut écrire dans son propre dossier.
-      // On vérifie aussi la taille du fichier et le type de contenu.
-      allow write: if request.auth != null &&
-                      request.auth.uid == uid &&
-                      request.resource.size < 10 * 1024 * 1024 &&
-                      request.resource.contentType.matches('image/.*');
 
-      // Un utilisateur authentifié peut lire les fichiers dans son propre dossier.
+      // Un utilisateur ne peut lire que ses propres fichiers.
       allow read: if request.auth != null && request.auth.uid == uid;
+
+      // Un utilisateur ne peut écrire que dans son propre dossier.
+      // On ajoute des gardes-fous supplémentaires.
+      allow write: if request.auth != null
+                    && request.auth.uid == uid
+                    // Limiter la taille du fichier à 10 Mo
+                    && request.resource.size < 10 * 1024 * 1024
+                    // S'assurer que le fichier est bien une image
+                    && request.resource.contentType.matches('image/.*');
     }
   }
 }
