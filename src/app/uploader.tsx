@@ -220,12 +220,12 @@ export function Uploader() {
                   Choisissez une méthode pour ajouter une image à votre galerie.
                 </CardDescription>
             </div>
-            {userProfile ? (
+            {userProfile !== undefined ? (
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button variant="secondary" className="flex items-center gap-2 font-semibold px-3 py-1.5 rounded-full text-sm h-auto" title={`${userProfile.ticketCount} tickets restants`}>
+                    <Button variant="secondary" className="flex items-center gap-2 font-semibold px-3 py-1.5 rounded-full text-sm h-auto" title={`${userProfile?.ticketCount ?? '?'} tickets restants`}>
                         <Ticket className="h-5 w-5" />
-                        <span>{userProfile.ticketCount}</span>
+                        <span>{userProfile?.ticketCount ?? '?'}</span>
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
@@ -236,7 +236,7 @@ export function Uploader() {
                       </DialogDescription>
                     </DialogHeader>
                     <div className="py-4 text-center">
-                        <div className="text-4xl font-bold">{userProfile.ticketCount}</div>
+                        <div className="text-4xl font-bold">{userProfile?.ticketCount ?? 0}</div>
                         <div className="text-muted-foreground">tickets restants</div>
                     </div>
                     <p className="text-sm text-center text-muted-foreground">
