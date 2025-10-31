@@ -22,9 +22,9 @@ export interface UserProfile {
   id: string;
   email: string;
   displayName: string;
-  creationTimestamp: any; // Firestore Timestamp
+  creationTimestamp: Timestamp; 
   ticketCount: number;
-  lastTicketRefill: any; // Firestore Timestamp
+  lastTicketRefill: Timestamp;
 }
 
 
@@ -84,6 +84,26 @@ export async function saveImageMetadata(firestore: Firestore, user: User, metada
         errorEmitter.emit('permission-error', permissionError);
         throw error;
     }
+}
+
+
+/**
+ * Décrémente le compteur de tickets de l'utilisateur de 1.
+ * @param firestore L'instance Firestore.
+ * @param userId L'ID de l'utilisateur.
+ */
+export async function decrementTicketCount(firestore: Firestore, userId: string): Promise<void> {
+  const userDocRef = doc(firestore, 'users', userId);
+  try {
+    await updateDoc(userDocRef, {
+      ticketCount: increment(-1),
+    });
+  } catch (error) {
+    console.error("Erreur lors du décompte du ticket:", error);
+    // On ne propage pas l'erreur de permission ici pour ne pas interrompre le flux principal
+    // si seul le décompte échoue. Une surveillance côté backend pourrait être envisagée.
+    throw error; // Ou gérer silencieusement
+  }
 }
 
 

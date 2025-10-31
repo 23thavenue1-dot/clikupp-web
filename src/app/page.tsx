@@ -3,7 +3,7 @@
 
 import { useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
 import { Loader2 } from 'lucide-react';
@@ -11,6 +11,8 @@ import { NotesSection } from './notes';
 import { Uploader } from './uploader';
 import { ImageList } from './ImageList';
 import { type UserProfile } from '@/lib/firestore';
+import { isBefore, subDays } from 'date-fns';
+
 
 export default function Home() {
   const router = useRouter();
@@ -29,6 +31,29 @@ export default function Home() {
       router.push('/login');
     }
   }, [user, isUserLoading, router]);
+
+  useEffect(() => {
+    const checkAndRefillTickets = async () => {
+      if (userProfile && userDocRef) {
+        const lastRefillDate = userProfile.lastTicketRefill.toDate();
+        const oneDayAgo = subDays(new Date(), 1);
+
+        if (isBefore(lastRefillDate, oneDayAgo)) {
+          try {
+            await updateDoc(userDocRef, {
+              ticketCount: 5,
+              lastTicketRefill: serverTimestamp(),
+            });
+            console.log('Tickets rechargés pour l\'utilisateur:', userProfile.id);
+          } catch (error) {
+            console.error('Erreur lors de la recharge des tickets:', error);
+          }
+        }
+      }
+    };
+
+    checkAndRefillTickets();
+  }, [userProfile, userDocRef]);
 
   if (isUserLoading) {
     return (
