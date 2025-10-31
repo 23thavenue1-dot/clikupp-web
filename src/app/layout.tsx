@@ -29,6 +29,7 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
+          themes={['light', 'dark', 'mid', 'system']}
         >
           <FirebaseClientProvider>
             <div className="relative flex flex-col h-full">
