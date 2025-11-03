@@ -56,6 +56,8 @@ export default function SignupPage() {
         creationTimestamp: serverTimestamp(),
         ticketCount: 5,
         lastTicketRefill: serverTimestamp(),
+        aiTicketCount: 3, // Ajout du compteur de tickets IA
+        lastAiTicketRefill: serverTimestamp(), // Ajout de la date de recharge IA
         level: 1,
         xp: 0,
         unlockedAchievements: [],
@@ -147,3 +149,5 @@ export default function SignupPage() {
     </main>
   );
 }
+
+    

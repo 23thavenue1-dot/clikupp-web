@@ -113,6 +113,15 @@
           "description": "Timestamp of the last time the user's tickets were refilled.",
           "format": "date-time"
         },
+        "aiTicketCount": {
+          "type": "number",
+          "description": "Number of remaining AI generation tickets for the user."
+        },
+        "lastAiTicketRefill": {
+          "type": "string",
+          "description": "Timestamp of the last time the user's AI tickets were refilled.",
+          "format": "date-time"
+        },
         "emailNotifications": {
           "type": "boolean",
           "description": "Indicates if the user has opted-in to receive email notifications."
@@ -161,6 +170,8 @@
         "creationTimestamp",
         "ticketCount",
         "lastTicketRefill",
+        "aiTicketCount",
+        "lastAiTicketRefill",
         "level",
         "xp",
         "profilePictureUpdateCount"
