@@ -43,12 +43,18 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       toast({ title: "Connexion réussie", description: "Vous allez être redirigé." });
       router.push("/");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      let description = "Une erreur inattendue est survenue.";
+      if (error.code === 'auth/invalid-credential') {
+        description = "L'adresse e-mail ou le mot de passe est incorrect.";
+      } else {
+        description = error.message;
+      }
       toast({
         variant: "destructive",
         title: "Erreur de connexion",
-        description: (error as Error).message,
+        description: description,
       });
     } finally {
       setIsLoading(false);
