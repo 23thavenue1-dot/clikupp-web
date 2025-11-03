@@ -1,8 +1,8 @@
 'use server';
 /**
- * @fileOverview Flow Genkit pour la génération de description d'image par IA.
+ * @fileOverview Flow Genkit pour la génération de description d'image par IA, optimisé pour les réseaux sociaux.
  *
- * - generateImageDescription: La fonction principale qui prend une URL d'image et retourne une description.
+ * - generateImageDescription: La fonction principale qui prend une URL d'image et une plateforme, puis retourne un contenu adapté.
  * - GenerateDescriptionInput: Le type d'entrée pour la fonction.
  * - GenerateDescriptionOutput: Le type de sortie pour la fonction.
  */
@@ -12,11 +12,14 @@ import { z } from 'genkit';
 
 const GenerateDescriptionInputSchema = z.object({
   imageUrl: z.string().url().describe("L'URL de l'image à analyser."),
+  platform: z.enum(['instagram', 'facebook', 'x', 'tiktok', 'generic']).describe("La plateforme de réseau social cible pour le contenu."),
 });
 export type GenerateDescriptionInput = z.infer<typeof GenerateDescriptionInputSchema>;
 
 const GenerateDescriptionOutputSchema = z.object({
-  description: z.string().describe("Une description de l'image, de 2 à 3 phrases."),
+  title: z.string().describe("Un titre accrocheur pour la publication, adapté à la plateforme."),
+  description: z.string().describe("Une description de l'image, optimisée pour la plateforme (longueur, ton, etc.)."),
+  hashtags: z.array(z.string()).describe("Une liste de 5 à 10 hashtags pertinents et populaires."),
 });
 export type GenerateDescriptionOutput = z.infer<typeof GenerateDescriptionOutputSchema>;
 
@@ -26,10 +29,17 @@ export async function generateImageDescription(input: GenerateDescriptionInput):
 }
 
 const prompt = ai.definePrompt({
-    name: 'generateImageDescriptionPrompt',
+    name: 'generateSocialMediaPostPrompt',
     input: { schema: GenerateDescriptionInputSchema },
     output: { schema: GenerateDescriptionOutputSchema },
-    prompt: `Tu es un expert en description d'images pour les réseaux sociaux. Analyse l'image suivante et écris une description engageante et concise (2-3 phrases maximum).
+    prompt: `Tu es un community manager expert, spécialisé dans la création de contenu viral pour les réseaux sociaux.
+
+Analyse l'image suivante et prépare une publication optimisée pour la plateforme : **{{platform}}**.
+
+Voici tes instructions :
+1.  **Titre :** Crée un titre court et percutant.
+2.  **Description :** Rédige une description engageante. Adapte le ton et la longueur à la plateforme : plus descriptif pour Instagram/Facebook, très court et direct pour X (anciennement Twitter).
+3.  **Hashtags :** Génère une liste de 5 à 10 hashtags pertinents, mélangeant des tags populaires et plus spécifiques.
 
 Image à analyser : {{media url=imageUrl}}`,
 });

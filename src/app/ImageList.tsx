@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { type ImageMetadata, deleteImageMetadata, updateImageDescription } from '@/lib/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2 } from 'lucide-react';
+import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -30,11 +30,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { generateImageDescription } from '@/ai/flows/generate-description-flow';
+import { Separator } from '@/components/ui/separator';
+
+type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic';
 
 export function ImageList() {
     const { user } = useUser();
@@ -51,7 +60,11 @@ export function ImageList() {
 
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [imageToEdit, setImageToEdit] = useState<ImageMetadata | null>(null);
+    
+    const [currentTitle, setCurrentTitle] = useState('');
     const [currentDescription, setCurrentDescription] = useState('');
+    const [currentHashtags, setCurrentHashtags] = useState<string[]>([]);
+    
     const [isSavingDescription, setIsSavingDescription] = useState(false);
     const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
     const [wasGeneratedByAI, setWasGeneratedByAI] = useState(false);
@@ -66,7 +79,9 @@ export function ImageList() {
     
     useEffect(() => {
         if (imageToEdit) {
+            setCurrentTitle(''); // Reset title on new image
             setCurrentDescription(imageToEdit.description || '');
+            setCurrentHashtags([]); // Reset hashtags on new image
             setWasGeneratedByAI(false); // Reset on new image
         }
     }, [imageToEdit]);
@@ -110,15 +125,17 @@ export function ImageList() {
         }
     };
 
-    const handleGenerateDescription = async () => {
+    const handleGenerateDescription = async (platform: Platform) => {
         if (!imageToEdit) return;
         setIsGeneratingDescription(true);
         setWasGeneratedByAI(false);
         try {
-            const result = await generateImageDescription({ imageUrl: imageToEdit.directUrl });
+            const result = await generateImageDescription({ imageUrl: imageToEdit.directUrl, platform: platform });
+            setCurrentTitle(result.title);
             setCurrentDescription(result.description);
+            setCurrentHashtags(result.hashtags);
             setWasGeneratedByAI(true);
-             toast({ title: "Description générée !", description: "Vous pouvez la modifier avant de l'enregistrer." });
+             toast({ title: "Contenu généré !", description: `Publication pour ${platform} prête. Vous pouvez la modifier.` });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur IA', description: "Le service de génération n'a pas pu répondre." });
         } finally {
@@ -130,8 +147,14 @@ export function ImageList() {
         if (!imageToEdit || !user || !firestore) return;
 
         setIsSavingDescription(true);
+        const finalDescription = [
+            currentTitle,
+            currentDescription,
+            currentHashtags.join(' ')
+        ].filter(Boolean).join('\n\n');
+
         try {
-            await updateImageDescription(firestore, user.uid, imageToEdit.id, currentDescription, wasGeneratedByAI);
+            await updateImageDescription(firestore, user.uid, imageToEdit.id, finalDescription, wasGeneratedByAI);
             toast({ title: 'Description enregistrée', description: 'La description de l\'image a été mise à jour.' });
             setShowEditDialog(false);
         } catch (error) {
@@ -311,39 +334,91 @@ export function ImageList() {
             </Dialog>
 
             <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-                <DialogContent>
+                <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                    <DialogTitle>Modifier la description</DialogTitle>
+                    <DialogTitle>Modifier et Générer</DialogTitle>
                     <DialogDescription>
-                        Modifiez la description de votre image ou laissez l'IA en générer une pour vous.
+                        Laissez l'IA générer un contenu optimisé pour vos réseaux sociaux.
                     </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
+                        
+                        <div className="space-y-2">
+                            <Label htmlFor="title">Titre (généré par IA)</Label>
+                            <Input 
+                                id="title"
+                                placeholder="Titre accrocheur généré par l'IA..."
+                                value={currentTitle}
+                                onChange={(e) => setCurrentTitle(e.target.value)}
+                                disabled={isGeneratingDescription || isSavingDescription}
+                            />
+                        </div>
+                        
                         <div className="space-y-2">
                             <Label htmlFor="description">Description</Label>
                             <Textarea 
                                 id="description"
-                                placeholder="Décrivez votre image..."
+                                placeholder="La description de votre image apparaîtra ici..."
                                 value={currentDescription}
                                 onChange={(e) => setCurrentDescription(e.target.value)}
                                 rows={4}
                                 disabled={isGeneratingDescription || isSavingDescription}
                             />
                         </div>
+                        
                         <div className="space-y-2">
-                             <Button 
-                                variant="outline" 
-                                className="w-full"
+                            <Label htmlFor="hashtags">Hashtags (générés par IA)</Label>
+                            <Textarea 
+                                id="hashtags"
+                                placeholder="#hashtags #générés #apparaîtront #ici"
+                                value={currentHashtags.join(' ')}
+                                onChange={(e) => setCurrentHashtags(e.target.value.split(' '))}
+                                rows={2}
                                 disabled={isGeneratingDescription || isSavingDescription}
-                                onClick={handleGenerateDescription}
-                            >
-                                {isGeneratingDescription ? (
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
-                                ) : (
-                                    <Wand2 className="mr-2 h-4 w-4"/>
-                                )}
-                                {isGeneratingDescription ? 'Génération en cours...' : 'Générer avec l\'IA'}
-                            </Button>
+                            />
+                        </div>
+
+                        <Separator />
+
+                        <div className="space-y-2">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button 
+                                        variant="outline" 
+                                        className="w-full"
+                                        disabled={isGeneratingDescription || isSavingDescription}
+                                    >
+                                        {isGeneratingDescription ? (
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+                                        ) : (
+                                            <Wand2 className="mr-2 h-4 w-4"/>
+                                        )}
+                                        {isGeneratingDescription ? 'Génération...' : 'Générer avec l\'IA pour...'}
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="w-56">
+                                    <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}>
+                                        <Instagram className="mr-2 h-4 w-4" />
+                                        <span>Instagram</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleGenerateDescription('facebook')}>
+                                        <Facebook className="mr-2 h-4 w-4" />
+                                        <span>Facebook</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleGenerateDescription('x')}>
+                                        <MessageSquare className="mr-2 h-4 w-4" />
+                                        <span>X (Twitter)</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleGenerateDescription('tiktok')}>
+                                        <VenetianMask className="mr-2 h-4 w-4" />
+                                        <span>TikTok</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleGenerateDescription('generic')}>
+                                        <Wand2 className="mr-2 h-4 w-4" />
+                                        <span>Générique</span>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
                     </div>
                     <DialogFooter>
@@ -358,5 +433,3 @@ export function ImageList() {
         </>
     );
 }
-
-    
