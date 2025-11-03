@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { type ImageMetadata, deleteImageMetadata, updateImageDescription } from '@/lib/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Eye } from 'lucide-react';
+import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Eye, CopyPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -108,6 +108,7 @@ export function ImageList() {
     const openDetailsDialog = (image: ImageMetadata) => {
         setImageToShowDetails(image);
         setShowDetailsDialog(true);
+        setCopiedField(null);
     };
 
     const handleDeleteImage = async () => {
@@ -173,11 +174,11 @@ export function ImageList() {
         }
     };
 
-    const copyToClipboard = async (text: string, field: string) => {
+    const copyToClipboard = async (text: string, field: string, toastTitle = "Copié !") => {
         try {
           await navigator.clipboard.writeText(text);
           setCopiedField(field);
-          toast({ title: "Copié !", description: "Le lien a été copié dans le presse-papiers." });
+          toast({ title: toastTitle });
           setTimeout(() => setCopiedField(null), 2000);
         } catch {
           toast({ variant:'destructive', title:'Copie impossible', description:'Autorisez l’accès au presse-papier ou copiez manuellement.' });
@@ -327,7 +328,7 @@ export function ImageList() {
                             <Label htmlFor="directLink">Lien direct (URL)</Label>
                             <div className="flex items-center gap-2">
                                 <Input id="directLink" readOnly value={imageToShare?.directUrl || ''} className="bg-muted text-xs truncate"/>
-                                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(imageToShare?.directUrl || '', 'direct')}>
+                                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(imageToShare?.directUrl || '', 'direct', 'Lien copié !')}>
                                     {copiedField === 'direct' ? <Check className="text-green-500"/> : <Copy />}
                                 </Button>
                             </div>
@@ -336,7 +337,7 @@ export function ImageList() {
                             <Label htmlFor="bbCodeLink">Pour forum (BBCode)</Label>
                             <div className="flex items-center gap-2">
                                 <Input id="bbCodeLink" readOnly value={imageToShare?.bbCode || ''} className="bg-muted text-xs truncate"/>
-                                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(imageToShare?.bbCode || '', 'bbcode')}>
+                                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(imageToShare?.bbCode || '', 'bbcode', 'BBCode copié !')}>
                                     {copiedField === 'bbcode' ? <Check className="text-green-500"/> : <Copy />}
                                 </Button>
                             </div>
@@ -345,7 +346,7 @@ export function ImageList() {
                             <Label htmlFor="htmlLink">Pour site web (HTML)</Label>
                             <div className="flex items-center gap-2">
                                 <Input id="htmlLink" readOnly value={imageToShare?.htmlCode || ''} className="bg-muted text-xs truncate"/>
-                                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(imageToShare?.htmlCode || '', 'html')}>
+                                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(imageToShare?.htmlCode || '', 'html', 'Code HTML copié !')}>
                                     {copiedField === 'html' ? <Check className="text-green-500"/> : <Copy />}
                                 </Button>
                             </div>
@@ -475,25 +476,52 @@ export function ImageList() {
                             )}
                         </div>
                         <div className="space-y-4">
-                            <div>
+                            <div className="group/copy-item relative">
                                 <Label className="text-muted-foreground">Titre</Label>
-                                <p className="font-semibold text-lg">{imageToShowDetails?.title || 'Aucun titre'}</p>
+                                <p className="font-semibold text-lg pr-8">{imageToShowDetails?.title || 'Aucun titre'}</p>
+                                {imageToShowDetails?.title && (
+                                <Button variant="ghost" size="icon" className="absolute top-1/2 -translate-y-1/2 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(imageToShowDetails.title!, 'details-title', 'Titre copié !')}>
+                                    {copiedField === 'details-title' ? <Check className="text-green-500"/> : <Copy size={16}/>}
+                                </Button>
+                                )}
                             </div>
-                            <div>
+                            <div className="group/copy-item relative">
                                 <Label className="text-muted-foreground">Description</Label>
-                                <p className="text-sm whitespace-pre-wrap">{imageToShowDetails?.description || 'Aucune description'}</p>
+                                <p className="text-sm whitespace-pre-wrap pr-8">{imageToShowDetails?.description || 'Aucune description'}</p>
+                                {imageToShowDetails?.description && (
+                                <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(imageToShowDetails.description!, 'details-desc', 'Description copiée !')}>
+                                    {copiedField === 'details-desc' ? <Check className="text-green-500"/> : <Copy size={16}/>}
+                                </Button>
+                                )}
                             </div>
-                            <div>
+                            <div className="group/copy-item relative">
                                 <Label className="text-muted-foreground">Hashtags</Label>
-                                <p className="text-sm text-primary">{imageToShowDetails?.hashtags || 'Aucun hashtag'}</p>
+                                <p className="text-sm text-primary pr-8">{imageToShowDetails?.hashtags || 'Aucun hashtag'}</p>
+                                {imageToShowDetails?.hashtags && (
+                                <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(imageToShowDetails.hashtags!, 'details-tags', 'Hashtags copiés !')}>
+                                    {copiedField === 'details-tags' ? <Check className="text-green-500"/> : <Copy size={16}/>}
+                                </Button>
+                                )}
                             </div>
                         </div>
                     </div>
                     <DialogFooter>
                         <Button variant="secondary" onClick={() => setShowDetailsDialog(false)}>Fermer</Button>
+                         <Button 
+                            onClick={() => {
+                                const fullText = `${imageToShowDetails?.title || ''}\n\n${imageToShowDetails?.description || ''}\n\n${imageToShowDetails?.hashtags || ''}`;
+                                copyToClipboard(fullText.trim(), 'details-all', 'Contenu complet copié !');
+                            }}
+                            disabled={!imageToShowDetails?.title && !imageToShowDetails?.description && !imageToShowDetails?.hashtags}
+                        >
+                            {copiedField === 'details-all' ? <Check className="mr-2"/> : <CopyPlus className="mr-2"/>}
+                            Tout Copier
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
         </>
     );
 }
+
+    
