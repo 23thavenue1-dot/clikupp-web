@@ -60,21 +60,31 @@ export function Navbar() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-card border-b shadow-sm">
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
-        <Link href="/" className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-          <ImageIcon className="h-6 w-6 text-primary" />
-          <span>Clikup</span>
-        </Link>
+        {/* Left Section */}
+        <div className="flex items-center justify-start flex-1">
+          <Link href="/" className="flex items-center gap-2 text-2xl font-bold tracking-tight">
+            <ImageIcon className="h-6 w-6 text-primary" />
+            <span>Clikup</span>
+          </Link>
+        </div>
+        
+        {/* Center Section */}
+        <div className="flex items-center justify-center flex-1">
+          {user && (
+            <Link href="/dashboard" passHref>
+              <Button variant="ghost" size="icon" aria-label="Tableau de bord">
+                <LayoutDashboard className="h-5 w-5" />
+              </Button>
+            </Link>
+          )}
+        </div>
 
-        <div className="flex items-center gap-2 sm:gap-4">
+        {/* Right Section */}
+        <div className="flex items-center justify-end flex-1 gap-2 sm:gap-4">
           {isUserLoading ? (
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           ) : user ? (
             <>
-              <Link href="/dashboard" passHref>
-                <Button variant="ghost" size="icon" aria-label="Tableau de bord">
-                  <LayoutDashboard className="h-5 w-5" />
-                </Button>
-              </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-full">
