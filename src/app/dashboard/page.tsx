@@ -4,7 +4,7 @@ import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Award, Camera, Heart, Medal, Star, UserCheck, GalleryVertical, CalendarClock, Trophy, Crown, Gem, Shield, Rocket, Sparkles, Sun } from 'lucide-react';
+import { Award, Camera, Heart, Medal, Star, UserCheck, GalleryVertical, CalendarClock, Trophy, Crown, Gem, Shield, Rocket, Sparkles, Sun, Upload, Share2, ThumbsUp } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Check } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -55,7 +55,13 @@ export default function DashboardPage() {
         unlocked: false,
       },
       {
-        title: 'Collection naissante',
+        title: 'Premier Upload',
+        description: 'Téléverser votre première image.',
+        icon: Upload,
+        unlocked: false,
+      },
+      {
+        title: 'Collection Naissante',
         description: 'Téléverser au moins 10 images.',
         icon: GalleryVertical,
         unlocked: false,
@@ -65,7 +71,19 @@ export default function DashboardPage() {
         description: 'Se connecter 3 jours de suite.',
         icon: CalendarClock,
         unlocked: false,
-      }
+      },
+      {
+        title: 'Premier Partage',
+        description: 'Partager une image pour la première fois.',
+        icon: Share2,
+        unlocked: false,
+      },
+      {
+        title: 'Curateur',
+        description: 'Liker une image (fonctionnalité à venir).',
+        icon: ThumbsUp,
+        unlocked: false,
+      },
   ]
 
   return (
