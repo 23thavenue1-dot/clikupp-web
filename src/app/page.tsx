@@ -3,15 +3,14 @@
 
 import { useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
 import { Loader2 } from 'lucide-react';
 import { NotesSection } from './notes';
 import { Uploader } from './uploader';
 import { ImageList } from './ImageList';
-import { type UserProfile } from '@/lib/firestore';
-import { isSameDay } from 'date-fns';
+import { type UserProfile, checkAndRefillTickets } from '@/lib/firestore';
 import { LandingPage } from './landing-page';
 
 
@@ -28,31 +27,12 @@ export default function Home() {
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
   useEffect(() => {
-    const checkAndRefillTickets = async () => {
-      // S'assurer que les données sont chargées et que la dernière recharge a eu lieu un jour différent
-      if (userProfile && userProfile.lastTicketRefill && userDocRef) {
-        const lastRefillDate = userProfile.lastTicketRefill.toDate();
-        const today = new Date();
-
-        // Si la dernière recharge n'a pas eu lieu aujourd'hui
-        if (!isSameDay(lastRefillDate, today)) {
-          try {
-            await updateDoc(userDocRef, {
-              ticketCount: 5, // Recharger à 5
-              lastTicketRefill: serverTimestamp(),
-            });
-            console.log('Tickets rechargés pour l\'utilisateur:', userProfile.id);
-          } catch (error) {
-            console.error('Erreur lors de la recharge des tickets:', error);
-          }
-        }
-      }
-    };
-
-    if (user) {
-        checkAndRefillTickets();
+    // La logique de recharge est maintenant centralisée dans une fonction
+    // pour plus de robustesse et de clarté.
+    if (userProfile && firestore && userDocRef) {
+      checkAndRefillTickets(firestore, userDocRef, userProfile);
     }
-  }, [userProfile, userDocRef, user]);
+  }, [userProfile, firestore, userDocRef]);
 
 
   if (isUserLoading) {

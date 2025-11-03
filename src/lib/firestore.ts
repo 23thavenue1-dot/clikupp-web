@@ -14,11 +14,13 @@ import {
   Timestamp,
   getDocs,
   writeBatch,
+  DocumentReference,
 } from 'firebase/firestore';
 import { getStorage, ref, listAll, deleteObject, Storage } from 'firebase/storage';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import type { User } from 'firebase/auth';
+import { isBefore, startOfDay } from 'date-fns';
 
 // Correspond à la structure dans backend.json
 export interface UserProfile {
@@ -63,6 +65,35 @@ export type Note = {
   text: string;
   createdAt: Timestamp; // Changed to Timestamp
 }
+
+/**
+ * Vérifie si le quota de tickets de l'utilisateur doit être rechargé et le fait si nécessaire.
+ * La recharge a lieu si la dernière recharge date d'un jour précédent.
+ * @param firestore L'instance Firestore.
+ * @param userDocRef La référence au document de l'utilisateur.
+ * @param userProfile Le profil de l'utilisateur.
+ */
+export async function checkAndRefillTickets(firestore: Firestore, userDocRef: DocumentReference, userProfile: UserProfile): Promise<void> {
+  if (!userProfile.lastTicketRefill) return;
+
+  const today = new Date();
+  const lastRefillDate = userProfile.lastTicketRefill.toDate();
+
+  // On compare le début du jour de la dernière recharge avec le début du jour actuel.
+  if (isBefore(startOfDay(lastRefillDate), startOfDay(today))) {
+    try {
+      await updateDoc(userDocRef, {
+        ticketCount: 5,
+        lastTicketRefill: serverTimestamp(),
+      });
+      console.log('Tickets rechargés pour l\'utilisateur:', userProfile.id);
+    } catch (error) {
+      console.error('Erreur lors de la recharge des tickets:', error);
+      // Gérer l'erreur si nécessaire, par exemple avec un toast
+    }
+  }
+}
+
 
 /**
  * Sauvegarde les métadonnées d'une image dans Firestore après son téléversement.
