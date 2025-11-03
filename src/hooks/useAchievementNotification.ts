@@ -35,9 +35,13 @@ export const useAchievementNotification = () => {
         setHasNew(totalUnlocked > seenCount);
     }, [userProfile]);
 
+    // Ce useEffect réagit maintenant directement aux changements du userProfile
     useEffect(() => {
         checkNewAchievements();
-        
+    }, [userProfile, checkNewAchievements]);
+
+    // Ce useEffect gère la synchronisation entre les onglets
+    useEffect(() => {
         const handleStorageChange = (event: StorageEvent) => {
             if (event.key === SEEN_ACHIEVEMENTS_KEY) {
                 checkNewAchievements();
