@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useUser } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image as ImageIcon, LogOut, Settings, User as UserIcon, LayoutDashboard, Sun, Moon, Monitor, MessageSquareQuote } from 'lucide-react';
+import { Loader2, Image as ImageIcon, LogOut, Settings, User as UserIcon, LayoutDashboard, Sun, Moon, Monitor, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useTheme } from "next-themes";
@@ -123,7 +123,7 @@ export function Navbar() {
                    <DropdownMenuGroup>
                         <DropdownMenuItem asChild>
                             <Link href="/secret-messages">
-                                <MessageSquareQuote className="mr-2 h-4 w-4" />
+                                <Mail className="mr-2 h-4 w-4" />
                                 <span>Messages Secrets</span>
                             </Link>
                         </DropdownMenuItem>
@@ -177,5 +177,3 @@ export function Navbar() {
     </header>
   );
 }
-
-    
