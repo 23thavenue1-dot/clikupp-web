@@ -7,10 +7,11 @@
  * - /users/{userId}: Stores user profile information; only the user can read/write their own profile.
  * - /users/{userId}/images/{imageId}: Stores image metadata; only the user can read/write images they own.
  * - /users/{userId}/notes/{noteId}: Stores notes; only the user can read/write their own notes.
+ * - /users/{userId}/galleries/{galleryId}: Stores user-created galleries; only the user can manage their own galleries.
  * - /roles_admin/{adminId}: Presence of a document grants admin privileges.
  *
  * Key Security Decisions:
- * - Users can only access their own data (profiles, images, notes).
+ * - Users can only access their own data (profiles, images, notes, galleries).
  * - Listing of all users is disallowed.
  * - Admin privileges are granted based on the presence of a document in the /roles_admin collection.
  *
@@ -71,40 +72,42 @@ service cloud.firestore {
       allow create: if isOwner(userId) && request.resource.data.id == request.auth.uid;
       allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
       allow delete: if isExistingOwner(userId);
-    }
 
-    /**
-     * @description Defines access rules for image documents nested under a user's profile.
-     * @path /users/{userId}/images/{imageId}
-     * @allow (create) Signed-in user can create images under their own profile.
-     * @allow (get, list, update, delete) Signed-in user can only access images under their own profile.
-     * @deny (create) An unauthenticated user cannot create images.
-     * @deny (get, list, update, delete) Signed-in user cannot access images under another user's profile.
-     * @principle Enforces user-ownership for accessing images.
-     */
-    match /users/{userId}/images/{imageId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(userId);
-    }
+      /**
+       * @description Defines access rules for image documents nested under a user's profile.
+       * @path /users/{userId}/images/{imageId}
+       */
+      match /images/{imageId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.userId == userId;
+        allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+        allow delete: if isExistingOwner(userId);
+      }
 
-     /**
-      * @description Defines access rules for notes documents nested under a user's profile.
-      * @path /users/{userId}/notes/{noteId}
-      * @allow (create) Signed-in user can create notes under their own profile.
-      * @allow (get, list, update, delete) Signed-in user can only access notes under their own profile.
-      * @deny (create) An unauthenticated user cannot create notes.
-      * @deny (get, list, update, delete) Signed-in user cannot access notes under another user's profile.
-      * @principle Enforces user-ownership for accessing notes.
-      */
-    match /users/{userId}/notes/{noteId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(userId);
+      /**
+        * @description Defines access rules for notes documents nested under a user's profile.
+        * @path /users/{userId}/notes/{noteId}
+        */
+      match /notes/{noteId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.userId == userId;
+        allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description Defines access rules for gallery documents nested under a user's profile.
+       * @path /users/{userId}/galleries/{galleryId}
+       */
+      match /galleries/{galleryId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.userId == userId;
+        allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+        allow delete: if isExistingOwner(userId);
+      }
     }
 
     /**

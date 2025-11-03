@@ -7,7 +7,7 @@ import { doc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/firestore';
 import { signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image as ImageIcon, LogOut, Settings, User as UserIcon, LayoutDashboard, Sun, Moon, Monitor, Mail, Home, Sparkles } from 'lucide-react';
+import { Loader2, Image as ImageIcon, LogOut, Settings, User as UserIcon, LayoutDashboard, Sun, Moon, Monitor, Mail, Home, Sparkles, Library } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useTheme } from "next-themes";
@@ -101,6 +101,11 @@ export function Navbar() {
               <Link href="/" passHref>
                 <Button variant="ghost" size="icon" aria-label="Accueil">
                   <Home className="h-5 w-5" />
+                </Button>
+              </Link>
+               <Link href="/galleries" passHref>
+                <Button variant="ghost" size="icon" aria-label="Galeries">
+                  <Library className="h-5 w-5" />
                 </Button>
               </Link>
               <Link href="/dashboard" passHref>
@@ -202,6 +207,12 @@ export function Navbar() {
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
                    <DropdownMenuGroup>
+                        <DropdownMenuItem asChild>
+                            <Link href="/galleries">
+                                <Library className="mr-2 h-4 w-4" />
+                                <span>Mes Galeries</span>
+                            </Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                             <Link href="/secret-messages" className="relative">
                                 <Mail className="mr-2 h-4 w-4" />

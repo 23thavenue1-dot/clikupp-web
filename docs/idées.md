@@ -19,15 +19,15 @@ Ce document rassemble plusieurs idées pour enrichir l'application en y intégra
 
 ## Idées de Fonctionnalités Majeures
 
-### 1. Organisation par Playlists d'Images (Intermédiaire à Avancé)
+### 1. Organisation par Galeries d'Images (En cours)
 
--   **L'idée :** Permettre aux utilisateurs de regrouper leurs images dans des "playlists" (similaires à des albums ou des collections). L'utilisateur pourrait ajouter une ou plusieurs images à une playlist existante ou en créer une nouvelle à la volée.
+-   **L'idée :** Permettre aux utilisateurs de regrouper leurs images dans des "Galeries" (similaires à des albums ou des collections). L'utilisateur pourrait ajouter une ou plusieurs images à une galerie existante ou en créer une nouvelle à la volée.
 -   **Avantages :**
     -   **Organisation Puissante :** Répond à un besoin fondamental pour tous les types d'utilisateurs (projets, événements, thèmes).
     -   **Valeur ajoutée :** Transforme Clikup d'un simple service de stockage en une véritable bibliothèque d'images organisée.
-    -   **Facilite le partage :** Permettrait à terme de partager une playlist entière.
+    -   **Facilite le partage :** Permettrait à terme de partager une galerie entière.
 -   **Public Cible :** Extrêmement utile pour les créateurs, les photographes et les développeurs. Très pratique pour l'utilisateur quotidien.
--   **Statut :** Idée validée, à planifier dans la feuille de route après les fonctionnalités de base de l'IA.
+-   **Statut :** Idée validée. **Le développement est en cours.**
 
 ---
 

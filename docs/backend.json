@@ -206,6 +206,48 @@
         "text",
         "createdAt"
       ]
+    },
+    "Gallery": {
+      "title": "Gallery",
+      "type": "object",
+      "description": "Represents a user-created gallery (album or collection) of images.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the gallery."
+        },
+        "userId": {
+          "type": "string",
+          "description": "ID of the user who owns the gallery."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the gallery."
+        },
+        "description": {
+          "type": "string",
+          "description": "An optional description for the gallery."
+        },
+        "imageIds": {
+          "type": "array",
+          "description": "An ordered list of image IDs included in the gallery.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of when the gallery was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name",
+        "imageIds",
+        "createdAt"
+      ]
     }
   },
   "auth": {
@@ -273,6 +315,26 @@
         }
       },
       {
+        "path": "/users/{userId}/galleries/{galleryId}",
+        "definition": {
+          "entityName": "Gallery",
+          "schema": {
+            "$ref": "#/backend/entities/Gallery"
+          },
+          "description": "Stores user-created galleries of images.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "galleryId",
+              "description": "The unique identifier of the gallery."
+            }
+          ]
+        }
+      },
+      {
         "path": "/roles_admin/{adminId}",
         "definition": {
           "entityName": "adminRole",
@@ -292,5 +354,3 @@
     "reasoning": "The Firestore data structure is designed to provide a secure and scalable solution for the image uploading application, aligning with the core design principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters). \n\nTo ensure Authorization Independence (Strategy A), the structure uses path-based ownership for images. Images are stored as subcollections of user documents (`/users/{userId}/images/{imageId}`), implicitly granting ownership to the user identified by `{userId}`. No denormalization is needed here, as path-based ownership inherently provides authorization context without requiring `get()` calls in the security rules.\n\nStructural Segregation (Strategy B) is applied by storing all images belonging to a user in the same subcollection. This ensures a homogenous security posture, as all documents within `/users/{userId}/images` share the same security requirements (owned by the user).\n\nAccess Modeling (Strategy C) leverages path-based ownership, a standard and consistent pattern for private data. This simplifies security rules, making them more robust and easier to debug. Since no roles or membership maps are required, this eliminates potential complexities in managing authorization.\n\nThe design supports the required QAPs (Rules are not Filters) by using path-based ownership. Listing images is inherently scoped to a user's images, which can be secured using rules that only allow the user associated with the `/users/{userId}` path to list images under that path. This avoids the need to filter results based on user ID, ensuring efficient and secure list operations. It also allows a simple admin role to be implemented via a separate collection like `/roles_admin/{adminId}`.\n"
   }
 }
-
-    
