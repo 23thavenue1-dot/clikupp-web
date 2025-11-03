@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
@@ -65,7 +64,7 @@ export default function DashboardPage() {
     { id: 'habitué', title: 'Habitué', description: 'Se connecter 3 jours de suite.', icon: CalendarClock, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique complexe
     { id: 'first-share', title: 'Premier Partage', description: 'Partager une image pour la première fois.', icon: Share2, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique à implémenter
     { id: 'curator', title: 'Curateur', description: 'Liker une image (fonctionnalité à venir).', icon: ThumbsUp, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false },
-    { id: 'author', title: 'Auteur', description: 'Ajouter manuellement une description à une image.', icon: FileText, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique à implémenter
+    { id: 'author', title: 'Auteur', description: 'Ajouter manuellement une description à une image.', icon: FileText, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => images?.some(image => !!image.description) },
     { id: 'futurist', title: 'Futuriste', description: 'Générer une description avec l\'IA.', icon: Wand2, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique à implémenter
     { id: 'curious', title: 'Curieux', description: 'Lire votre premier message secret.', icon: MailOpen, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique à implémenter
     { id: 'secret-seeker', title: 'Chercheur de Secrets', description: 'Lire 5 messages secrets.', icon: KeyRound, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique à implémenter
@@ -95,10 +94,10 @@ export default function DashboardPage() {
         }
 
         if (newlyUnlocked.length > 0) {
-            let currentXp = userProfile.xp ?? 0;
-            let currentLevel = userProfile.level ?? 1;
-
             const totalXpGained = newlyUnlocked.reduce((sum, ach) => sum + ach.xp, 0);
+            const currentXp = userProfile.xp ?? 0;
+            const currentLevel = userProfile.level ?? 1;
+
             let newXp = currentXp + totalXpGained;
             let newLevel = currentLevel;
 
