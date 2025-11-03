@@ -17,7 +17,7 @@ const getIcon = (name: string): React.FC<LucideIcons.LucideProps> => {
 
 export default function SecretMessagesPage() {
     // Pour le futur : vous pourrez filtrer ici les messages débloqués
-    const unlockedLevel = 20; // Pour l'instant, on affiche tout
+    const unlockedLevel = 1; // Le niveau de l'utilisateur (sera dynamique plus tard)
 
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
@@ -36,7 +36,7 @@ export default function SecretMessagesPage() {
 
                         return (
                             <AccordionItem key={message.level} value={`item-${message.level}`} className={`border rounded-lg transition-opacity ${isUnlocked ? 'opacity-100 bg-card' : 'opacity-50'}`}>
-                                <AccordionTrigger className="p-4 hover:no-underline">
+                                <AccordionTrigger className="p-4 hover:no-underline" disabled={!isUnlocked}>
                                     <div className="flex items-center gap-4 w-full">
                                         <div className={`p-3 rounded-lg ${isUnlocked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
                                             <Icon className="h-6 w-6" />
@@ -53,8 +53,8 @@ export default function SecretMessagesPage() {
                                     </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="px-4 pb-4">
-                                     <p className={`pl-16 ${!isUnlocked && 'blur-sm select-none'}`}>
-                                        {isUnlocked ? message.content : "Atteignez le niveau requis pour débloquer ce message."}
+                                     <p className="pl-16">
+                                        {message.content}
                                     </p>
                                 </AccordionContent>
                             </AccordionItem>
