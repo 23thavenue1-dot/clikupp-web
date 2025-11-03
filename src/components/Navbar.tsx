@@ -84,17 +84,23 @@ export function Navbar() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/">
                         <LayoutDashboard className="mr-2 h-4 w-4" />
                         <span>Tableau de bord</span>
+                      </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                       <Link href="/settings">
                         <UserIcon className="mr-2 h-4 w-4" />
                         <span>Modifier le profil</span>
+                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/settings">
                         <Settings className="mr-2 h-4 w-4" />
                         <span>Paramètres</span>
+                      </Link>
                     </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
