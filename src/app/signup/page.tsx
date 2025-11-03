@@ -63,14 +63,20 @@ export default function SignupPage() {
       });
 
 
-      toast({ title: "Inscription réussie", description: "Votre compte a été créé et vos tickets de bienvenue ont été ajoutés." });
+      toast({ title: "Inscription réussie", description: "Votre compte a été créé. Vous pouvez maintenant vous connecter." });
       router.push("/login");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      let description = "Une erreur inattendue est survenue.";
+      if (error.code === 'auth/email-already-in-use') {
+        description = "Cette adresse e-mail est déjà utilisée. Essayez de vous connecter.";
+      } else {
+        description = error.message;
+      }
       toast({
         variant: "destructive",
         title: "Erreur d'inscription",
-        description: (error as Error).message,
+        description: description,
       });
     } finally {
       setIsLoading(false);
