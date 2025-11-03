@@ -12,7 +12,10 @@ import {
   addDoc,
   deleteDoc,
   Timestamp,
+  getDocs,
+  writeBatch,
 } from 'firebase/firestore';
+import { getStorage, ref, listAll, deleteObject, Storage } from 'firebase/storage';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import type { User } from 'firebase/auth';
@@ -195,4 +198,43 @@ export function saveNote(firestore: Firestore, user: User, text: string) {
     // Renvoyer l'erreur pour que le composant puisse la gérer
     throw error;
   });
+}
+
+
+/**
+ * Supprime un compte utilisateur et toutes ses données associées (Firestore et Storage).
+ * @param firestore Instance de Firestore.
+ * @param storage Instance de Storage.
+ * @param userId L'ID de l'utilisateur à supprimer.
+ */
+export async function deleteUserAccount(firestore: Firestore, storage: Storage, userId: string): Promise<void> {
+    
+    // 1. Supprimer tous les documents des sous-collections (images, notes)
+    const subcollections = ['images', 'notes'];
+    for (const sub of subcollections) {
+        const subCollectionRef = collection(firestore, 'users', userId, sub);
+        const snapshot = await getDocs(subCollectionRef);
+        const batch = writeBatch(firestore);
+        snapshot.docs.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+    }
+    
+    // 2. Supprimer le document utilisateur principal
+    const userDocRef = doc(firestore, 'users', userId);
+    await deleteDoc(userDocRef);
+
+    // 3. Supprimer tous les fichiers de l'utilisateur dans Storage (avatars, etc.)
+    const userStorageRef = ref(storage, `users/${userId}`);
+    const avatarsStorageRef = ref(storage, `avatars/${userId}`);
+
+    const deleteFolderContents = async (folderRef:any) => {
+        const listResults = await listAll(folderRef);
+        const deletePromises = listResults.items.map(itemRef => deleteObject(itemRef));
+        await Promise.all(deletePromises);
+    };
+
+    await Promise.all([
+      deleteFolderContents(userStorageRef),
+      deleteFolderContents(avatarsStorageRef)
+    ]);
 }

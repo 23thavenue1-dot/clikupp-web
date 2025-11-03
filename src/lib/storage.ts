@@ -1,7 +1,7 @@
 
 'use client';
 
-import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject, type StorageReference, type UploadTask } from 'firebase/storage';
+import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject, type StorageReference, type UploadTask, listAll } from 'firebase/storage';
 import type { User } from 'firebase/auth';
 import type { ImageMetadata } from './firestore';
 import { getApp } from 'firebase/app';
@@ -60,6 +60,22 @@ export async function deleteImageFile(storagePath: string): Promise<void> {
   } catch (error) {
     console.error("Erreur lors de la suppression du fichier sur Storage:", error);
     // Ne pas bloquer si la suppression échoue, mais logger l'erreur.
+  }
+}
+
+/**
+ * Supprime un dossier et tout son contenu dans Firebase Storage.
+ * @param folderPath Le chemin vers le dossier à supprimer (ex: 'users/userId').
+ */
+export async function deleteFolder(folderPath: string): Promise<void> {
+  const { storage } = initializeFirebase();
+  const folderRef = ref(storage, folderPath);
+  try {
+    const listResult = await listAll(folderRef);
+    const deletePromises = listResult.items.map(itemRef => deleteObject(itemRef));
+    await Promise.all(deletePromises);
+  } catch (error) {
+    console.error(`Erreur lors de la suppression du dossier ${folderPath}:`, error);
   }
 }
 
