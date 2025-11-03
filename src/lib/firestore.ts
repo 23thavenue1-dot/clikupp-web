@@ -72,6 +72,17 @@ export type Note = {
   createdAt: Timestamp; // Changed to Timestamp
 }
 
+// Nouveau type pour les galeries
+export type Gallery = {
+  id: string;
+  userId: string;
+  name: string;
+  description: string;
+  imageIds: string[];
+  createdAt: Timestamp;
+};
+
+
 /**
  * Vérifie et recharge les tickets (upload et IA) de l'utilisateur si nécessaire.
  * La recharge a lieu si la dernière recharge date d'un jour précédent.
@@ -350,6 +361,60 @@ export async function updateImageDescription(
             path: imageDocRef.path,
             operation: 'update',
             requestResourceData: dataToUpdate,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        throw error;
+    }
+}
+
+/**
+ * Crée une nouvelle galerie pour l'utilisateur.
+ * @param firestore L'instance Firestore.
+ * @param user L'objet utilisateur authentifié.
+ * @param name Le nom de la galerie.
+ * @param description La description de la galerie.
+ */
+export async function createGallery(firestore: Firestore, user: User, name: string, description: string): Promise<void> {
+    const galleriesCollectionRef = collection(firestore, 'users', user.uid, 'galleries');
+    
+    const dataToSave = {
+        userId: user.uid,
+        name,
+        description,
+        imageIds: [],
+        createdAt: serverTimestamp(),
+    };
+
+    try {
+        const docRef = await addDoc(galleriesCollectionRef, dataToSave);
+        await updateDoc(docRef, { id: docRef.id });
+    } catch (error) {
+        console.error("Erreur lors de la création de la galerie :", error);
+        const permissionError = new FirestorePermissionError({
+            path: galleriesCollectionRef.path,
+            operation: 'create',
+            requestResourceData: dataToSave,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        throw error;
+    }
+}
+
+/**
+ * Supprime une galerie et ses références.
+ * @param firestore L'instance Firestore.
+ * @param userId L'ID de l'utilisateur.
+ * @param galleryId L'ID de la galerie à supprimer.
+ */
+export async function deleteGallery(firestore: Firestore, userId: string, galleryId: string): Promise<void> {
+    const galleryDocRef = doc(firestore, 'users', userId, 'galleries', galleryId);
+    try {
+        await deleteDoc(galleryDocRef);
+    } catch (error) {
+        console.error("Erreur lors de la suppression de la galerie :", error);
+        const permissionError = new FirestorePermissionError({
+            path: galleryDocRef.path,
+            operation: 'delete',
         });
         errorEmitter.emit('permission-error', permissionError);
         throw error;
