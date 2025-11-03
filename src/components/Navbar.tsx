@@ -7,7 +7,7 @@ import { doc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/firestore';
 import { signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image as ImageIcon, LogOut, Settings, User as UserIcon, LayoutDashboard, Sun, Moon, Monitor, Mail } from 'lucide-react';
+import { Loader2, Image as ImageIcon, LogOut, Settings, User as UserIcon, LayoutDashboard, Sun, Moon, Monitor, Mail, Home } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useTheme } from "next-themes";
@@ -87,6 +87,11 @@ export function Navbar() {
         <div className="flex items-center justify-center flex-1 gap-2">
           {user && (
             <>
+              <Link href="/" passHref>
+                <Button variant="ghost" size="icon" aria-label="Accueil">
+                  <Home className="h-5 w-5" />
+                </Button>
+              </Link>
               <Link href="/dashboard" passHref>
                 <Button variant="ghost" size="icon" aria-label="Tableau de bord" className="relative">
                   <LayoutDashboard className="h-5 w-5" />
