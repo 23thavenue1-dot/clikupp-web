@@ -155,3 +155,25 @@ Notre force est de proposer une **valeur ajoutée spectaculaire** grâce à l'IA
 1.  **Maintenir le système de tickets :** C'est notre bouclier de protection des coûts.
 2.  **Associer l'IA aux tickets :** Penser à décompter un ticket pour chaque utilisation de l'IA.
 3.  **Construire l'Offre Premium :** Lorsque les fonctionnalités IA seront plus matures, lancer une offre payante sera une étape logique.
+
+---
+
+## 5. Profils Utilisateurs Visés
+
+Clikup est conçu pour un large éventail d'utilisateurs qui apprécieront la combinaison d'un hébergement simple et d'outils intelligents.
+
+*   **Les Créateurs de Contenu et Blogueurs :**
+    *   **Besoin :** Héberger facilement les images pour leurs articles, optimiser le SEO et accélérer la création de publications pour les réseaux sociaux.
+    *   **Ce que Clikup offre :** Un endroit unique pour stocker les images, générer des descriptions et hashtags pertinents en un clic, et copier le tout pour une publication rapide.
+
+*   **Les Développeurs et Intégrateurs Web :**
+    *   **Besoin :** Un outil rapide et fiable pour héberger des ressources graphiques (maquettes, icônes, assets) pour leurs projets, sans avoir à configurer un bucket S3 complexe.
+    *   **Ce que Clikup offre :** Un téléversement instantané et des liens directs stables, le tout avec un compte gratuit facile à gérer.
+
+*   **Les Amateurs de Photographie :**
+    *   **Besoin :** Un endroit pour stocker et partager leurs photos, recevoir des conseils pour s'améliorer et, à terme, expérimenter avec des outils d'édition créatifs.
+    *   **Ce que Clikup offre :** Une galerie personnelle, un système de gamification (niveaux, succès) qui encourage l'apprentissage, et la promesse de futures fonctionnalités d'édition par IA.
+
+*   **L'Utilisateur Quotidien :**
+    *   **Besoin :** Une alternative simple, moderne et gratuite aux hébergeurs d'images traditionnels pour partager rapidement une image sur un forum, un réseau social ou avec des amis.
+    *   **Ce que Clikup offre :** Une interface épurée, sans publicité intrusive, et des liens de partage faciles à copier (BBCode, HTML), le tout encadré par un système de tickets équitable.
