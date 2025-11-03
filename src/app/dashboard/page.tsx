@@ -67,8 +67,8 @@ export default function DashboardPage() {
                     <p className="font-semibold">Niveau 1</p>
                     <p className="text-sm text-muted-foreground">Prochain niveau : 100 XP</p>
                 </div>
-                <Progress value={25} />
-                <p className="text-center text-sm text-muted-foreground">Votre progression : 25 / 100 XP</p>
+                <Progress value={0} />
+                <p className="text-center text-sm text-muted-foreground">Votre progression : 0 / 100 XP</p>
             </CardContent>
         </Card>
 
