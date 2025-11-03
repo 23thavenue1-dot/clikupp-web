@@ -100,6 +100,15 @@
         "emailNotifications": {
           "type": "boolean",
           "description": "Indicates if the user has opted-in to receive email notifications."
+        },
+        "bio": {
+          "type": "string",
+          "description": "A short biography or description of the user."
+        },
+        "websiteUrl": {
+          "type": "string",
+          "description": "URL to the user's personal website.",
+          "format": "uri"
         }
       },
       "required": [

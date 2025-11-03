@@ -29,6 +29,8 @@ export interface UserProfile {
   ticketCount: number;
   lastTicketRefill: Timestamp;
   emailNotifications?: boolean;
+  bio?: string;
+  websiteUrl?: string;
 }
 
 

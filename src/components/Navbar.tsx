@@ -91,7 +91,7 @@ export function Navbar() {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                       <Link href="/settings">
+                       <Link href="/profile">
                         <UserIcon className="mr-2 h-4 w-4" />
                         <span>Modifier le profil</span>
                        </Link>
