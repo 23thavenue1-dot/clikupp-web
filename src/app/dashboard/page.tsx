@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
@@ -9,7 +10,7 @@ import { Award, Camera, Heart, Medal, Star, UserCheck, GalleryVertical, Calendar
 import { Progress } from '@/components/ui/progress';
 import { Check } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { type UserProfile, type ImageMetadata } from '@/lib/firestore';
+import { type UserProfile, type ImageMetadata, type Note } from '@/lib/firestore';
 import { collection, query, updateDoc, doc, arrayUnion, increment } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -37,6 +38,13 @@ export default function DashboardPage() {
     return query(collection(firestore, `users/${user.uid}/images`));
   }, [user, firestore]);
   const { data: userImages, isLoading: isImagesLoading } = useCollection<ImageMetadata>(userImagesQuery);
+
+  const userNotesQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(collection(firestore, `users/${user.uid}/notes`));
+  }, [user, firestore]);
+  const { data: userNotes, isLoading: areNotesLoading } = useCollection<Note>(userNotesQuery);
+
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -68,7 +76,7 @@ export default function DashboardPage() {
     { id: 'futurist', title: 'Futuriste', description: 'Générer une description avec l\'IA.', icon: Wand2, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique à implémenter
     { id: 'curious', title: 'Curieux', description: 'Lire votre premier message secret.', icon: MailOpen, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique à implémenter
     { id: 'secret-seeker', title: 'Chercheur de Secrets', description: 'Lire 5 messages secrets.', icon: KeyRound, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique à implémenter
-    { id: 'first-note', title: 'Première Note', description: 'Écrire votre première note dans le bloc-notes.', icon: Pencil, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique à implémenter
+    { id: 'first-note', title: 'Première Note', description: 'Écrire votre première note dans le bloc-notes.', icon: Pencil, xp: XP_PER_ACHIEVEMENT, isEligible: (profile, images, authUser, notes) => (notes?.length ?? 0) > 0 },
     { id: 'pense-bete', title: 'Pense-bête', description: 'Écrire 5 notes dans le bloc-notes.', icon: ClipboardList, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique à implémenter
     { id: 'archivist', title: 'Archiviste', description: 'Écrire 20 notes dans le bloc-notes.', icon: Library, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique à implémenter
   ], []);
@@ -82,13 +90,13 @@ export default function DashboardPage() {
 
   // Logic to check and award achievements
   useEffect(() => {
-    if (!userProfile || !userDocRef || !firestore || isImagesLoading || !userImages || !user) return;
+    if (!userProfile || !userDocRef || !firestore || isImagesLoading || !userImages || areNotesLoading || !userNotes || !user) return;
 
     const checkAndAwardAchievements = async () => {
         const newlyUnlocked: typeof allAchievements = [];
         for (const achievement of allAchievements) {
             const alreadyUnlocked = userProfile.unlockedAchievements?.includes(achievement.id);
-            if (!alreadyUnlocked && achievement.isEligible(userProfile, userImages, user)) {
+            if (!alreadyUnlocked && achievement.isEligible(userProfile, userImages, user, userNotes)) {
                 newlyUnlocked.push(achievement);
             }
         }
@@ -126,7 +134,7 @@ export default function DashboardPage() {
 
     checkAndAwardAchievements();
 
-  }, [userProfile, userImages, user, userDocRef, firestore, toast, isImagesLoading, allAchievements]);
+  }, [userProfile, userImages, userNotes, user, userDocRef, firestore, toast, isImagesLoading, areNotesLoading, allAchievements]);
 
 
   const currentLevel = userProfile?.level ?? 1;
@@ -299,3 +307,5 @@ export default function DashboardPage() {
     </TooltipProvider>
   );
 }
+
+    
