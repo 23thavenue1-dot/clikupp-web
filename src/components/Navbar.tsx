@@ -7,7 +7,7 @@ import { doc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/firestore';
 import { signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image as ImageIcon, LogOut, Settings, User as UserIcon, LayoutDashboard, Sun, Moon, Monitor, Mail, Home } from 'lucide-react';
+import { Loader2, Image as ImageIcon, LogOut, Settings, User as UserIcon, LayoutDashboard, Sun, Moon, Monitor, Mail, Home, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useTheme } from "next-themes";
@@ -28,6 +28,17 @@ import {
   DropdownMenuTrigger,
   DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 
 export function Navbar() {
@@ -116,15 +127,35 @@ export function Navbar() {
               </Link>
             </>
           ) : (
-            <Link href="/secret-messages" passHref>
-                <Button variant="ghost" size="icon" aria-label="Messages Secrets" className="relative">
-                  <Mail className="h-5 w-5" />
-                  <span className="absolute top-2 right-2 flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                  </span>
-                </Button>
-            </Link>
+             <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" aria-label="Découvrir un secret" className="relative">
+                        <Mail className="h-5 w-5" />
+                        <span className="absolute top-2 right-2 flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                        </span>
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                            <Sparkles className="text-primary"/>
+                            Un secret vous attend !
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Le premier niveau de notre système de progression est déjà débloqué. Il contient une astuce pour améliorer vos photos. <br/><br/>
+                            Créez un compte gratuit pour la découvrir et commencer votre aventure créative sur Clikup !
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Plus tard</AlertDialogCancel>
+                        <AlertDialogAction asChild>
+                            <Link href="/signup">Créer un compte</Link>
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
 
