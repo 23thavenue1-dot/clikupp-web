@@ -34,7 +34,8 @@ export default function Home() {
 
   useEffect(() => {
     const checkAndRefillTickets = async () => {
-      if (userProfile && userDocRef) {
+      // Correction : S'assurer que userProfile et lastTicketRefill existent avant de les utiliser.
+      if (userProfile && userProfile.lastTicketRefill && userDocRef) {
         const lastRefillDate = userProfile.lastTicketRefill.toDate();
         const oneDayAgo = subDays(new Date(), 1);
 
@@ -92,4 +93,3 @@ export default function Home() {
     </div>
   );
 }
-
