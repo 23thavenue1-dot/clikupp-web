@@ -44,9 +44,12 @@ export default function DashboardPage() {
     }
   }, [user, isUserLoading, router]);
 
+  // Marquer les succès comme vus uniquement lorsque la page et le profil sont chargés
   useEffect(() => {
-    markAchievementsAsSeen();
-  }, [markAchievementsAsSeen]);
+    if (userProfile) {
+        markAchievementsAsSeen();
+    }
+  }, [userProfile, markAchievementsAsSeen]);
 
   const allAchievements = useMemo(() => [
     { id: 'profile-complete', title: 'Profil Complet', description: 'Remplir votre bio et votre site web.', icon: UserCheck, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => !!(profile.bio && profile.websiteUrl) },
@@ -95,13 +98,12 @@ export default function DashboardPage() {
             let newXp = currentXp + totalXpGained;
             let newLevel = currentLevel;
 
-            if (newXp >= XP_PER_LEVEL) {
-                const levelsGained = Math.floor(newXp / XP_PER_LEVEL);
-                newLevel += levelsGained;
-                newXp %= XP_PER_LEVEL;
+            while (newXp >= XP_PER_LEVEL) {
+                newLevel += 1;
+                newXp -= XP_PER_LEVEL;
                 toast({ title: "Niveau Supérieur !", description: `Félicitations, vous avez atteint le niveau ${newLevel} !` });
             }
-
+            
             const updates: Partial<UserProfile> = {
                 xp: newXp,
                 level: newLevel,

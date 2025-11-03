@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -31,7 +32,7 @@ export const useAchievementNotification = () => {
 
         const seenCount = getSeenCount();
         const totalUnlocked = userProfile.unlockedAchievements?.length ?? 0;
-
+        
         setHasNew(totalUnlocked > seenCount);
     }, [userProfile]);
 
@@ -63,9 +64,13 @@ export const useAchievementNotification = () => {
     const markAchievementsAsSeen = useCallback(() => {
         if (!userProfile) return;
         const totalUnlocked = userProfile.unlockedAchievements?.length ?? 0;
-        localStorage.setItem(SEEN_ACHIEVEMENTS_KEY, totalUnlocked.toString());
-        setHasNew(false);
-        window.dispatchEvent(new CustomEvent('storage-updated'));
+        // Only update if the seen count is different
+        if (getSeenCount() !== totalUnlocked) {
+            localStorage.setItem(SEEN_ACHIEVEMENTS_KEY, totalUnlocked.toString());
+            setHasNew(false);
+            // Notify other tabs/components that the storage has been updated
+            window.dispatchEvent(new CustomEvent('storage-updated'));
+        }
     }, [userProfile]);
 
     return { hasNew, markAchievementsAsSeen };
