@@ -41,6 +41,8 @@ export default function SignupPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!auth || !firestore) return;
     setIsLoading(true);
+    form.clearErrors();
+
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
@@ -68,16 +70,23 @@ export default function SignupPage() {
     } catch (error: any) {
       console.error(error);
       let description = "Une erreur inattendue est survenue.";
+      
       if (error.code === 'auth/email-already-in-use') {
-        description = "Cette adresse e-mail est déjà utilisée. Essayez de vous connecter.";
+        description = "Cette adresse e-mail est déjà utilisée.";
+        form.setError("email", { type: "manual", message: description });
+        toast({
+            variant: "destructive",
+            title: "Erreur d'inscription",
+            description: "Cet e-mail est déjà pris. Essayez de vous connecter.",
+        });
       } else {
         description = error.message;
+        toast({
+            variant: "destructive",
+            title: "Erreur d'inscription",
+            description: description,
+        });
       }
-      toast({
-        variant: "destructive",
-        title: "Erreur d'inscription",
-        description: description,
-      });
     } finally {
       setIsLoading(false);
     }
