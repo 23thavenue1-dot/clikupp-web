@@ -127,17 +127,17 @@ export default function DashboardPage() {
               <CardDescription>Collectionnez des badges uniques en montant de niveau.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
                 {badges.map((badge) => (
                   <Tooltip key={badge.title}>
                     <TooltipTrigger asChild>
                       <div
-                        className={`aspect-square p-4 border rounded-lg flex flex-col items-center justify-center text-center transition-opacity ${!badge.unlocked ? 'opacity-50' : ''}`}
+                        className={`aspect-square p-2 border rounded-lg flex flex-col items-center justify-center text-center transition-opacity ${!badge.unlocked ? 'opacity-50' : ''}`}
                       >
-                        <div className={`p-3 rounded-full mb-2 ${badge.unlocked ? 'bg-primary/10 text-primary' : 'bg-muted'}`}>
-                          <badge.icon className="h-7 w-7" />
+                        <div className={`p-2 rounded-full mb-1 ${badge.unlocked ? 'bg-primary/10 text-primary' : 'bg-muted'}`}>
+                          <badge.icon className="h-6 w-6" />
                         </div>
-                        <p className="text-xs font-semibold truncate max-w-full">{badge.title}</p>
+                        <p className="text-[10px] font-semibold truncate max-w-full">{badge.title}</p>
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -158,17 +158,17 @@ export default function DashboardPage() {
               <CardDescription>Débloquez des succès pour gagner de l'expérience.</CardDescription>
             </CardHeader>
             <CardContent>
-               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
                 {achievements.map((achievement) => (
                     <Tooltip key={achievement.title}>
                         <TooltipTrigger asChild>
                            <div
-                            className={`relative aspect-square p-4 border rounded-lg flex flex-col items-center justify-center text-center transition-all duration-300 ${!achievement.unlocked ? 'opacity-60' : 'bg-primary/5 border-primary/20'}`}
+                            className={`relative aspect-square p-2 border rounded-lg flex flex-col items-center justify-center text-center transition-all duration-300 ${!achievement.unlocked ? 'opacity-60' : 'bg-primary/5 border-primary/20'}`}
                            >
-                            <div className={`p-3 rounded-full mb-2 transition-colors ${achievement.unlocked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                                <achievement.icon className="h-7 w-7" />
+                            <div className={`p-2 rounded-full mb-1 transition-colors ${achievement.unlocked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                                <achievement.icon className="h-6 w-6" />
                             </div>
-                            <p className="text-xs font-semibold truncate max-w-full">{achievement.title}</p>
+                            <p className="text-[10px] font-semibold truncate max-w-full">{achievement.title}</p>
                             {achievement.unlocked && (
                                 <div className="absolute top-1 right-1 bg-green-500 rounded-full p-0.5">
                                     <Check className="h-3 w-3 text-white" />
