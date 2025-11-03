@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Bold, Italic } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -35,6 +35,8 @@ export default function ProfilePage() {
 
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bioTextareaRef = useRef<HTMLTextAreaElement>(null);
+
 
   const userDocRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -78,6 +80,31 @@ export default function ProfilePage() {
   const handleSelectPredefinedAvatar = (imageUrl: string) => {
     setProfilePictureFile(null);
     setSelectedPredefinedAvatar(imageUrl);
+  };
+
+  const applyMarkdown = (syntax: 'bold' | 'italic') => {
+    const textarea = bioTextareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = bio.substring(start, end);
+    
+    if (!selectedText) {
+        toast({description: "Veuillez d'abord sélectionner du texte."});
+        return;
+    }
+
+    const wrapper = syntax === 'bold' ? '**' : '*';
+    const newText = `${bio.substring(0, start)}${wrapper}${selectedText}${wrapper}${bio.substring(end)}`;
+
+    setBio(newText);
+    
+    // Focus and adjust cursor position after state update
+    setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + wrapper.length, end + wrapper.length);
+    }, 0);
   };
 
 
@@ -236,7 +263,25 @@ export default function ProfilePage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="bio">Bio</Label>
-              <Textarea id="bio" placeholder="Parlez un peu de vous..." value={bio} onChange={(e) => setBio(e.target.value)} disabled={isSaving} />
+              <div className='rounded-md border border-input ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2'>
+                <div className='flex items-center gap-1 border-b p-2'>
+                    <Button variant="ghost" size="icon" className='h-8 w-8' onClick={() => applyMarkdown('bold')} type="button">
+                        <Bold className='h-4 w-4'/>
+                    </Button>
+                    <Button variant="ghost" size="icon" className='h-8 w-8' onClick={() => applyMarkdown('italic')} type="button">
+                        <Italic className='h-4 w-4'/>
+                    </Button>
+                </div>
+                <Textarea 
+                    id="bio"
+                    ref={bioTextareaRef}
+                    placeholder="Parlez un peu de vous en utilisant **gras** ou *italique*..." 
+                    value={bio} 
+                    onChange={(e) => setBio(e.target.value)} 
+                    disabled={isSaving}
+                    className='border-0 focus-visible:ring-0 focus-visible:ring-offset-0'
+                    />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="websiteUrl">Site web</Label>
