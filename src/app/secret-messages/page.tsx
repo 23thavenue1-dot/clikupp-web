@@ -4,9 +4,12 @@
 import { secretMessages } from '@/lib/secret-messages';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { CheckCircle, Lock, Trophy } from 'lucide-react';
+import { CheckCircle, Lock, Loader2 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import type { UserProfile } from '@/lib/firestore';
+import { doc } from 'firebase/firestore';
 
 // A little type trick to allow dynamic icon names
 type IconName = keyof typeof LucideIcons;
@@ -17,17 +20,34 @@ const getIcon = (name: string): React.FC<LucideIcons.LucideProps> => {
 };
 
 export default function SecretMessagesPage() {
-    // Pour le moment, on simule un utilisateur de niveau 1.
-    // Plus tard, vous remplacerez `1` par la vraie valeur dynamique.
-    const unlockedLevel = 1;
+    const { user, isUserLoading } = useUser();
+    const firestore = useFirestore();
+
+    const userDocRef = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return doc(firestore, `users/${user.uid}`);
+    }, [user, firestore]);
+    const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+
+    const unlockedLevel = userProfile?.level ?? 1;
     const { markAsRead } = useUnreadMessages(unlockedLevel);
 
     const handleAccordionChange = (value: string) => {
         if (value) {
             const level = parseInt(value.replace('item-', ''), 10);
             markAsRead(level);
+            // Trigger an event that the dashboard can listen to
+            window.dispatchEvent(new CustomEvent('storage-updated'));
         }
     };
+    
+    if (isUserLoading || isProfileLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        );
+    }
 
 
     return (

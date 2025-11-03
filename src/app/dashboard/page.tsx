@@ -19,6 +19,19 @@ import { useAchievementNotification } from '@/hooks/useAchievementNotification';
 const XP_PER_ACHIEVEMENT = 20;
 const XP_PER_LEVEL = 100;
 
+// Helper function to safely read from localStorage
+const getSeenMessagesCount = (): number => {
+    if (typeof window === 'undefined') return 0;
+    try {
+        const seen = localStorage.getItem('seenSecretMessages');
+        if (!seen) return 0;
+        const parsed = JSON.parse(seen);
+        return Array.isArray(parsed) ? parsed.length : 0;
+    } catch {
+        return 0;
+    }
+};
+
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -74,8 +87,8 @@ export default function DashboardPage() {
     { id: 'curator', title: 'Curateur', description: 'Liker une image (fonctionnalité à venir).', icon: ThumbsUp, xp: XP_PER_ACHIEVEMENT, isEligible: () => false },
     { id: 'author', title: 'Auteur', description: 'Ajouter manuellement une description à une image.', icon: FileText, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => images?.some(image => !!image.description) },
     { id: 'futurist', title: 'Futuriste', description: 'Générer une description avec l\'IA.', icon: Wand2, xp: XP_PER_ACHIEVEMENT, isEligible: () => false }, // Logique à implémenter
-    { id: 'curious', title: 'Curieux', description: 'Lire votre premier message secret.', icon: MailOpen, xp: XP_PER_ACHIEVEMENT, isEligible: () => false }, // Logique à implémenter
-    { id: 'secret-seeker', title: 'Chercheur de Secrets', description: 'Lire 5 messages secrets.', icon: KeyRound, xp: XP_PER_ACHIEVEMENT, isEligible: () => false }, // Logique à implémenter
+    { id: 'curious', title: 'Curieux', description: 'Lire votre premier message secret.', icon: MailOpen, xp: XP_PER_ACHIEVEMENT, isEligible: () => getSeenMessagesCount() >= 1 },
+    { id: 'secret-seeker', title: 'Chercheur de Secrets', description: 'Lire 5 messages secrets.', icon: KeyRound, xp: XP_PER_ACHIEVEMENT, isEligible: () => getSeenMessagesCount() >= 5 },
     { id: 'first-note', title: 'Première Note', description: 'Écrire votre première note dans le bloc-notes.', icon: Pencil, xp: XP_PER_ACHIEVEMENT, isEligible: (profile, images, authUser, notes) => (notes?.length ?? 0) > 0 },
     { id: 'pense-bete', title: 'Pense-bête', description: 'Écrire 5 notes dans le bloc-notes.', icon: ClipboardList, xp: XP_PER_ACHIEVEMENT, isEligible: (profile, images, authUser, notes) => (notes?.length ?? 0) >= 5 },
     { id: 'archivist', title: 'Archiviste', description: 'Écrire 20 notes dans le bloc-notes.', icon: Library, xp: XP_PER_ACHIEVEMENT, isEligible: (profile, images, authUser, notes) => (notes?.length ?? 0) >= 20 },
