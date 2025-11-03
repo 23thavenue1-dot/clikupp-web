@@ -112,26 +112,24 @@ export function LandingPage() {
         {/* Hero Section */}
         <section className="py-20 sm:py-24">
           <div className="container mx-auto px-4">
-            <div className="grid md:grid-cols-2 gap-12 items-center">
-                <div className="text-center md:text-left">
-                    <h1 className="text-5xl md:text-6xl font-bold tracking-tighter">
-                        Clikup
-                    </h1>
-                    <p className="max-w-2xl mt-4 text-lg md:text-xl text-muted-foreground">
-                      La plateforme intelligente pour héberger, gérer et sublimer vos images. Plus qu'un simple stockage, un véritable partenaire créatif.
-                    </p>
-                    <div className="mt-8 flex flex-col sm:flex-row justify-center md:justify-start gap-4">
-                      <Button asChild size="lg">
-                        <Link href="/signup">Commencer Gratuitement</Link>
-                      </Button>
-                      <Button asChild variant="outline" size="lg">
-                        <Link href="/login">Se connecter</Link>
-                      </Button>
-                    </div>
-                </div>
-                <div className="max-w-md mx-auto w-full">
-                    <UploaderDemo />
-                </div>
+            <div className="max-w-3xl mx-auto text-center">
+              <h1 className="text-5xl md:text-6xl font-bold tracking-tighter">
+                  Clikup
+              </h1>
+              <p className="max-w-2xl mx-auto mt-4 text-lg md:text-xl text-muted-foreground">
+                La plateforme intelligente pour héberger, gérer et sublimer vos images. Plus qu'un simple stockage, un véritable partenaire créatif.
+              </p>
+              <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
+                <Button asChild size="lg">
+                  <Link href="/signup">Commencer Gratuitement</Link>
+                </Button>
+                <Button asChild variant="outline" size="lg">
+                  <Link href="/login">Se connecter</Link>
+                </Button>
+              </div>
+            </div>
+            <div className="max-w-xl mx-auto w-full mt-12">
+              <UploaderDemo />
             </div>
           </div>
         </section>
