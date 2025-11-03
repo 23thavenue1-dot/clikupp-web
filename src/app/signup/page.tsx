@@ -17,6 +17,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { subDays } from 'date-fns';
 
 const formSchema = z.object({
   email: z.string().email({ message: "Veuillez entrer une adresse email valide." }),
@@ -53,7 +54,9 @@ export default function SignupPage() {
         displayName: user.displayName || user.email?.split('@')[0],
         creationTimestamp: serverTimestamp(),
         ticketCount: 5,
-        lastTicketRefill: serverTimestamp()
+        // Correction : Initialiser la date de dernière recharge à une date passée
+        // pour rendre les nouveaux utilisateurs immédiatement éligibles à la recharge.
+        lastTicketRefill: subDays(new Date(), 2) 
       });
 
 
