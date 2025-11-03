@@ -40,6 +40,7 @@ export type ImageMetadata = {
   id: string;
   userId: string;
   originalName?: string;
+  description?: string;
   storagePath?: string;
   directUrl: string;
   bbCode: string;
@@ -239,4 +240,28 @@ export async function deleteUserAccount(firestore: Firestore, storage: Storage, 
       deleteFolderContents(userStorageRef),
       deleteFolderContents(avatarsStorageRef)
     ]);
+}
+
+
+/**
+ * Met à jour la description d'une image dans Firestore.
+ * @param firestore L'instance Firestore.
+ * @param userId L'ID de l'utilisateur.
+ * @param imageId L'ID de l'image.
+ * @param description La nouvelle description.
+ */
+export async function updateImageDescription(firestore: Firestore, userId: string, imageId: string, description: string): Promise<void> {
+    const imageDocRef = doc(firestore, 'users', userId, 'images', imageId);
+    try {
+        await updateDoc(imageDocRef, { description });
+    } catch (error) {
+        console.error("Erreur lors de la mise à jour de la description :", error);
+        const permissionError = new FirestorePermissionError({
+            path: imageDocRef.path,
+            operation: 'update',
+            requestResourceData: { description },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        throw error;
+    }
 }

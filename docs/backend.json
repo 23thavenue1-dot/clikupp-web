@@ -41,6 +41,10 @@
           "type": "string",
           "description": "The original name of the file when uploaded."
         },
+        "description": {
+          "type": "string",
+          "description": "A user-provided or AI-generated description of the image."
+        },
         "fileSize": {
           "type": "number",
           "description": "Size of the uploaded file in bytes."

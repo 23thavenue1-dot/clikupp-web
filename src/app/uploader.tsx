@@ -12,6 +12,7 @@ import { doc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { UploadCloud, Link as LinkIcon, Loader2, HardDriveUpload, Ticket } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from '@/lib/utils';
@@ -46,6 +47,7 @@ export function Uploader() {
   const [status, setStatus] = useState<UploadStatus>({ state: 'idle' });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [customName, setCustomName] = useState('');
+  const [description, setDescription] = useState('');
   
   const [isFileUploading, setIsFileUploading] = useState(false);
   const [isUrlUploading, setIsUrlUploading] = useState(false);
@@ -67,6 +69,7 @@ export function Uploader() {
     setStatus({ state: 'idle' });
     setSelectedFile(null);
     setCustomName('');
+    setDescription('');
     setImageUrl('');
     setIsFileUploading(false);
     setIsUrlUploading(false);
@@ -126,6 +129,7 @@ export function Uploader() {
       const dataUrl = await fileToDataUrl(selectedFile);
       await saveImageMetadata(firestore, user, {
         originalName: customName || selectedFile.name,
+        description: description,
         directUrl: dataUrl,
         bbCode: `[img]${dataUrl}[/img]`,
         htmlCode: `<img src="${dataUrl}" alt="${customName || selectedFile.name}" />`,
@@ -143,6 +147,7 @@ export function Uploader() {
     await handleUpload(async () => {
       await saveImageFromUrl(firestore, user, {
         directUrl: imageUrl,
+        description: description,
         bbCode: `[img]${imageUrl}[/img]`,
         htmlCode: `<img src="${imageUrl}" alt="Image depuis URL" />`,
       });
@@ -162,7 +167,7 @@ export function Uploader() {
           customName,
           (progress) => setStatus({ state: 'uploading', progress })
       );
-      await saveImageMetadata(firestore, user, metadata);
+      await saveImageMetadata(firestore, user, { ...metadata, description });
     });
     setIsStorageUploading(false);
   };
@@ -257,6 +262,12 @@ export function Uploader() {
             
             <TabsContent value="file" className="space-y-4 pt-6">
                 {renderFilePicker(isFileUploading)}
+                <Textarea
+                    placeholder="Ajoutez une description (optionnel)..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    disabled={isFileUploading}
+                />
                 <Button 
                     onClick={handleDataUrlUpload} 
                     disabled={isFileUploading || !selectedFile} 
@@ -269,6 +280,12 @@ export function Uploader() {
 
             <TabsContent value="storage" className="space-y-4 pt-6">
                  {renderFilePicker(isStorageUploading)}
+                 <Textarea
+                    placeholder="Ajoutez une description (optionnel)..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    disabled={isStorageUploading}
+                 />
                  {status.state === 'uploading' && <Progress value={status.progress} className="w-full" />}
                  <Button 
                     onClick={handleStorageUpload} 
@@ -286,6 +303,12 @@ export function Uploader() {
                     placeholder="https://example.com/image.png"
                     value={imageUrl}
                     onChange={(e) => setImageUrl(e.target.value)}
+                    disabled={isUrlUploading}
+                />
+                 <Textarea
+                    placeholder="Ajoutez une description (optionnel)..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
                     disabled={isUrlUploading}
                 />
                 <Button onClick={handleUrlUpload} disabled={isUrlUploading || !imageUrl.trim()} className="w-full">
