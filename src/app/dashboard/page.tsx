@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Award, Camera, Heart, Medal, Star, UserCheck, GalleryVertical, CalendarClock, Trophy, Crown, Gem, Shield, Rocket, Sparkles, Sun, Upload, Share2, ThumbsUp, Pencil, ClipboardList, Library, Image as ImageIcon, Sparkle, Mail } from 'lucide-react';
+import { Award, Camera, Heart, Medal, Star, UserCheck, GalleryVertical, CalendarClock, Trophy, Crown, Gem, Shield, Rocket, Sparkles, Sun, Upload, Share2, ThumbsUp, Pencil, ClipboardList, Library, Image as ImageIcon, Sparkle, Mail, FileText, Wand2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Check } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -100,6 +101,18 @@ export default function DashboardPage() {
         title: 'Curateur',
         description: 'Liker une image (fonctionnalité à venir).',
         icon: ThumbsUp,
+        unlocked: false,
+      },
+       {
+        title: 'Auteur',
+        description: 'Ajouter manuellement une description à une image.',
+        icon: FileText,
+        unlocked: false,
+      },
+      {
+        title: 'Futuriste',
+        description: 'Générer une description avec l\'IA.',
+        icon: Wand2,
         unlocked: false,
       },
       {
