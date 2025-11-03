@@ -5,10 +5,11 @@ import Link from 'next/link';
 import { useUser } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
-import { LogOut, User as UserIcon, Loader2, Image as ImageIcon } from 'lucide-react';
+import { LogOut, Loader2, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from './theme-toggle';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export function Navbar() {
   const { user, isUserLoading } = useUser();
@@ -29,6 +30,16 @@ export function Navbar() {
       });
     }
   };
+  
+  const getInitials = (email?: string | null, displayName?: string | null) => {
+    if (displayName) {
+      return displayName.charAt(0).toUpperCase();
+    }
+    if (email) {
+      return email.charAt(0).toUpperCase();
+    }
+    return '?';
+  }
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-card border-b shadow-sm">
@@ -38,16 +49,16 @@ export function Navbar() {
           <span>Clikup</span>
         </Link>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <ThemeToggle />
           {isUserLoading ? (
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           ) : user ? (
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <UserIcon className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground hidden sm:inline">{user.email}</span>
-              </div>
+            <div className="flex items-center gap-2 sm:gap-4">
+                <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.photoURL || undefined} alt={user.displayName || user.email || 'Avatar'} />
+                    <AvatarFallback>{getInitials(user.email, user.displayName)}</AvatarFallback>
+                </Avatar>
               <Button variant="ghost" size="icon" onClick={handleSignOut} aria-label="Déconnexion">
                 <LogOut className="h-5 w-5" />
               </Button>
