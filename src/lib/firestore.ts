@@ -16,6 +16,7 @@ import {
   getDocs,
   writeBatch,
   DocumentReference,
+  arrayUnion,
 } from 'firebase/firestore';
 import { getStorage, ref, listAll, deleteObject, Storage } from 'firebase/storage';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -296,7 +297,7 @@ export function saveNote(firestore: Firestore, user: User, text: string) {
 export async function deleteUserAccount(firestore: Firestore, storage: Storage, userId: string): Promise<void> {
     
     // 1. Supprimer tous les documents des sous-collections (images, notes)
-    const subcollections = ['images', 'notes'];
+    const subcollections = ['images', 'notes', 'galleries'];
     for (const sub of subcollections) {
         const subCollectionRef = collection(firestore, 'users', userId, sub);
         const snapshot = await getDocs(subCollectionRef);
@@ -421,4 +422,37 @@ export async function deleteGallery(firestore: Firestore, userId: string, galler
     }
 }
 
+/**
+ * Ajoute une image à une ou plusieurs galeries.
+ * Utilise un batch write pour effectuer les mises à jour de manière atomique.
+ * @param firestore L'instance Firestore.
+ * @param userId L'ID de l'utilisateur.
+ * @param imageId L'ID de l'image à ajouter.
+ * @param galleryIds Un tableau d'IDs des galeries à mettre à jour.
+ */
+export async function addImageToGalleries(firestore: Firestore, userId: string, imageId: string, galleryIds: string[]): Promise<void> {
+    const batch = writeBatch(firestore);
+
+    galleryIds.forEach(galleryId => {
+        const galleryDocRef = doc(firestore, 'users', userId, 'galleries', galleryId);
+        batch.update(galleryDocRef, {
+            imageIds: arrayUnion(imageId)
+        });
+    });
+
+    try {
+        await batch.commit();
+    } catch (error) {
+        console.error("Erreur lors de l'ajout de l'image aux galeries :", error);
+        // Pour la simplicité, on ne génère qu'une seule erreur de permission, même si plusieurs ont pu échouer.
+        const permissionError = new FirestorePermissionError({
+            path: `users/${userId}/galleries`, // Chemin générique
+            operation: 'update',
+            requestResourceData: { imageIds: arrayUnion(imageId) },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        throw error;
+    }
+}
     
+

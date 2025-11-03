@@ -7,7 +7,7 @@ import { collection, query, orderBy, doc } from 'firebase/firestore';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { type ImageMetadata, type UserProfile, deleteImageMetadata, updateImageDescription, decrementAiTicketCount } from '@/lib/firestore';
+import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, addImageToGalleries } from '@/lib/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Eye, CopyPlus, Ticket } from 'lucide-react';
@@ -43,6 +43,7 @@ import { useToast } from '@/hooks/use-toast';
 import { generateImageDescription } from '@/ai/flows/generate-description-flow';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Checkbox } from '@/components/ui/checkbox';
 
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic';
@@ -71,6 +72,11 @@ export function ImageList() {
 
     const [showDetailsDialog, setShowDetailsDialog] = useState(false);
     const [imageToShowDetails, setImageToShowDetails] = useState<ImageMetadata | null>(null);
+
+    const [showAddToGalleryDialog, setShowAddToGalleryDialog] = useState(false);
+    const [imageToAddToGallery, setImageToAddToGallery] = useState<ImageMetadata | null>(null);
+    const [selectedGalleries, setSelectedGalleries] = useState<string[]>([]);
+    const [isSavingToGallery, setIsSavingToGallery] = useState(false);
     
     const [currentTitle, setCurrentTitle] = useState('');
     const [currentDescription, setCurrentDescription] = useState('');
@@ -87,6 +93,12 @@ export function ImageList() {
     }, [user, firestore]);
 
     const { data: images, isLoading } = useCollection<ImageMetadata>(imagesQuery);
+
+    const galleriesQuery = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return query(collection(firestore, `users/${user.uid}/galleries`), orderBy('createdAt', 'desc'));
+    }, [user, firestore]);
+    const { data: galleries } = useCollection<Gallery>(galleriesQuery);
     
     useEffect(() => {
         if (imageToEdit) {
@@ -117,6 +129,12 @@ export function ImageList() {
         setImageToShowDetails(image);
         setShowDetailsDialog(true);
         setCopiedField(null);
+    };
+
+    const openAddToGalleryDialog = (image: ImageMetadata) => {
+        setImageToAddToGallery(image);
+        setSelectedGalleries(galleries?.filter(g => g.imageIds.includes(image.id)).map(g => g.id) || []);
+        setShowAddToGalleryDialog(true);
     };
 
     const handleDeleteImage = async () => {
@@ -194,6 +212,26 @@ export function ImageList() {
         } finally {
             setIsSavingDescription(false);
         }
+    };
+
+    const handleAddToGallery = async () => {
+        if (!imageToAddToGallery || !user || !firestore) return;
+        setIsSavingToGallery(true);
+        try {
+            await addImageToGalleries(firestore, user.uid, imageToAddToGallery.id, selectedGalleries);
+            toast({ title: 'Galeries mises à jour', description: 'L\'image a été ajoutée aux galeries sélectionnées.' });
+            setShowAddToGalleryDialog(false);
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible d\'ajouter l\'image aux galeries.' });
+        } finally {
+            setIsSavingToGallery(false);
+        }
+    };
+
+    const handleGallerySelectionChange = (galleryId: string, checked: boolean) => {
+        setSelectedGalleries(prev => 
+            checked ? [...prev, galleryId] : prev.filter(id => id !== galleryId)
+        );
     };
 
     const copyToClipboard = async (text: string, field: string, toastTitle = "Copié !") => {
@@ -275,6 +313,15 @@ export function ImageList() {
                                                 aria-label="Modifier la description"
                                             >
                                                 <Pencil size={16}/>
+                                            </Button>
+                                            <Button
+                                                variant="secondary"
+                                                size="icon"
+                                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                onClick={() => openAddToGalleryDialog(image)}
+                                                aria-label="Ajouter à une galerie"
+                                            >
+                                                <CopyPlus size={16}/>
                                             </Button>
                                             <Button
                                                 variant="secondary"
@@ -557,6 +604,49 @@ export function ImageList() {
                         >
                             {copiedField === 'details-all' ? <Check className="mr-2"/> : <CopyPlus className="mr-2"/>}
                             Tout Copier
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={showAddToGalleryDialog} onOpenChange={setShowAddToGalleryDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Ajouter à une galerie</DialogTitle>
+                        <DialogDescription>
+                            Sélectionnez les galeries dans lesquelles vous souhaitez inclure cette image.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4 space-y-4">
+                        {galleries && galleries.length > 0 ? (
+                            <div className="space-y-2 max-h-60 overflow-y-auto">
+                                {galleries.map(gallery => (
+                                    <div key={gallery.id} className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id={`gallery-${gallery.id}`}
+                                            checked={selectedGalleries.includes(gallery.id)}
+                                            onCheckedChange={(checked) => handleGallerySelectionChange(gallery.id, !!checked)}
+                                        />
+                                        <label
+                                            htmlFor={`gallery-${gallery.id}`}
+                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                        >
+                                            {gallery.name}
+                                        </label>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-center text-muted-foreground py-4">
+                                Aucune galerie créée pour le moment.
+                            </p>
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button variant="secondary" onClick={() => setShowAddToGalleryDialog(false)}>Annuler</Button>
+                        <Button onClick={handleAddToGallery} disabled={isSavingToGallery}>
+                             {isSavingToGallery && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                            Enregistrer
                         </Button>
                     </DialogFooter>
                 </DialogContent>
