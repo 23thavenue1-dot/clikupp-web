@@ -36,16 +36,16 @@ export default function DashboardPage() {
   ];
 
   const badges = [
-    { title: 'Niv. 1 : Novice', description: 'Atteindre le niveau 1.', icon: Medal, unlocked: true },
-    { title: 'Niv. 2 : Initié', description: 'Atteindre le niveau 2.', icon: Award, unlocked: false },
-    { title: 'Niv. 3 : Habitué', description: 'Atteindre le niveau 3.', icon: Trophy, unlocked: false },
-    { title: 'Niv. 4 : Expert', description: 'Atteindre le niveau 4.', icon: Star, unlocked: false },
-    { title: 'Niv. 5 : Maître', description: 'Atteindre le niveau 5.', icon: Crown, unlocked: false },
-    { title: 'Niv. 6 : Vétéran', description: 'Atteindre le niveau 6.', icon: Gem, unlocked: false },
-    { title: 'Niv. 7 : Gardien', description: 'Atteindre le niveau 7.', icon: Shield, unlocked: false },
-    { title: 'Niv. 8 : Pionnier', description: 'Atteindre le niveau 8.', icon: Rocket, unlocked: false },
-    { title: 'Niv. 9 : Virtuose', description: 'Atteindre le niveau 9.', icon: Sparkles, unlocked: false },
-    { title: 'Niv. 10 : Icône', description: 'Atteindre le niveau 10.', icon: Sun, unlocked: false },
+    { title: 'Niv. 1 : Novice', description: 'Atteindre le niveau 1.', icon: Medal, unlocked: true, motivation: 'Félicitations ! C\'est le début d\'une grande aventure créative.' },
+    { title: 'Niv. 2 : Initié', description: 'Atteindre le niveau 2.', icon: Award, unlocked: false, motivation: 'Excellent ! Vous maîtrisez les bases, continuez comme ça.' },
+    { title: 'Niv. 3 : Habitué', description: 'Atteindre le niveau 3.', icon: Trophy, unlocked: false, motivation: 'Vous êtes maintenant un membre régulier. Votre galerie s\'étoffe !' },
+    { title: 'Niv. 4 : Expert', description: 'Atteindre le niveau 4.', icon: Star, unlocked: false, motivation: 'Votre persévérance est impressionnante. Vous êtes un expert !' },
+    { title: 'Niv. 5 : Maître', description: 'Atteindre le niveau 5.', icon: Crown, unlocked: false, motivation: 'Le statut de Maître vous va à ravir. Votre collection est une inspiration.' },
+    { title: 'Niv. 6 : Vétéran', description: 'Atteindre le niveau 6.', icon: Gem, unlocked: false, motivation: 'Vous faites partie des piliers de la communauté. Respect !' },
+    { title: 'Niv. 7 : Gardien', description: 'Atteindre le niveau 7.', icon: Shield, unlocked: false, motivation: 'Tel un gardien, vous veillez sur une collection d\'exception.' },
+    { title: 'Niv. 8 : Pionnier', description: 'Atteindre le niveau 8.', icon: Rocket, unlocked: false, motivation: 'Vous explorez les limites de la plateforme. Un vrai pionnier !' },
+    { title: 'Niv. 9 : Virtuose', description: 'Atteindre le niveau 9.', icon: Sparkles, unlocked: false, motivation: 'Votre créativité et votre dévouement sont sans égal. Un virtuose !' },
+    { title: 'Niv. 10 : Icône', description: 'Atteindre le niveau 10.', icon: Sun, unlocked: false, motivation: 'Vous avez atteint le sommet. Vous êtes une Icône de Clikup !' },
   ];
 
   const achievements = [
@@ -196,7 +196,7 @@ export default function DashboardPage() {
                   <Tooltip key={badge.title}>
                     <TooltipTrigger asChild>
                       <div
-                        className={`aspect-square p-2 border rounded-lg flex flex-col items-center justify-center text-center transition-opacity ${!badge.unlocked ? 'opacity-50' : 'bg-primary/5 border-primary/20'}`}
+                        className={`relative aspect-square p-2 border rounded-lg flex flex-col items-center justify-center text-center transition-opacity ${!badge.unlocked ? 'opacity-50' : 'bg-primary/5 border-primary/20'}`}
                       >
                          {badge.unlocked && (
                             <div className="absolute top-1 right-1 bg-green-500 rounded-full p-0.5">
@@ -211,7 +211,11 @@ export default function DashboardPage() {
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="font-semibold">{badge.title}</p>
-                      <p className="text-sm text-muted-foreground">{badge.description}</p>
+                      {badge.unlocked ? (
+                        <p className="text-sm text-green-600 dark:text-green-400 italic">{badge.motivation}</p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">{badge.description}</p>
+                      )}
                       {!badge.unlocked && <p className="text-xs font-bold text-center mt-1">(Verrouillé)</p>}
                     </TooltipContent>
                   </Tooltip>
