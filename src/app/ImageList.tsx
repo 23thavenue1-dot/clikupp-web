@@ -2,15 +2,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, query, orderBy, doc } from 'firebase/firestore';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { type ImageMetadata, deleteImageMetadata, updateImageDescription } from '@/lib/firestore';
+import { type ImageMetadata, type UserProfile, deleteImageMetadata, updateImageDescription, decrementAiTicketCount } from '@/lib/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Eye, CopyPlus } from 'lucide-react';
+import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Eye, CopyPlus, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -42,6 +42,8 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { generateImageDescription } from '@/ai/flows/generate-description-flow';
 import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic';
 
@@ -49,6 +51,12 @@ export function ImageList() {
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
+
+    const userDocRef = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return doc(firestore, `users/${user.uid}`);
+    }, [user, firestore]);
+    const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [showDeleteAlert, setShowDeleteAlert] = useState(false);
@@ -135,7 +143,17 @@ export function ImageList() {
     };
 
     const handleGenerateDescription = async (platform: Platform) => {
-        if (!imageToEdit) return;
+        if (!imageToEdit || !user || !userProfile) return;
+
+        if (userProfile.aiTicketCount <= 0) {
+            toast({
+                variant: 'destructive',
+                title: 'Tickets IA épuisés',
+                description: 'Revenez demain pour obtenir plus de tickets IA !',
+            });
+            return;
+        }
+
         setIsGeneratingDescription(true);
         setWasGeneratedByAI(false);
         try {
@@ -145,7 +163,11 @@ export function ImageList() {
             // On ajoute le # directement ici
             setHashtagsString(result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' '));
             setWasGeneratedByAI(true);
-             toast({ title: "Contenu généré !", description: `Publication pour ${platform} prête. Vous pouvez la modifier.` });
+            
+            // Décompte du ticket IA
+            await decrementAiTicketCount(firestore, user.uid);
+            
+            toast({ title: "Contenu généré !", description: `Publication pour ${platform} prête. Un ticket IA a été utilisé.` });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur IA', description: "Le service de génération n'a pas pu répondre." });
         } finally {
@@ -198,8 +220,11 @@ export function ImageList() {
         </div>
     );
 
+    const hasAiTickets = (userProfile?.aiTicketCount ?? 0) > 0;
+
+
     return (
-        <>
+        <TooltipProvider>
             <Card>
                 <CardHeader>
                     <CardTitle>Mes images</CardTitle>
@@ -403,20 +428,36 @@ export function ImageList() {
                         <Separator />
 
                         <div className="space-y-2">
+                             <div className="flex items-center justify-between">
+                                <Label>Génération par IA</Label>
+                                <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                                    <Ticket className="h-4 w-4" />
+                                    <span>{userProfile?.aiTicketCount ?? 0} restants</span>
+                                </div>
+                            </div>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button 
-                                        variant="outline" 
-                                        className="w-full"
-                                        disabled={isGeneratingDescription || isSavingDescription}
-                                    >
-                                        {isGeneratingDescription ? (
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
-                                        ) : (
-                                            <Wand2 className="mr-2 h-4 w-4"/>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                             <Button 
+                                                variant="outline" 
+                                                className="w-full"
+                                                disabled={isGeneratingDescription || isSavingDescription || !hasAiTickets}
+                                            >
+                                                {isGeneratingDescription ? (
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+                                                ) : (
+                                                    <Wand2 className="mr-2 h-4 w-4"/>
+                                                )}
+                                                {isGeneratingDescription ? 'Génération...' : 'Générer avec l\'IA pour...'}
+                                            </Button>
+                                        </TooltipTrigger>
+                                        {!hasAiTickets && (
+                                            <TooltipContent>
+                                                <p>Vous n'avez plus de tickets IA. Revenez demain !</p>
+                                            </TooltipContent>
                                         )}
-                                        {isGeneratingDescription ? 'Génération...' : 'Générer avec l\'IA pour...'}
-                                    </Button>
+                                    </Tooltip>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent className="w-56">
                                     <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}>
@@ -520,8 +561,6 @@ export function ImageList() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </>
+        </TooltipProvider>
     );
 }
-
-    

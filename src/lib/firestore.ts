@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {
@@ -30,6 +31,8 @@ export interface UserProfile {
   creationTimestamp: Timestamp; 
   ticketCount: number;
   lastTicketRefill: Timestamp;
+  aiTicketCount: number;
+  lastAiTicketRefill: Timestamp;
   emailNotifications?: boolean;
   bio?: string;
   websiteUrl?: string;
@@ -149,6 +152,24 @@ export async function decrementTicketCount(firestore: Firestore, userId: string)
     // On ne propage pas l'erreur de permission ici pour ne pas interrompre le flux principal
     // si seul le décompte échoue. Une surveillance côté backend pourrait être envisagée.
     throw error; // Ou gérer silencieusement
+  }
+}
+
+
+/**
+ * Décrémente le compteur de tickets IA de l'utilisateur de 1.
+ * @param firestore L'instance Firestore.
+ * @param userId L'ID de l'utilisateur.
+ */
+export async function decrementAiTicketCount(firestore: Firestore, userId: string): Promise<void> {
+  const userDocRef = doc(firestore, 'users', userId);
+  try {
+    await updateDoc(userDocRef, {
+      aiTicketCount: increment(-1),
+    });
+  } catch (error) {
+    console.error("Erreur lors du décompte du ticket IA:", error);
+    throw error;
   }
 }
 

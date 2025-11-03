@@ -23,9 +23,16 @@ Nous étendons maintenant le système pour gérer la consommation des fonctionna
     2.  Mise à jour du processus d'inscription (`src/app/signup/page.tsx`) pour que chaque nouvel utilisateur commence avec un quota de **3 tickets IA**.
 *   **Résultat :** Les fondations sont posées. L'application sait maintenant que les tickets IA existent et comment les initialiser.
 
-### Prochaines Étapes :
-*   **Étape 2 :** Implémenter le décompte des tickets IA lors de l'utilisation de la fonctionnalité de génération.
-*   **Étape 3 :** Afficher le compteur de tickets IA dans l'interface utilisateur.
-*   **Étape 4 :** Mettre en place la recharge quotidienne des tickets IA.
+### Étape 2 : Implémenter le décompte et l'affichage (Terminé)
+*   **Objectif :** Contrôler l'utilisation de l'IA et informer l'utilisateur de son solde.
+*   **Action Réalisée :**
+    1.  Le composant `ImageList.tsx` récupère maintenant le profil utilisateur pour connaître le `aiTicketCount`.
+    2.  Un compteur de tickets IA est affiché dans la fenêtre de dialogue de génération.
+    3.  Le bouton de génération est désactivé et une infobulle apparaît si l'utilisateur n'a plus de tickets.
+    4.  Une nouvelle fonction `decrementAiTicketCount` a été créée dans `lib/firestore.ts`.
+    5.  Après chaque génération d'IA réussie, le compteur de l'utilisateur est décrémenté de 1.
+*   **Résultat :** Le système de décompte est fonctionnel. L'utilisation de l'IA est maintenant limitée par le nombre de tickets disponibles.
 
-    
+
+### Prochaines Étapes :
+*   **Étape 3 :** Mettre en place la recharge quotidienne des tickets IA.
