@@ -3,8 +3,19 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { UploadCloud, ShieldCheck, Gamepad2, Share2, Image as ImageIcon } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { UploadCloud, ShieldCheck, Gamepad2, Link as LinkIcon, HardDriveUpload, Ticket } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 const features = [
   {
@@ -24,29 +35,102 @@ const features = [
   },
 ];
 
+function UploaderDemo() {
+    return (
+    <AlertDialog>
+        <Card>
+            <CardHeader>
+                <div className="flex justify-between items-start">
+                    <div>
+                        <CardTitle>Ajouter une image</CardTitle>
+                        <CardDescription>
+                          Choisissez une méthode pour ajouter une image à votre galerie.
+                        </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2 font-semibold px-3 py-1.5 rounded-full text-sm h-auto bg-muted text-muted-foreground" title="5 tickets offerts chaque jour">
+                        <Ticket className="h-5 w-5" />
+                        <span>5</span>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <Tabs defaultValue="file" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3">
+                         <AlertDialogTrigger asChild>
+                            <TabsTrigger value="file" className="cursor-pointer"><UploadCloud className="mr-2 h-4 w-4"/>Via Fichier</TabsTrigger>
+                         </AlertDialogTrigger>
+                         <AlertDialogTrigger asChild>
+                            <TabsTrigger value="storage" className="cursor-pointer"><HardDriveUpload className="mr-2 h-4 w-4"/>Via Storage</TabsTrigger>
+                         </AlertDialogTrigger>
+                         <AlertDialogTrigger asChild>
+                            <TabsTrigger value="url" className="cursor-pointer"><LinkIcon className="mr-2 h-4 w-4"/>Via URL</TabsTrigger>
+                         </AlertDialogTrigger>
+                    </TabsList>
+                    <TabsContent value="file" className="space-y-4 pt-6">
+                        <AlertDialogTrigger asChild>
+                            <div 
+                                role="button"
+                                tabIndex={0}
+                                className="border-2 border-dashed border-muted-foreground/50 rounded-lg p-8 flex flex-col items-center justify-center text-center transition-colors cursor-pointer hover:bg-muted/50"
+                            >
+                                <UploadCloud className="h-12 w-12 text-muted-foreground" />
+                                <p className="mt-4 text-sm font-medium text-foreground">
+                                    Cliquez pour choisir un fichier
+                                </p>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                  Taille max : 10 Mo.
+                                </p>
+                            </div>
+                        </AlertDialogTrigger>
+                    </TabsContent>
+                </Tabs>
+            </CardContent>
+        </Card>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Fonctionnalité réservée aux membres</AlertDialogTitle>
+              <AlertDialogDescription>
+                Pour téléverser des images, vous devez d'abord créer un compte. C'est rapide et gratuit !
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction asChild>
+                 <Link href="/signup">Créer un compte</Link>
+              </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    );
+}
+
 export function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <main className="flex-grow">
         {/* Hero Section */}
-        <section className="py-20 sm:py-32">
-          <div className="container mx-auto px-4 text-center">
-            <div className="flex justify-center items-center gap-4 mb-6">
-                <ImageIcon className="h-12 w-12 text-primary" />
-                <h1 className="text-5xl md:text-7xl font-bold tracking-tighter">
-                Clikup
-                </h1>
-            </div>
-            <p className="max-w-2xl mx-auto mt-4 text-lg md:text-xl text-muted-foreground">
-              La plateforme intelligente pour héberger, gérer et sublimer vos images. Plus qu'un simple stockage, un véritable partenaire créatif.
-            </p>
-            <div className="mt-8 flex justify-center gap-4">
-              <Button asChild size="lg">
-                <Link href="/signup">Commencer Gratuitement</Link>
-              </Button>
-              <Button asChild variant="outline" size="lg">
-                <Link href="/login">Se connecter</Link>
-              </Button>
+        <section className="py-20 sm:py-24">
+          <div className="container mx-auto px-4">
+            <div className="grid md:grid-cols-2 gap-12 items-center">
+                <div className="text-center md:text-left">
+                    <h1 className="text-5xl md:text-6xl font-bold tracking-tighter">
+                        Clikup
+                    </h1>
+                    <p className="max-w-2xl mt-4 text-lg md:text-xl text-muted-foreground">
+                      La plateforme intelligente pour héberger, gérer et sublimer vos images. Plus qu'un simple stockage, un véritable partenaire créatif.
+                    </p>
+                    <div className="mt-8 flex flex-col sm:flex-row justify-center md:justify-start gap-4">
+                      <Button asChild size="lg">
+                        <Link href="/signup">Commencer Gratuitement</Link>
+                      </Button>
+                      <Button asChild variant="outline" size="lg">
+                        <Link href="/login">Se connecter</Link>
+                      </Button>
+                    </div>
+                </div>
+                <div className="max-w-md mx-auto w-full">
+                    <UploaderDemo />
+                </div>
             </div>
           </div>
         </section>
@@ -101,3 +185,5 @@ export function LandingPage() {
     </div>
   );
 }
+
+    
