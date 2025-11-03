@@ -16,6 +16,9 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 export default function SettingsPage() {
   const { user, isUserLoading, firebaseApp } = useFirebase();
@@ -24,7 +27,9 @@ export default function SettingsPage() {
   const { toast } = useToast();
 
   const [displayName, setDisplayName] = useState('');
-  const [profilePicture, setProfilePicture] = useState<File | null>(null);
+  const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
+  const [selectedPredefinedAvatar, setSelectedPredefinedAvatar] = useState<string | null>(null);
+
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -60,28 +65,52 @@ export default function SettingsPage() {
         toast({ variant: 'destructive', title: 'Erreur', description: 'Seules les images sont autorisées.' });
         return;
       }
-      setProfilePicture(file);
+      setSelectedPredefinedAvatar(null);
+      setProfilePictureFile(file);
     }
   };
 
+  const handleSelectPredefinedAvatar = (imageUrl: string) => {
+    setProfilePictureFile(null);
+    setSelectedPredefinedAvatar(imageUrl);
+  };
+
+
   const handleSaveChanges = async () => {
-    if (!user || !firestore || !firebaseApp) return;
+    if (!user || !firestore) return;
     setIsSaving(true);
 
     try {
         const authUpdates: { displayName?: string, photoURL?: string } = {};
-        const firestoreUpdates: { displayName?: string, photoURL?: string } = {};
+        const firestoreUpdates: { displayName?: string } = {};
+        
+        let finalPhotoURL = user.photoURL;
 
-        // 1. Gérer le téléversement de la photo de profil
-        if (profilePicture) {
-            const storage = getStorage(firebaseApp);
-            const filePath = `avatars/${user.uid}/${profilePicture.name}`;
-            const storageRef = ref(storage, filePath);
-            await uploadBytes(storageRef, profilePicture);
-            const photoURL = await getDownloadURL(storageRef);
-            authUpdates.photoURL = photoURL;
-            // Optionnel: Sauvegarder aussi dans Firestore si nécessaire pour d'autres parties de l'app
-            // firestoreUpdates.photoURL = photoURL;
+        // 1. Gérer la photo de profil (pré-définie ou téléversée)
+        if (selectedPredefinedAvatar) {
+            finalPhotoURL = selectedPredefinedAvatar;
+        } else if (profilePictureFile && firebaseApp) {
+            // La logique de téléversement reste ici, même si elle est actuellement défaillante
+            try {
+                const storage = getStorage(firebaseApp);
+                const filePath = `avatars/${user.uid}/${profilePictureFile.name}`;
+                const storageRef = ref(storage, filePath);
+                await uploadBytes(storageRef, profilePictureFile);
+                finalPhotoURL = await getDownloadURL(storageRef);
+            } catch (storageError) {
+                 console.error("Erreur de téléversement de l'avatar:", storageError);
+                 toast({
+                    variant: 'destructive',
+                    title: 'Erreur de téléversement',
+                    description: "Impossible de téléverser le nouvel avatar. Veuillez réessayer plus tard."
+                 });
+                 setIsSaving(false);
+                 return;
+            }
+        }
+
+        if (finalPhotoURL !== user.photoURL) {
+            authUpdates.photoURL = finalPhotoURL;
         }
 
         // 2. Gérer la mise à jour du nom d'affichage
@@ -99,7 +128,8 @@ export default function SettingsPage() {
         }
 
         toast({ title: 'Succès', description: 'Votre profil a été mis à jour.' });
-        setProfilePicture(null); // Reset file input state
+        setProfilePictureFile(null);
+        setSelectedPredefinedAvatar(null);
 
     } catch (error: any) {
         console.error("Erreur lors de la mise à jour du profil:", error);
@@ -125,7 +155,14 @@ export default function SettingsPage() {
     return null;
   }
   
-  const isChanged = displayName !== (userProfile?.displayName || userProfile.email) || profilePicture !== null;
+  const isChanged = displayName !== (userProfile?.displayName || userProfile.email) || profilePictureFile !== null || selectedPredefinedAvatar !== null;
+  
+  let avatarPreviewSrc: string | undefined = user.photoURL || undefined;
+    if (profilePictureFile) {
+    avatarPreviewSrc = URL.createObjectURL(profilePictureFile);
+    } else if (selectedPredefinedAvatar) {
+    avatarPreviewSrc = selectedPredefinedAvatar;
+    }
 
 
   return (
@@ -142,13 +179,34 @@ export default function SettingsPage() {
             <CardDescription>Ces informations peuvent être visibles par les autres utilisateurs.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-20 w-20 border">
-                <AvatarImage src={profilePicture ? URL.createObjectURL(profilePicture) : user.photoURL || undefined} alt="Avatar" />
-                <AvatarFallback>{getInitials(user.email, displayName)}</AvatarFallback>
-              </Avatar>
-              <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
-              <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isSaving}>Changer la photo</Button>
+            <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                    <Avatar className="h-20 w-20 border">
+                        <AvatarImage src={avatarPreviewSrc} alt="Avatar" />
+                        <AvatarFallback>{getInitials(user.email, displayName)}</AvatarFallback>
+                    </Avatar>
+                     <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
+                    <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isSaving}>Changer la photo</Button>
+                </div>
+
+                <div>
+                    <p className="text-sm text-muted-foreground mb-2">Ou choisissez un avatar prédéfini :</p>
+                    <div className="flex flex-wrap gap-2">
+                        {PlaceHolderImages.map((image) => (
+                        <button
+                            key={image.id}
+                            onClick={() => handleSelectPredefinedAvatar(image.imageUrl)}
+                            className={cn(
+                            "relative h-16 w-16 rounded-full overflow-hidden border-2 transition-all",
+                            selectedPredefinedAvatar === image.imageUrl ? "border-primary ring-2 ring-primary ring-offset-2" : "border-transparent hover:border-primary/50"
+                            )}
+                            disabled={isSaving}
+                        >
+                            <Image src={image.imageUrl} alt={image.description} fill sizes="64px" className="object-cover" />
+                        </button>
+                        ))}
+                    </div>
+                </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="displayName">Nom d'affichage</Label>

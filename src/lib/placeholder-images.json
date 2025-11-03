@@ -23,6 +23,12 @@
       "description": "Ciel étoilé",
       "imageUrl": "https://images.unsplash.com/photo-1628498188904-036f5e25e93e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxzdGFycnklMjBza3l8ZW58MHx8fHwxNzYxNjU4MDU3fDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "starry sky"
+    },
+    {
+      "id": "placeholder-5",
+      "description": "Paysage urbain nocturne",
+      "imageUrl": "https://images.unsplash.com/photo-1505642013835-5b7939dd1337?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxuaWdodCUyMGNpdHlzY2FwZXxlbnwwfHx8fDE3NjE3MDM4MDh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "night cityscape"
     }
   ]
 }
