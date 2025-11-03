@@ -11,7 +11,7 @@ import { NotesSection } from './notes';
 import { Uploader } from './uploader';
 import { ImageList } from './ImageList';
 import { type UserProfile } from '@/lib/firestore';
-import { isBefore, subDays } from 'date-fns';
+import { isSameDay } from 'date-fns';
 import { LandingPage } from './landing-page';
 
 
@@ -29,13 +29,13 @@ export default function Home() {
 
   useEffect(() => {
     const checkAndRefillTickets = async () => {
-      // S'assurer que les données sont chargées et que la dernière recharge a eu lieu il y a plus d'un jour
+      // S'assurer que les données sont chargées et que la dernière recharge a eu lieu un jour différent
       if (userProfile && userProfile.lastTicketRefill && userDocRef) {
         const lastRefillDate = userProfile.lastTicketRefill.toDate();
-        const oneDayAgo = subDays(new Date(), 1);
+        const today = new Date();
 
-        // Si la dernière recharge date de plus de 24h ET que le compteur est en dessous du maximum
-        if (isBefore(lastRefillDate, oneDayAgo) && userProfile.ticketCount < 5) {
+        // Si la dernière recharge n'a pas eu lieu aujourd'hui
+        if (!isSameDay(lastRefillDate, today)) {
           try {
             await updateDoc(userDocRef, {
               ticketCount: 5, // Recharger à 5
