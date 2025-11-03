@@ -146,20 +146,20 @@ export function ImageList() {
 
     const handleSaveDescription = async () => {
         if (!imageToEdit || !user || !firestore) return;
-
         setIsSavingDescription(true);
-        const finalDescription = [
-            currentTitle,
-            currentDescription,
-            hashtagsString
-        ].filter(Boolean).join('\n\n');
+
+        const dataToSave = {
+            title: currentTitle,
+            description: currentDescription,
+            hashtags: hashtagsString
+        };
 
         try {
-            await updateImageDescription(firestore, user.uid, imageToEdit.id, finalDescription, wasGeneratedByAI);
-            toast({ title: 'Description enregistrée', description: 'La description de l\'image a été mise à jour.' });
+            await updateImageDescription(firestore, user.uid, imageToEdit.id, dataToSave, wasGeneratedByAI);
+            toast({ title: 'Description enregistrée', description: 'Les informations de l\'image ont été mises à jour.' });
             setShowEditDialog(false);
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible d\'enregistrer la description.' });
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible d\'enregistrer les informations.' });
         } finally {
             setIsSavingDescription(false);
         }

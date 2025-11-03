@@ -283,17 +283,28 @@ export async function deleteUserAccount(firestore: Firestore, storage: Storage, 
 
 
 /**
- * Met à jour la description d'une image dans Firestore.
+ * Met à jour les données structurées (titre, description, hashtags) d'une image dans Firestore.
  * @param firestore L'instance Firestore.
  * @param userId L'ID de l'utilisateur.
  * @param imageId L'ID de l'image.
- * @param description La nouvelle description.
+ * @param data Un objet contenant le titre, la description et les hashtags.
  * @param generatedByAI Indique si la description a été générée par l'IA pour débloquer un succès.
  */
-export async function updateImageDescription(firestore: Firestore, userId: string, imageId: string, description: string, generatedByAI: boolean): Promise<void> {
+export async function updateImageDescription(
+    firestore: Firestore, 
+    userId: string, 
+    imageId: string, 
+    data: { title: string; description: string; hashtags: string; },
+    generatedByAI: boolean
+): Promise<void> {
     const imageDocRef = doc(firestore, 'users', userId, 'images', imageId);
     
-    const dataToUpdate: { description: string, generatedByAI?: boolean } = { description };
+    const dataToUpdate: { title: string, description: string, hashtags: string, generatedByAI?: boolean } = {
+        title: data.title,
+        description: data.description,
+        hashtags: data.hashtags
+    };
+
     if (generatedByAI) {
         dataToUpdate.generatedByAI = true;
     }
@@ -305,11 +316,9 @@ export async function updateImageDescription(firestore: Firestore, userId: strin
         const permissionError = new FirestorePermissionError({
             path: imageDocRef.path,
             operation: 'update',
-            requestResourceData: { description },
+            requestResourceData: dataToUpdate,
         });
         errorEmitter.emit('permission-error', permissionError);
         throw error;
     }
 }
-
-    
