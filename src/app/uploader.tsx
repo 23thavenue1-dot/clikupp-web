@@ -86,6 +86,7 @@ export function Uploader() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+        // La vérification `looksLikeImage` est suffisante ici, la conversion se fera dans les fonctions d'upload
         if (!looksLikeImage(file)) {
             toast({ variant: 'destructive', title: 'Erreur', description: 'Type de fichier non autorisé (images uniquement).' });
             return;
@@ -128,7 +129,7 @@ export function Uploader() {
       setStatus({ state: 'processing' });
       const dataUrl = await fileToDataUrl(selectedFile);
       await saveImageMetadata(firestore, user, {
-        originalName: customName || selectedFile.name,
+        originalName: customName || selectedFile.name.replace(/\.(heic|heif)$/i, '.jpeg'),
         description: description,
         directUrl: dataUrl,
         bbCode: `[img]${dataUrl}[/img]`,
@@ -326,3 +327,5 @@ export function Uploader() {
     </Card>
   );
 }
+
+    
