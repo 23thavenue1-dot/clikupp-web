@@ -35,6 +35,7 @@ export interface UserProfile {
   xp: number;
   unlockedAchievements: string[];
   initialPhotoURL: string | null;
+  profilePictureUpdateCount: number;
 }
 
 

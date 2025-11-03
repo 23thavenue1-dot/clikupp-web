@@ -1,7 +1,7 @@
 'use client';
 
 import { useFirebase, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, increment } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { type UserProfile } from '@/lib/firestore';
@@ -86,7 +86,7 @@ export default function ProfilePage() {
 
     try {
         const authUpdates: { displayName?: string, photoURL?: string } = {};
-        const firestoreUpdates: Partial<UserProfile> = {};
+        const firestoreUpdates: Partial<UserProfile> & { profilePictureUpdateCount?: any } = {};
         
         let finalPhotoURL = user.photoURL;
 
@@ -97,7 +97,6 @@ export default function ProfilePage() {
                 const storage = getStorage(firebaseApp);
                 const filePath = `avatars/${user.uid}/${profilePictureFile.name}`;
                 const storageRef = ref(storage, filePath);
-                // Correction : Ajout des métadonnées `contentType`
                 const metadata = { contentType: profilePictureFile.type };
                 await uploadBytes(storageRef, profilePictureFile, metadata);
                 finalPhotoURL = await getDownloadURL(storageRef);
@@ -115,6 +114,7 @@ export default function ProfilePage() {
 
         if (finalPhotoURL !== user.photoURL) {
             authUpdates.photoURL = finalPhotoURL;
+            firestoreUpdates.profilePictureUpdateCount = increment(1);
         }
 
         if (displayName !== (userProfile?.displayName || '')) {

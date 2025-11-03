@@ -57,8 +57,9 @@ export default function SignupPage() {
         level: 1,
         xp: 0,
         unlockedAchievements: [],
-        emailNotifications: true, // Valeur par défaut ajoutée ici
-        initialPhotoURL: user.photoURL, // Stocke la photo de profil initiale (souvent null)
+        emailNotifications: true,
+        initialPhotoURL: user.photoURL,
+        profilePictureUpdateCount: 0,
       });
 
 

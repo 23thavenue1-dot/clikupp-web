@@ -57,11 +57,10 @@ export default function DashboardPage() {
     { id: 'first-upload', title: 'Premier Upload', description: 'Téléverser votre première image.', icon: Upload, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => (images?.length ?? 0) > 0 },
     { id: 'collection-nascente', title: 'Collection Naissante', description: 'Téléverser au moins 10 images.', icon: GalleryVertical, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => (images?.length ?? 0) >= 10 },
     { id: 'new-look', title: 'Nouveau Look', description: 'Changer votre photo de profil pour la première fois.', icon: ImageIcon, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => {
-        // Condition: la photo de profil actuelle est différente de celle à l'inscription, et celle de l'inscription existe
         return authUser?.photoURL !== profile.initialPhotoURL;
       } 
     },
-    { id: 'cameleon', title: 'Caméléon', description: 'Changer 5 fois votre photo de profil.', icon: Sparkle, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique à implémenter
+    { id: 'cameleon', title: 'Caméléon', description: 'Changer 5 fois votre photo de profil.', icon: Sparkle, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => (profile.profilePictureUpdateCount ?? 0) >= 5 },
     { id: 'connected', title: 'Connecté', description: 'Garder les notifications par e-mail activées.', icon: Mail, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => profile.emailNotifications === true },
     { id: 'habitué', title: 'Habitué', description: 'Se connecter 3 jours de suite.', icon: CalendarClock, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique complexe
     { id: 'first-share', title: 'Premier Partage', description: 'Partager une image pour la première fois.', icon: Share2, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[], authUser: User | null) => false }, // Logique à implémenter

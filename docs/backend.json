@@ -136,6 +136,10 @@
           ],
           "description": "The user's photoURL at the time of account creation.",
           "format": "uri"
+        },
+        "profilePictureUpdateCount": {
+          "type": "number",
+          "description": "Counts how many times the user has updated their profile picture."
         }
       },
       "required": [
@@ -146,7 +150,8 @@
         "ticketCount",
         "lastTicketRefill",
         "level",
-        "xp"
+        "xp",
+        "profilePictureUpdateCount"
       ]
     },
      "Note": {
