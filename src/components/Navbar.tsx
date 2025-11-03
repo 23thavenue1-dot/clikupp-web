@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useTheme } from "next-themes";
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
+import { useAchievementNotification } from '@/hooks/useAchievementNotification';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -36,7 +37,8 @@ export function Navbar() {
   // Pour le moment, on simule un utilisateur de niveau 1.
   // Plus tard, vous remplacerez `1` par `userProfile.level`
   const userLevel = 1;
-  const { hasUnread } = useUnreadMessages(userLevel);
+  const { hasUnread: hasUnreadMsgs } = useUnreadMessages(userLevel);
+  const { hasNew: hasNewAchievements } = useAchievementNotification();
 
   const handleSignOut = async () => {
     if (!user) return;
@@ -79,14 +81,20 @@ export function Navbar() {
           {user && (
             <>
               <Link href="/dashboard" passHref>
-                <Button variant="ghost" size="icon" aria-label="Tableau de bord">
+                <Button variant="ghost" size="icon" aria-label="Tableau de bord" className="relative">
                   <LayoutDashboard className="h-5 w-5" />
+                  {hasNewAchievements && (
+                    <span className="absolute top-2 right-2 flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                    </span>
+                  )}
                 </Button>
               </Link>
               <Link href="/secret-messages" passHref>
                 <Button variant="ghost" size="icon" aria-label="Messages Secrets" className="relative">
                   <Mail className="h-5 w-5" />
-                  {hasUnread && (
+                  {hasUnreadMsgs && (
                     <span className="absolute top-2 right-2 flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
@@ -120,9 +128,10 @@ export function Navbar() {
                   <DropdownMenuSeparator />
                   <DropdownMenuGroup>
                       <DropdownMenuItem asChild>
-                        <Link href="/dashboard">
+                        <Link href="/dashboard" className="relative">
                           <LayoutDashboard className="mr-2 h-4 w-4" />
                           <span>Tableau de bord</span>
+                           {hasNewAchievements && <span className="absolute right-2 flex h-2 w-2 bg-red-500 rounded-full" />}
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
@@ -144,7 +153,7 @@ export function Navbar() {
                             <Link href="/secret-messages" className="relative">
                                 <Mail className="mr-2 h-4 w-4" />
                                 <span>Messages Secrets</span>
-                                {hasUnread && <span className="absolute right-2 flex h-2 w-2 bg-red-500 rounded-full" />}
+                                {hasUnreadMsgs && <span className="absolute right-2 flex h-2 w-2 bg-red-500 rounded-full" />}
                             </Link>
                         </DropdownMenuItem>
                     </DropdownMenuGroup>

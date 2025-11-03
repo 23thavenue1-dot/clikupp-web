@@ -13,6 +13,7 @@ import { type UserProfile, type ImageMetadata } from '@/lib/firestore';
 import { collection, query, updateDoc, doc, arrayUnion, increment } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAchievementNotification } from '@/hooks/useAchievementNotification';
 
 const XP_PER_ACHIEVEMENT = 20;
 const XP_PER_LEVEL = 100;
@@ -22,6 +23,7 @@ export default function DashboardPage() {
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
+  const { markAchievementsAsSeen } = useAchievementNotification();
 
   const userDocRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -41,6 +43,10 @@ export default function DashboardPage() {
       router.push('/login');
     }
   }, [user, isUserLoading, router]);
+
+  useEffect(() => {
+    markAchievementsAsSeen();
+  }, [markAchievementsAsSeen]);
 
   const allAchievements = useMemo(() => [
     { id: 'profile-complete', title: 'Profil Complet', description: 'Remplir votre bio et votre site web.', icon: UserCheck, xp: XP_PER_ACHIEVEMENT, isEligible: (profile: UserProfile, images: ImageMetadata[]) => !!(profile.bio && profile.websiteUrl) },
@@ -107,6 +113,9 @@ export default function DashboardPage() {
             newlyUnlocked.forEach(achievement => {
                 toast({ title: "Succès débloqué !", description: `Vous avez obtenu : "${achievement.title}" (+${achievement.xp} XP)` });
             });
+            
+            // Dispatch a custom event to notify other parts of the app (like the navbar)
+            window.dispatchEvent(new CustomEvent('storage-updated'));
         }
     };
 
@@ -285,5 +294,3 @@ export default function DashboardPage() {
     </TooltipProvider>
   );
 }
-
-    
