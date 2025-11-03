@@ -38,7 +38,7 @@ Analyse l'image suivante et prépare une publication optimisée pour la platefor
 
 Voici tes instructions :
 1.  **Titre :** Crée un titre court et percutant.
-2.  **Description :** Rédige une description engageante. Adapte le ton et la longueur à la plateforme : plus descriptif pour Instagram/Facebook, très court et direct pour X (anciennement Twitter).
+2.  **Description :** Rédige une description engageante qui inclut un ou deux émojis pertinents. Adapte le ton et la longueur à la plateforme : plus descriptif pour Instagram/Facebook, très court et direct pour X (anciennement Twitter).
 3.  **Hashtags :** Génère une liste de 5 à 10 hashtags pertinents, mélangeant des tags populaires et plus spécifiques.
 
 Image à analyser : {{media url=imageUrl}}`,
