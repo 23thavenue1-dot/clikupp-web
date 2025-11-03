@@ -7,10 +7,10 @@ import { collection, query, orderBy, doc } from 'firebase/firestore';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, addImageToGalleries } from '@/lib/firestore';
+import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, toggleImageInGallery, createGallery } from '@/lib/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Eye, CopyPlus, Ticket } from 'lucide-react';
+import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Eye, CopyPlus, Ticket, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -75,8 +75,10 @@ export function ImageList() {
 
     const [showAddToGalleryDialog, setShowAddToGalleryDialog] = useState(false);
     const [imageToAddToGallery, setImageToAddToGallery] = useState<ImageMetadata | null>(null);
-    const [selectedGalleries, setSelectedGalleries] = useState<string[]>([]);
+    const [selectedGalleries, setSelectedGalleries] = useState<Set<string>>(new Set());
     const [isSavingToGallery, setIsSavingToGallery] = useState(false);
+    const [newGalleryName, setNewGalleryName] = useState('');
+    const [isCreatingGallery, setIsCreatingGallery] = useState(false);
     
     const [currentTitle, setCurrentTitle] = useState('');
     const [currentDescription, setCurrentDescription] = useState('');
@@ -133,7 +135,9 @@ export function ImageList() {
 
     const openAddToGalleryDialog = (image: ImageMetadata) => {
         setImageToAddToGallery(image);
-        setSelectedGalleries(galleries?.filter(g => g.imageIds.includes(image.id)).map(g => g.id) || []);
+        const containingGalleries = galleries?.filter(g => g.imageIds.includes(image.id)).map(g => g.id) || [];
+        setSelectedGalleries(new Set(containingGalleries));
+        setNewGalleryName('');
         setShowAddToGalleryDialog(true);
     };
 
@@ -177,7 +181,7 @@ export function ImageList() {
         try {
             const result = await generateImageDescription({ imageUrl: imageToEdit.directUrl, platform: platform });
             setCurrentTitle(result.title);
-            setCurrentDescription(result.description);
+setCurrentDescription(result.description);
             // On ajoute le # directement ici
             setHashtagsString(result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' '));
             setWasGeneratedByAI(true);
@@ -214,25 +218,57 @@ export function ImageList() {
         }
     };
 
-    const handleAddToGallery = async () => {
-        if (!imageToAddToGallery || !user || !firestore) return;
+    const handleSaveToGalleries = async () => {
+        if (!imageToAddToGallery || !user || !firestore || !galleries) return;
         setIsSavingToGallery(true);
+        
         try {
-            await addImageToGalleries(firestore, user.uid, imageToAddToGallery.id, selectedGalleries);
-            toast({ title: 'Galeries mises à jour', description: 'L\'image a été ajoutée aux galeries sélectionnées.' });
+            const promises = galleries.map(gallery => {
+                const shouldBeInGallery = selectedGalleries.has(gallery.id);
+                const isCurrentlyInGallery = gallery.imageIds.includes(imageToAddToGallery.id);
+                if (shouldBeInGallery !== isCurrentlyInGallery) {
+                    return toggleImageInGallery(firestore, user.uid, imageToAddToGallery.id, gallery.id, shouldBeInGallery);
+                }
+                return Promise.resolve();
+            });
+
+            await Promise.all(promises);
+            
+            toast({ title: 'Galeries mises à jour', description: 'Les appartenances de l\'image aux galeries ont été mises à jour.' });
             setShowAddToGalleryDialog(false);
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible d\'ajouter l\'image aux galeries.' });
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de mettre à jour les galeries.' });
         } finally {
             setIsSavingToGallery(false);
         }
     };
 
-    const handleGallerySelectionChange = (galleryId: string, checked: boolean) => {
-        setSelectedGalleries(prev => 
-            checked ? [...prev, galleryId] : prev.filter(id => id !== galleryId)
-        );
+    const handleGallerySelectionChange = (galleryId: string) => {
+        setSelectedGalleries(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(galleryId)) {
+                newSet.delete(galleryId);
+            } else {
+                newSet.add(galleryId);
+            }
+            return newSet;
+        });
     };
+
+    const handleCreateGalleryOnTheFly = async () => {
+        if (!newGalleryName.trim() || !user || !firestore) return;
+        setIsCreatingGallery(true);
+        try {
+            const newGalleryRef = await createGallery(firestore, user.uid, newGalleryName);
+            setSelectedGalleries(prev => new Set(prev).add(newGalleryRef.id));
+            setNewGalleryName('');
+            toast({ title: "Galerie créée", description: `"${newGalleryName}" a été créée et sélectionnée.`});
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de créer la galerie.' });
+        } finally {
+            setIsCreatingGallery(false);
+        }
+    }
 
     const copyToClipboard = async (text: string, field: string, toastTitle = "Copié !") => {
         try {
@@ -612,24 +648,40 @@ export function ImageList() {
             <Dialog open={showAddToGalleryDialog} onOpenChange={setShowAddToGalleryDialog}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Ajouter à une galerie</DialogTitle>
+                        <DialogTitle>Ajouter à des galeries</DialogTitle>
                         <DialogDescription>
                             Sélectionnez les galeries dans lesquelles vous souhaitez inclure cette image.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="py-4 space-y-4">
+
+                     <div className="flex items-center space-x-2 pt-4">
+                        <Input 
+                            id="new-gallery" 
+                            placeholder="Nom de la nouvelle galerie..."
+                            value={newGalleryName}
+                            onChange={(e) => setNewGalleryName(e.target.value)}
+                            disabled={isCreatingGallery}
+                        />
+                        <Button onClick={handleCreateGalleryOnTheFly} disabled={!newGalleryName.trim() || isCreatingGallery}>
+                            {isCreatingGallery ? <Loader2 className="h-4 w-4 animate-spin"/> : <PlusCircle className="h-4 w-4" />}
+                            <span className="ml-2 hidden sm:inline">Créer</span>
+                        </Button>
+                    </div>
+                    <Separator/>
+
+                    <div className="py-2 space-y-4">
                         {galleries && galleries.length > 0 ? (
-                            <div className="space-y-2 max-h-60 overflow-y-auto">
+                            <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                                 {galleries.map(gallery => (
-                                    <div key={gallery.id} className="flex items-center space-x-2">
+                                    <div key={gallery.id} className="flex items-center space-x-3 rounded-md p-2 hover:bg-muted/50">
                                         <Checkbox
                                             id={`gallery-${gallery.id}`}
-                                            checked={selectedGalleries.includes(gallery.id)}
-                                            onCheckedChange={(checked) => handleGallerySelectionChange(gallery.id, !!checked)}
+                                            checked={selectedGalleries.has(gallery.id)}
+                                            onCheckedChange={() => handleGallerySelectionChange(gallery.id)}
                                         />
                                         <label
                                             htmlFor={`gallery-${gallery.id}`}
-                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1 cursor-pointer"
                                         >
                                             {gallery.name}
                                         </label>
@@ -638,13 +690,13 @@ export function ImageList() {
                             </div>
                         ) : (
                             <p className="text-sm text-center text-muted-foreground py-4">
-                                Aucune galerie créée pour le moment.
+                                Aucune galerie créée pour le moment. Utilisez le champ ci-dessus pour en créer une.
                             </p>
                         )}
                     </div>
                     <DialogFooter>
                         <Button variant="secondary" onClick={() => setShowAddToGalleryDialog(false)}>Annuler</Button>
-                        <Button onClick={handleAddToGallery} disabled={isSavingToGallery}>
+                        <Button onClick={handleSaveToGalleries} disabled={isSavingToGallery}>
                              {isSavingToGallery && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                             Enregistrer
                         </Button>

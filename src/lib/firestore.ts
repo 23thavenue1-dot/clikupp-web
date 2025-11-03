@@ -17,6 +17,9 @@ import {
   writeBatch,
   DocumentReference,
   arrayUnion,
+  query,
+  where,
+  getDoc,
 } from 'firebase/firestore';
 import { getStorage, ref, listAll, deleteObject, Storage } from 'firebase/storage';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -371,15 +374,15 @@ export async function updateImageDescription(
 /**
  * Crée une nouvelle galerie pour l'utilisateur.
  * @param firestore L'instance Firestore.
- * @param user L'objet utilisateur authentifié.
+ * @param userId L'ID de l'utilisateur.
  * @param name Le nom de la galerie.
- * @param description La description de la galerie.
+ * @param description (Optionnel) La description de la galerie.
  */
-export async function createGallery(firestore: Firestore, user: User, name: string, description: string): Promise<void> {
-    const galleriesCollectionRef = collection(firestore, 'users', user.uid, 'galleries');
+export async function createGallery(firestore: Firestore, userId: string, name: string, description: string = ''): Promise<DocumentReference> {
+    const galleriesCollectionRef = collection(firestore, 'users', userId, 'galleries');
     
     const dataToSave = {
-        userId: user.uid,
+        userId: userId,
         name,
         description,
         imageIds: [],
@@ -389,6 +392,7 @@ export async function createGallery(firestore: Firestore, user: User, name: stri
     try {
         const docRef = await addDoc(galleriesCollectionRef, dataToSave);
         await updateDoc(docRef, { id: docRef.id });
+        return docRef;
     } catch (error) {
         console.error("Erreur lors de la création de la galerie :", error);
         const permissionError = new FirestorePermissionError({
@@ -423,36 +427,57 @@ export async function deleteGallery(firestore: Firestore, userId: string, galler
 }
 
 /**
- * Ajoute une image à une ou plusieurs galeries.
- * Utilise un batch write pour effectuer les mises à jour de manière atomique.
+ * Ajoute ou supprime une image d'une galerie.
  * @param firestore L'instance Firestore.
  * @param userId L'ID de l'utilisateur.
- * @param imageId L'ID de l'image à ajouter.
- * @param galleryIds Un tableau d'IDs des galeries à mettre à jour.
+ * @param imageId L'ID de l'image à ajouter/supprimer.
+ * @param galleryId L'ID de la galerie.
+ * @param shouldBeInGallery Booléen indiquant si l'image doit être dans la galerie.
  */
-export async function addImageToGalleries(firestore: Firestore, userId: string, imageId: string, galleryIds: string[]): Promise<void> {
-    const batch = writeBatch(firestore);
+export async function toggleImageInGallery(firestore: Firestore, userId: string, imageId: string, galleryId: string, shouldBeInGallery: boolean): Promise<void> {
+    const galleryDocRef = doc(firestore, 'users', userId, 'galleries', galleryId);
+    try {
+        if (shouldBeInGallery) {
+            await updateDoc(galleryDocRef, { imageIds: arrayUnion(imageId) });
+        } else {
+            const gallerySnap = await getDoc(galleryDocRef);
+            if (gallerySnap.exists()) {
+                const galleryData = gallerySnap.data() as Gallery;
+                await updateDoc(galleryDocRef, {
+                    imageIds: galleryData.imageIds.filter(id => id !== imageId)
+                });
+            }
+        }
+    } catch (error) {
+        console.error("Erreur lors de la mise à jour de l'image dans la galerie :", error);
+        throw error;
+    }
+}
 
-    galleryIds.forEach(galleryId => {
-        const galleryDocRef = doc(firestore, 'users', userId, 'galleries', galleryId);
-        batch.update(galleryDocRef, {
-            imageIds: arrayUnion(imageId)
-        });
-    });
+/**
+ * Récupère toutes les images d'une galerie spécifique.
+ * @param firestore L'instance Firestore.
+ * @param userId L'ID de l'utilisateur.
+ * @param imageIds Les IDs des images à récupérer.
+ * @returns Une promesse qui résout en un tableau de métadonnées d'images.
+ */
+export async function getImagesForGallery(firestore: Firestore, userId: string, imageIds: string[]): Promise<ImageMetadata[]> {
+    if (imageIds.length === 0) {
+        return [];
+    }
+    const imagesCollectionRef = collection(firestore, `users/${userId}/images`);
+    const q = query(imagesCollectionRef, where('id', 'in', imageIds));
 
     try {
-        await batch.commit();
+        const querySnapshot = await getDocs(q);
+        const images = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ImageMetadata));
+        
+        // Réordonner les images pour correspondre à l'ordre dans la galerie
+        const imageMap = new Map(images.map(img => [img.id, img]));
+        return imageIds.map(id => imageMap.get(id)).filter(Boolean) as ImageMetadata[];
     } catch (error) {
-        console.error("Erreur lors de l'ajout de l'image aux galeries :", error);
-        // Pour la simplicité, on ne génère qu'une seule erreur de permission, même si plusieurs ont pu échouer.
-        const permissionError = new FirestorePermissionError({
-            path: `users/${userId}/galleries`, // Chemin générique
-            operation: 'update',
-            requestResourceData: { imageIds: arrayUnion(imageId) },
-        });
-        errorEmitter.emit('permission-error', permissionError);
+        console.error("Erreur lors de la récupération des images pour la galerie :", error);
         throw error;
     }
 }
     
-

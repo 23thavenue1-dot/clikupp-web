@@ -19,7 +19,7 @@ Ce document rassemble plusieurs idées pour enrichir l'application en y intégra
 
 ## Idées de Fonctionnalités Majeures
 
-### 1. Organisation par Galeries d'Images (En cours)
+### 1. Organisation par Galeries d'Images (Terminé)
 
 -   **L'idée :** Permettre aux utilisateurs de regrouper leurs images dans des "Galeries" (similaires à des albums ou des collections). L'utilisateur pourrait ajouter une ou plusieurs images à une galerie existante ou en créer une nouvelle à la volée.
 -   **Avantages :**
@@ -27,7 +27,7 @@ Ce document rassemble plusieurs idées pour enrichir l'application en y intégra
     -   **Valeur ajoutée :** Transforme Clikup d'un simple service de stockage en une véritable bibliothèque d'images organisée.
     -   **Facilite le partage :** Permettrait à terme de partager une galerie entière.
 -   **Public Cible :** Extrêmement utile pour les créateurs, les photographes et les développeurs. Très pratique pour l'utilisateur quotidien.
--   **Statut :** Idée validée. **Le développement est en cours.**
+-   **Statut :** Fonctionnalité implémentée et terminée.
 
 ---
 

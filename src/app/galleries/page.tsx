@@ -41,6 +41,7 @@ import { useToast } from '@/hooks/use-toast';
 import { type Gallery, createGallery, deleteGallery } from '@/lib/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import Link from 'next/link';
 
 export default function GalleriesPage() {
   const { user, isUserLoading } = useUser();
@@ -76,7 +77,7 @@ export default function GalleriesPage() {
     }
     setIsSaving(true);
     try {
-        await createGallery(firestore, user, newGalleryName, newGalleryDescription);
+        await createGallery(firestore, user.uid, newGalleryName, newGalleryDescription);
         toast({ title: 'Galerie créée', description: `La galerie "${newGalleryName}" a été créée.` });
         setNewGalleryName('');
         setNewGalleryDescription('');
@@ -161,6 +162,7 @@ export default function GalleriesPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                 {galleries.map(gallery => (
                     <Card key={gallery.id} className="flex flex-col">
+                      <Link href={`/galleries/${gallery.id}`} className="block hover:bg-muted/30 transition-colors rounded-t-lg">
                         <CardHeader>
                             <div className="aspect-video bg-muted rounded-md flex items-center justify-center">
                                 <ImageIcon className="h-16 w-16 text-muted-foreground/50" />
@@ -170,7 +172,8 @@ export default function GalleriesPage() {
                             <CardTitle className="text-lg">{gallery.name}</CardTitle>
                             <CardDescription className="line-clamp-2 mt-1">{gallery.description || 'Aucune description'}</CardDescription>
                         </CardContent>
-                        <CardFooter className="flex justify-between items-center text-xs text-muted-foreground">
+                      </Link>
+                      <CardFooter className="flex justify-between items-center text-xs text-muted-foreground mt-auto pt-4 border-t">
                             <span>{gallery.imageIds.length} image(s)</span>
                             {gallery.createdAt && <span>{formatDistanceToNow(gallery.createdAt.toDate(), { addSuffix: true, locale: fr })}</span>}
                             
