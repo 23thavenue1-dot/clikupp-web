@@ -26,9 +26,9 @@
     },
     {
       "id": "placeholder-5",
-      "description": "Paysage urbain nocturne",
-      "imageUrl": "https://images.unsplash.com/photo-1505642013835-5b7939dd1337?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxuaWdodCUyMGNpdHlzY2FwZXxlbnwwfHx8fDE3NjE3MDM4MDh8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "night cityscape"
+      "description": "Aurore boréale",
+      "imageUrl": "https://images.unsplash.com/photo-1531366936337-7c912a4589a7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxhdXJvcmElMjBib3JlYWxpc3xlbnwwfHx8fDE3NjE5MjQwODd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "aurora borealis"
     }
   ]
 }

@@ -19,6 +19,7 @@ import { Switch } from '@/components/ui/switch';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function SettingsPage() {
   const { user, isUserLoading, firebaseApp } = useFirebase();
@@ -191,21 +192,29 @@ export default function SettingsPage() {
 
                 <div>
                     <p className="text-sm text-muted-foreground mb-2">Ou choisissez un avatar prédéfini :</p>
-                    <div className="flex flex-wrap gap-2">
-                        {PlaceHolderImages.map((image) => (
-                        <button
-                            key={image.id}
-                            onClick={() => handleSelectPredefinedAvatar(image.imageUrl)}
-                            className={cn(
-                            "relative h-16 w-16 rounded-full overflow-hidden border-2 transition-all",
-                            selectedPredefinedAvatar === image.imageUrl ? "border-primary ring-2 ring-primary ring-offset-2" : "border-transparent hover:border-primary/50"
-                            )}
-                            disabled={isSaving}
-                        >
-                            <Image src={image.imageUrl} alt={image.description} fill sizes="64px" className="object-cover" />
-                        </button>
-                        ))}
-                    </div>
+                    <TooltipProvider>
+                        <div className="flex flex-wrap gap-2">
+                            {PlaceHolderImages.map((image) => (
+                            <Tooltip key={image.id}>
+                                <TooltipTrigger asChild>
+                                    <button
+                                        onClick={() => handleSelectPredefinedAvatar(image.imageUrl)}
+                                        className={cn(
+                                        "relative h-16 w-16 rounded-full overflow-hidden border-2 transition-all",
+                                        selectedPredefinedAvatar === image.imageUrl ? "border-primary ring-2 ring-primary ring-offset-2" : "border-transparent hover:border-primary/50"
+                                        )}
+                                        disabled={isSaving}
+                                    >
+                                        <Image src={image.imageUrl} alt={image.description} fill sizes="64px" className="object-cover" />
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{image.description}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                            ))}
+                        </div>
+                    </TooltipProvider>
                 </div>
             </div>
             <div className="space-y-2">
