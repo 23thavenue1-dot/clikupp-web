@@ -3,7 +3,7 @@
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useFirebase } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
-import { updateProfile } from 'firebase/auth';
+import { updateProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { type UserProfile } from '@/lib/firestore';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +20,22 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog"
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+
+
+const passwordFormSchema = z.object({
+    currentPassword: z.string().min(1, { message: 'Le mot de passe actuel est requis.' }),
+    newPassword: z.string().min(6, { message: 'Le nouveau mot de passe doit contenir au moins 6 caractères.' }),
+    confirmPassword: z.string()
+}).refine(data => data.newPassword === data.confirmPassword, {
+    message: "Les nouveaux mots de passe ne correspondent pas.",
+    path: ["confirmPassword"],
+});
+
 
 export default function SettingsPage() {
   const { user, isUserLoading, firebaseApp } = useFirebase();
@@ -33,6 +49,8 @@ export default function SettingsPage() {
 
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+
 
   const userDocRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -40,6 +58,15 @@ export default function SettingsPage() {
   }, [user, firestore]);
 
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+
+  const passwordForm = useForm<z.infer<typeof passwordFormSchema>>({
+    resolver: zodResolver(passwordFormSchema),
+    defaultValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
+  });
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -87,11 +114,9 @@ export default function SettingsPage() {
         
         let finalPhotoURL = user.photoURL;
 
-        // 1. Gérer la photo de profil (pré-définie ou téléversée)
         if (selectedPredefinedAvatar) {
             finalPhotoURL = selectedPredefinedAvatar;
         } else if (profilePictureFile && firebaseApp) {
-            // La logique de téléversement reste ici, même si elle est actuellement défaillante
             try {
                 const storage = getStorage(firebaseApp);
                 const filePath = `avatars/${user.uid}/${profilePictureFile.name}`;
@@ -114,13 +139,11 @@ export default function SettingsPage() {
             authUpdates.photoURL = finalPhotoURL;
         }
 
-        // 2. Gérer la mise à jour du nom d'affichage
         if (displayName !== (userProfile?.displayName || '')) {
             authUpdates.displayName = displayName;
             firestoreUpdates.displayName = displayName;
         }
 
-        // 3. Appliquer les mises à jour
         if (Object.keys(authUpdates).length > 0) {
             await updateProfile(user, authUpdates);
         }
@@ -141,6 +164,33 @@ export default function SettingsPage() {
         });
     } finally {
         setIsSaving(false);
+    }
+  };
+
+  const handleChangePassword = async (values: z.infer<typeof passwordFormSchema>) => {
+    if (!user || !user.email) return;
+
+    passwordForm.clearErrors();
+    const { currentPassword, newPassword } = values;
+    const credential = EmailAuthProvider.credential(user.email, currentPassword);
+
+    try {
+        await reauthenticateWithCredential(user, credential);
+        await updatePassword(user, newPassword);
+        
+        toast({ title: 'Succès', description: 'Votre mot de passe a été modifié.' });
+        passwordForm.reset();
+        setIsPasswordDialogOpen(false);
+
+    } catch (error: any) {
+        let description = 'Une erreur est survenue.';
+        if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+            description = 'Le mot de passe actuel est incorrect.';
+            passwordForm.setError('currentPassword', { type: 'manual', message: description });
+        } else {
+            description = error.message;
+        }
+        toast({ variant: 'destructive', title: 'Erreur', description });
     }
   };
   
@@ -238,19 +288,80 @@ export default function SettingsPage() {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Sécurité</CardTitle>
-            <CardDescription>Gérez les paramètres de sécurité de votre compte.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label>Mot de passe</Label>
-              <div className="flex items-center justify-between mt-2">
-                <p className="text-sm text-muted-foreground">**********</p>
-                <Button variant="outline" disabled>Changer</Button>
-              </div>
-            </div>
-          </CardContent>
+            <CardHeader>
+                <CardTitle>Sécurité</CardTitle>
+                <CardDescription>Gérez les paramètres de sécurité de votre compte.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                 <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+                    <DialogTrigger asChild>
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm text-muted-foreground">Mot de passe : **********</p>
+                            <Button variant="outline">Changer</Button>
+                        </div>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>Changer le mot de passe</DialogTitle>
+                            <DialogDescription>
+                                Pour des raisons de sécurité, veuillez d'abord entrer votre mot de passe actuel.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <Form {...passwordForm}>
+                            <form onSubmit={passwordForm.handleSubmit(handleChangePassword)} className="space-y-4 py-4">
+                                <FormField
+                                    control={passwordForm.control}
+                                    name="currentPassword"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Mot de passe actuel</FormLabel>
+                                            <FormControl>
+                                                <Input type="password" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={passwordForm.control}
+                                    name="newPassword"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Nouveau mot de passe</FormLabel>
+                                            <FormControl>
+                                                <Input type="password" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                 <FormField
+                                    control={passwordForm.control}
+                                    name="confirmPassword"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Confirmer le nouveau mot de passe</FormLabel>
+                                            <FormControl>
+                                                <Input type="password" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <DialogFooter>
+                                    <DialogClose asChild>
+                                        <Button type="button" variant="secondary">Annuler</Button>
+                                    </DialogClose>
+                                    <Button type="submit" disabled={passwordForm.formState.isSubmitting}>
+                                        {passwordForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        Enregistrer
+                                    </Button>
+                                </DialogFooter>
+                            </form>
+                        </Form>
+                    </DialogContent>
+                </Dialog>
+            </CardContent>
         </Card>
 
         <Card>
@@ -288,3 +399,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
