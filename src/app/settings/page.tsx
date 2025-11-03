@@ -2,23 +2,30 @@
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
+import { updateProfile } from 'firebase/auth';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { type UserProfile } from '@/lib/firestore';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SettingsPage() {
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading, firebaseApp } = useFirebase();
   const firestore = useFirestore();
   const router = useRouter();
+  const { toast } = useToast();
+
+  const [displayName, setDisplayName] = useState('');
+  const [profilePicture, setProfilePicture] = useState<File | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const userDocRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -33,10 +40,76 @@ export default function SettingsPage() {
     }
   }, [user, isUserLoading, router]);
 
-  const getInitials = (email?: string | null, displayName?: string | null) => {
-    if (displayName) return displayName.charAt(0).toUpperCase();
+  useEffect(() => {
+    if (userProfile) {
+      setDisplayName(userProfile.displayName || userProfile.email || '');
+    }
+  }, [userProfile]);
+
+  const getInitials = (email?: string | null, name?: string | null) => {
+    if (name) return name.charAt(0).toUpperCase();
     if (email) return email.charAt(0).toUpperCase();
     return '?';
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (!file.type.startsWith('image/')) {
+        toast({ variant: 'destructive', title: 'Erreur', description: 'Seules les images sont autorisées.' });
+        return;
+      }
+      setProfilePicture(file);
+    }
+  };
+
+  const handleSaveChanges = async () => {
+    if (!user || !firestore || !firebaseApp) return;
+    setIsSaving(true);
+
+    try {
+        const authUpdates: { displayName?: string, photoURL?: string } = {};
+        const firestoreUpdates: { displayName?: string, photoURL?: string } = {};
+
+        // 1. Gérer le téléversement de la photo de profil
+        if (profilePicture) {
+            const storage = getStorage(firebaseApp);
+            const filePath = `avatars/${user.uid}/${profilePicture.name}`;
+            const storageRef = ref(storage, filePath);
+            await uploadBytes(storageRef, profilePicture);
+            const photoURL = await getDownloadURL(storageRef);
+            authUpdates.photoURL = photoURL;
+            // Optionnel: Sauvegarder aussi dans Firestore si nécessaire pour d'autres parties de l'app
+            // firestoreUpdates.photoURL = photoURL;
+        }
+
+        // 2. Gérer la mise à jour du nom d'affichage
+        if (displayName !== (userProfile?.displayName || '')) {
+            authUpdates.displayName = displayName;
+            firestoreUpdates.displayName = displayName;
+        }
+
+        // 3. Appliquer les mises à jour
+        if (Object.keys(authUpdates).length > 0) {
+            await updateProfile(user, authUpdates);
+        }
+        if (Object.keys(firestoreUpdates).length > 0 && userDocRef) {
+            await updateDoc(userDocRef, firestoreUpdates);
+        }
+
+        toast({ title: 'Succès', description: 'Votre profil a été mis à jour.' });
+        setProfilePicture(null); // Reset file input state
+
+    } catch (error: any) {
+        console.error("Erreur lors de la mise à jour du profil:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Erreur',
+            description: error.message || 'Une erreur est survenue lors de la sauvegarde.'
+        });
+    } finally {
+        setIsSaving(false);
+    }
   };
   
   if (isUserLoading || isProfileLoading) {
@@ -50,9 +123,9 @@ export default function SettingsPage() {
   if (!user || !userProfile) {
     return null;
   }
+  
+  const isChanged = displayName !== (userProfile?.displayName || userProfile.email) || profilePicture !== null;
 
-  // Utiliser l'email comme fallback si displayName n'existe pas
-  const displayName = userProfile.displayName || userProfile.email;
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
@@ -62,7 +135,6 @@ export default function SettingsPage() {
           <p className="text-muted-foreground mt-1">Gérez les informations de votre compte et vos préférences.</p>
         </header>
 
-        {/* Section Profil */}
         <Card>
           <CardHeader>
             <CardTitle>Profil public</CardTitle>
@@ -71,14 +143,15 @@ export default function SettingsPage() {
           <CardContent className="space-y-6">
             <div className="flex items-center gap-4">
               <Avatar className="h-20 w-20 border">
-                <AvatarImage src={user.photoURL || undefined} alt="Avatar" />
-                <AvatarFallback>{getInitials(user.email, userProfile.displayName)}</AvatarFallback>
+                <AvatarImage src={profilePicture ? URL.createObjectURL(profilePicture) : user.photoURL || undefined} alt="Avatar" />
+                <AvatarFallback>{getInitials(user.email, displayName)}</AvatarFallback>
               </Avatar>
-              <Button variant="outline" disabled>Changer la photo</Button>
+              <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
+              <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isSaving}>Changer la photo</Button>
             </div>
             <div className="space-y-2">
               <Label htmlFor="displayName">Nom d'affichage</Label>
-              <Input id="displayName" value={displayName} disabled />
+              <Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} disabled={isSaving} />
             </div>
              <div className="space-y-2">
               <Label htmlFor="email">Adresse e-mail</Label>
@@ -86,9 +159,16 @@ export default function SettingsPage() {
               <p className="text-xs text-muted-foreground">L'adresse e-mail ne peut pas être modifiée.</p>
             </div>
           </CardContent>
+          <CardFooter className="border-t px-6 py-4">
+            <div className="flex w-full justify-end">
+                <Button onClick={handleSaveChanges} disabled={!isChanged || isSaving}>
+                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Enregistrer les modifications
+                </Button>
+            </div>
+          </CardFooter>
         </Card>
 
-        {/* Section Sécurité */}
         <Card>
           <CardHeader>
             <CardTitle>Sécurité</CardTitle>
@@ -105,7 +185,6 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Section Notifications */}
         <Card>
             <CardHeader>
                 <CardTitle>Notifications</CardTitle>
@@ -122,8 +201,6 @@ export default function SettingsPage() {
             </CardContent>
         </Card>
 
-
-        {/* Section Suppression */}
         <Card className="border-destructive">
           <CardHeader>
             <CardTitle className="text-destructive">Zone de danger</CardTitle>
@@ -139,8 +216,9 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
-
       </div>
     </div>
   );
 }
+
+    

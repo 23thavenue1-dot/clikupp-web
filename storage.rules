@@ -1,9 +1,21 @@
-// Ce fichier est intentionnellement laissé vide.
-// L'upload de fichiers se fait via Data URL et est stocké dans Firestore.
-// La sécurité est donc gérée par firestore.rules.
+
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Aucune règle n'est nécessaire ici pour le moment.
+    
+    // Règle pour les images de galerie
+    match /users/{userId}/{allPaths=**} {
+      allow read: if true; // Tout le monde peut lire les images
+      allow write: if request.auth != null && request.auth.uid == userId; // Seul le propriétaire peut écrire
+    }
+
+    // Règle pour les photos de profil
+    match /avatars/{userId}/{fileName} {
+      allow read: if true; // Tout le monde peut voir les avatars
+      allow write: if request.auth != null && request.auth.uid == userId && request.resource.size < 2 * 1024 * 1024 && request.resource.contentType.matches('image/.*'); // Seul le propriétaire peut changer son avatar (max 2Mo, image seulement)
+    }
+    
   }
 }
+
+    
