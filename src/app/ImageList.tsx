@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { type ImageMetadata, deleteImageMetadata, updateImageDescription } from '@/lib/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask } from 'lucide-react';
+import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -60,6 +60,9 @@ export function ImageList() {
 
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [imageToEdit, setImageToEdit] = useState<ImageMetadata | null>(null);
+
+    const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+    const [imageToShowDetails, setImageToShowDetails] = useState<ImageMetadata | null>(null);
     
     const [currentTitle, setCurrentTitle] = useState('');
     const [currentDescription, setCurrentDescription] = useState('');
@@ -100,6 +103,11 @@ export function ImageList() {
     const openEditDialog = (image: ImageMetadata) => {
         setImageToEdit(image);
         setShowEditDialog(true);
+    };
+
+    const openDetailsDialog = (image: ImageMetadata) => {
+        setImageToShowDetails(image);
+        setShowDetailsDialog(true);
     };
 
     const handleDeleteImage = async () => {
@@ -224,6 +232,15 @@ export function ImageList() {
                                         />
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
                                         <div className="absolute top-2 right-2 z-10 flex gap-2">
+                                            <Button
+                                                variant="secondary"
+                                                size="icon"
+                                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                onClick={() => openDetailsDialog(image)}
+                                                aria-label="Voir les détails"
+                                            >
+                                                <Eye size={16}/>
+                                            </Button>
                                             <Button
                                                 variant="secondary"
                                                 size="icon"
@@ -434,8 +451,50 @@ export function ImageList() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                    <DialogTitle>Détails de l'image</DialogTitle>
+                    {imageToShowDetails?.uploadTimestamp && (
+                         <DialogDescription>
+                            Téléversée {formatDistanceToNow(imageToShowDetails.uploadTimestamp.toDate(), { addSuffix: true, locale: fr })}
+                         </DialogDescription>
+                    )}
+                    </DialogHeader>
+                    <div className="space-y-4 pt-2">
+                        <div className="relative aspect-video w-full overflow-hidden rounded-md border bg-muted">
+                            {imageToShowDetails && (
+                                <Image
+                                    src={imageToShowDetails.directUrl}
+                                    alt={imageToShowDetails.originalName || 'Image'}
+                                    fill
+                                    className="object-contain"
+                                    unoptimized
+                                />
+                            )}
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <Label className="text-muted-foreground">Titre</Label>
+                                <p className="font-semibold text-lg">{imageToShowDetails?.title || 'Aucun titre'}</p>
+                            </div>
+                            <div>
+                                <Label className="text-muted-foreground">Description</Label>
+                                <p className="text-sm whitespace-pre-wrap">{imageToShowDetails?.description || 'Aucune description'}</p>
+                            </div>
+                            <div>
+                                <Label className="text-muted-foreground">Hashtags</Label>
+                                <p className="text-sm text-primary">{imageToShowDetails?.hashtags || 'Aucun hashtag'}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="secondary" onClick={() => setShowDetailsDialog(false)}>Fermer</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
 
-    
