@@ -12,6 +12,7 @@ import { Uploader } from './uploader';
 import { ImageList } from './ImageList';
 import { type UserProfile } from '@/lib/firestore';
 import { isBefore, subDays } from 'date-fns';
+import { LandingPage } from './landing-page';
 
 
 export default function Home() {
@@ -25,12 +26,6 @@ export default function Home() {
   }, [user, firestore]);
 
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
-
-  useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push('/login');
-    }
-  }, [user, isUserLoading, router]);
 
   useEffect(() => {
     const checkAndRefillTickets = async () => {
@@ -54,8 +49,10 @@ export default function Home() {
       }
     };
 
-    checkAndRefillTickets();
-  }, [userProfile, userDocRef]);
+    if (user) {
+        checkAndRefillTickets();
+    }
+  }, [userProfile, userDocRef, user]);
 
 
   if (isUserLoading) {
@@ -67,7 +64,7 @@ export default function Home() {
   }
 
   if (!user) {
-    return null; // ou une page de connexion/inscription
+    return <LandingPage />;
   }
 
   return (
@@ -95,4 +92,3 @@ export default function Home() {
     </div>
   );
 }
-
