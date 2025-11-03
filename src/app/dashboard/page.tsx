@@ -75,8 +75,12 @@ export default function DashboardPage() {
     const checkAndAwardAchievement = async (achievementId: string, isEligible: boolean) => {
       const alreadyUnlocked = userProfile.unlockedAchievements?.includes(achievementId);
       if (isEligible && !alreadyUnlocked) {
-        let newXp = userProfile.xp + XP_PER_ACHIEVEMENT;
-        let newLevel = userProfile.level;
+        // Ensure we have valid numbers to work with
+        const currentXp = userProfile.xp ?? 0;
+        let currentLevel = userProfile.level ?? 1;
+
+        let newXp = currentXp + XP_PER_ACHIEVEMENT;
+        let newLevel = currentLevel;
         
         if (newXp >= XP_PER_LEVEL) {
             newLevel += Math.floor(newXp / XP_PER_LEVEL);
