@@ -3,6 +3,7 @@
 
 import { secretMessages, SecretMessage } from '@/lib/secret-messages';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { CheckCircle, Lock, Trophy } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 
@@ -28,43 +29,39 @@ export default function SecretMessagesPage() {
                     </p>
                 </header>
 
-                <div className="space-y-6">
+                <Accordion type="single" collapsible className="w-full space-y-2">
                     {secretMessages.map((message) => {
                         const isUnlocked = message.level <= unlockedLevel;
                         const Icon = getIcon(message.icon);
 
                         return (
-                            <Card key={message.level} className={`transition-opacity ${isUnlocked ? 'opacity-100' : 'opacity-50'}`}>
-                                <CardHeader className="flex flex-row items-start gap-4">
-                                     <div className={`p-3 rounded-lg ${isUnlocked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                                        <Icon className="h-6 w-6" />
+                            <AccordionItem key={message.level} value={`item-${message.level}`} className={`border rounded-lg transition-opacity ${isUnlocked ? 'opacity-100 bg-card' : 'opacity-50'}`}>
+                                <AccordionTrigger className="p-4 hover:no-underline">
+                                    <div className="flex items-center gap-4 w-full">
+                                        <div className={`p-3 rounded-lg ${isUnlocked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                                            <Icon className="h-6 w-6" />
+                                        </div>
+                                        <div className="flex-1 text-left">
+                                            <h3 className="font-semibold">Niveau {message.level}: {message.title}</h3>
+                                            <p className="text-sm text-muted-foreground">Débloqué au niveau {message.level}.</p>
+                                        </div>
+                                        {isUnlocked ? (
+                                            <CheckCircle className="h-5 w-5 text-green-500 mr-4" />
+                                        ) : (
+                                            <Lock className="h-5 w-5 text-muted-foreground mr-4" />
+                                        )}
                                     </div>
-                                    <div className="flex-1">
-                                        <CardTitle className="flex items-center justify-between">
-                                            <span>Niveau {message.level}: {message.title}</span>
-                                            {isUnlocked ? (
-                                                <CheckCircle className="h-5 w-5 text-green-500" />
-                                            ) : (
-                                                <Lock className="h-5 w-5 text-muted-foreground" />
-                                            )}
-                                        </CardTitle>
-                                        <CardDescription>
-                                            Débloqué au niveau {message.level}.
-                                        </CardDescription>
-                                    </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className={`pl-16 ${!isUnlocked && 'blur-sm select-none'}`}>
+                                </AccordionTrigger>
+                                <AccordionContent className="px-4 pb-4">
+                                     <p className={`pl-16 ${!isUnlocked && 'blur-sm select-none'}`}>
                                         {isUnlocked ? message.content : "Atteignez le niveau requis pour débloquer ce message."}
                                     </p>
-                                </CardContent>
-                            </Card>
+                                </AccordionContent>
+                            </AccordionItem>
                         );
                     })}
-                </div>
+                </Accordion>
             </div>
         </div>
     );
 }
-
-    
