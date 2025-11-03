@@ -436,13 +436,13 @@ export function ImageList() {
                                 </div>
                             </div>
                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                             <Button 
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <DropdownMenuTrigger asChild disabled={isGeneratingDescription || isSavingDescription || !hasAiTickets}>
+                                            <Button 
                                                 variant="outline" 
                                                 className="w-full"
-                                                disabled={isGeneratingDescription || isSavingDescription || !hasAiTickets}
+                                                aria-label="Générer avec l'IA"
                                             >
                                                 {isGeneratingDescription ? (
                                                     <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
@@ -451,14 +451,14 @@ export function ImageList() {
                                                 )}
                                                 {isGeneratingDescription ? 'Génération...' : 'Générer avec l\'IA pour...'}
                                             </Button>
-                                        </TooltipTrigger>
-                                        {!hasAiTickets && (
-                                            <TooltipContent>
-                                                <p>Vous n'avez plus de tickets IA. Revenez demain !</p>
-                                            </TooltipContent>
-                                        )}
-                                    </Tooltip>
-                                </DropdownMenuTrigger>
+                                        </DropdownMenuTrigger>
+                                    </TooltipTrigger>
+                                    {!hasAiTickets && (
+                                        <TooltipContent>
+                                            <p>Vous n'avez plus de tickets IA. Revenez demain !</p>
+                                        </TooltipContent>
+                                    )}
+                                </Tooltip>
                                 <DropdownMenuContent className="w-56">
                                     <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}>
                                         <Instagram className="mr-2 h-4 w-4" />
