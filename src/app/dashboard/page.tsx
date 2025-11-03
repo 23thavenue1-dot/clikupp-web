@@ -263,7 +263,7 @@ export default function DashboardPage() {
                         <TooltipContent>
                             <p className="font-semibold">{achievement.title}</p>
                             <p className="text-sm text-muted-foreground">{achievement.description}</p>
-                            {!unlocked && <p className="text-xs font-bold text-center mt-1">(Verrouillé)</p>}
+                            {!achievement.unlocked && <p className="text-xs font-bold text-center mt-1">(Verrouillé)</p>}
                         </TooltipContent>
                     </Tooltip>
                 ))}
