@@ -1,11 +1,10 @@
 
-
 'use client';
 
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useRouter, useParams } from 'next/navigation';
-import { useEffect, useState, useCallback } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { doc, getDoc, query, collection, orderBy } from 'firebase/firestore';
 import { type Gallery, type ImageMetadata, getImagesForGallery, removeImagesFromGallery, addImageToGallery } from '@/lib/firestore';
 import { Loader2, ArrowLeft, Image as ImageIcon, BoxSelect, Trash2, X, Check, PlusCircle, Settings } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -419,4 +418,5 @@ export default function GalleryDetailPage() {
 
         </div>
     );
-}
+
+    
