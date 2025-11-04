@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, useFirebase } from '@/firebase';
 import { collection, query, orderBy, doc } from 'firebase/firestore';
 import Image from 'next/image';
@@ -30,6 +30,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogClose
 } from "@/components/ui/dialog"
 import {
   DropdownMenu,
@@ -72,10 +73,6 @@ export function ImageList() {
     const [isDownloading, setIsDownloading] = useState<string | null>(null);
     const [showDeleteAlert, setShowDeleteAlert] = useState(false);
     const [imageToDelete, setImageToDelete] = useState<ImageMetadata | null>(null);
-
-    const [showShareDialog, setShowShareDialog] = useState(false);
-    const [imageToShare, setImageToShare] = useState<ImageMetadata | null>(null);
-    const [copiedField, setCopiedField] = useState<string | null>(null);
 
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [imageToEdit, setImageToEdit] = useState<ImageMetadata | null>(null);
@@ -124,12 +121,6 @@ export function ImageList() {
     const openDeleteDialog = (image: ImageMetadata) => {
         setImageToDelete(image);
         setShowDeleteAlert(true);
-    };
-
-    const openShareDialog = (image: ImageMetadata) => {
-        setImageToShare(image);
-        setShowShareDialog(true);
-        setCopiedField(null);
     };
     
     const openEditDialog = (image: ImageMetadata) => {
@@ -328,17 +319,6 @@ setCurrentDescription(result.description);
         }
     }
 
-    const copyToClipboard = async (text: string, field: string, toastTitle = "Copié !") => {
-        try {
-          await navigator.clipboard.writeText(text);
-          setCopiedField(field);
-          toast({ title: toastTitle });
-          setTimeout(() => setCopiedField(null), 2000);
-        } catch {
-          toast({ variant:'destructive', title:'Copie impossible', description:'Autorisez l’accès au presse-papier ou copiez manuellement.' });
-        }
-    };
-
     const handleToggleSelectionMode = () => {
         setIsSelectionMode(!isSelectionMode);
         setSelectedImages(new Set());
@@ -491,10 +471,6 @@ setCurrentDescription(result.description);
                                                                 <span>Détails et Copie</span>
                                                             </Link>
                                                         </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => openShareDialog(image)}>
-                                                            <Share2 className="mr-2 h-4 w-4" />
-                                                            <span>Partager les liens</span>
-                                                        </DropdownMenuItem>
                                                         <DropdownMenuItem onClick={() => handleDownload(image)} disabled={isDownloading === image.id}>
                                                             {isDownloading === image.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                                                             <span>Télécharger</span>
@@ -551,46 +527,6 @@ setCurrentDescription(result.description);
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-
-            <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
-                <DialogContent>
-                    <DialogHeader>
-                    <DialogTitle>Partager l'image</DialogTitle>
-                    <DialogDescription>
-                        Copiez l'un des liens ci-dessous pour partager votre image.
-                    </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 pt-2">
-                        <div className="space-y-2">
-                            <Label htmlFor="directLink">Lien direct (URL)</Label>
-                            <div className="flex items-center gap-2">
-                                <Input id="directLink" readOnly value={imageToShare?.directUrl || ''} className="bg-muted text-xs truncate"/>
-                                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(imageToShare?.directUrl || '', 'direct', 'Lien copié !')}>
-                                    {copiedField === 'direct' ? <Check className="text-green-500"/> : <Copy />}
-                                </Button>
-                            </div>
-                        </div>
-                         <div className="space-y-2">
-                            <Label htmlFor="bbCodeLink">Pour forum (BBCode)</Label>
-                            <div className="flex items-center gap-2">
-                                <Input id="bbCodeLink" readOnly value={imageToShare?.bbCode || ''} className="bg-muted text-xs truncate"/>
-                                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(imageToShare?.bbCode || '', 'bbcode', 'BBCode copié !')}>
-                                    {copiedField === 'bbcode' ? <Check className="text-green-500"/> : <Copy />}
-                                </Button>
-                            </div>
-                        </div>
-                         <div className="space-y-2">
-                            <Label htmlFor="htmlLink">Pour site web (HTML)</Label>
-                            <div className="flex items-center gap-2">
-                                <Input id="htmlLink" readOnly value={imageToShare?.htmlCode || ''} className="bg-muted text-xs truncate"/>
-                                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(imageToShare?.htmlCode || '', 'html', 'Code HTML copié !')}>
-                                    {copiedField === 'html' ? <Check className="text-green-500"/> : <Copy />}
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
 
             <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
                 <DialogContent className="sm:max-w-md">
