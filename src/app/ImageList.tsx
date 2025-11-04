@@ -714,69 +714,69 @@ setCurrentDescription(result.description);
             </Dialog>
 
             <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-                <DialogContent className="sm:max-w-lg">
+                <DialogContent className="sm:max-w-lg flex flex-col max-h-[90vh]">
                     <DialogHeader>
-                    <DialogTitle>Détails de l'image</DialogTitle>
-                    {imageToShowDetails?.uploadTimestamp && (
-                         <DialogDescription>
-                            Téléversée {formatDistanceToNow(imageToShowDetails.uploadTimestamp.toDate(), { addSuffix: true, locale: fr })}
-                         </DialogDescription>
-                    )}
+                        <DialogTitle>Détails de l'image</DialogTitle>
+                        {imageToShowDetails?.uploadTimestamp && (
+                            <DialogDescription>
+                                Téléversée {formatDistanceToNow(imageToShowDetails.uploadTimestamp.toDate(), { addSuffix: true, locale: fr })}
+                            </DialogDescription>
+                        )}
                     </DialogHeader>
-                    <div className="space-y-4 pt-2">
-                        <div className="relative aspect-video w-full overflow-hidden rounded-md border bg-muted">
-                            {imageToShowDetails && (
-                                <Image
-                                    src={imageToShowDetails.directUrl}
-                                    alt={imageToShowDetails.originalName || 'Image'}
-                                    fill
-                                    className="object-contain"
-                                    unoptimized
-                                />
-                            )}
-                        </div>
-                        <ScrollArea className="max-h-60 w-full pr-4">
+                    <ScrollArea className="flex-1 -mx-6 px-6">
+                        <div className="space-y-4 pt-2">
+                            <div className="relative aspect-video w-full overflow-hidden rounded-md border bg-muted">
+                                {imageToShowDetails && (
+                                    <Image
+                                        src={imageToShowDetails.directUrl}
+                                        alt={imageToShowDetails.originalName || 'Image'}
+                                        fill
+                                        className="object-contain"
+                                        unoptimized
+                                    />
+                                )}
+                            </div>
                             <div className="space-y-4">
                                 <div className="group/copy-item relative">
                                     <Label className="text-muted-foreground">Titre</Label>
                                     <p className="font-semibold text-lg pr-8">{imageToShowDetails?.title || 'Aucun titre'}</p>
                                     {imageToShowDetails?.title && (
-                                    <Button variant="ghost" size="icon" className="absolute top-1/2 -translate-y-1/2 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(imageToShowDetails.title!, 'details-title', 'Titre copié !')}>
-                                        {copiedField === 'details-title' ? <Check className="text-green-500"/> : <Copy size={16}/>}
-                                    </Button>
+                                        <Button variant="ghost" size="icon" className="absolute top-1/2 -translate-y-1/2 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(imageToShowDetails.title!, 'details-title', 'Titre copié !')}>
+                                            {copiedField === 'details-title' ? <Check className="text-green-500" /> : <Copy size={16} />}
+                                        </Button>
                                     )}
                                 </div>
                                 <div className="group/copy-item relative">
                                     <Label className="text-muted-foreground">Description</Label>
                                     <p className="text-sm whitespace-pre-wrap pr-8">{imageToShowDetails?.description || 'Aucune description'}</p>
                                     {imageToShowDetails?.description && (
-                                    <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(imageToShowDetails.description!, 'details-desc', 'Description copiée !')}>
-                                        {copiedField === 'details-desc' ? <Check className="text-green-500"/> : <Copy size={16}/>}
-                                    </Button>
+                                        <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(imageToShowDetails.description!, 'details-desc', 'Description copiée !')}>
+                                            {copiedField === 'details-desc' ? <Check className="text-green-500" /> : <Copy size={16} />}
+                                        </Button>
                                     )}
                                 </div>
                                 <div className="group/copy-item relative">
                                     <Label className="text-muted-foreground">Hashtags</Label>
                                     <p className="text-sm text-primary pr-8">{imageToShowDetails?.hashtags || 'Aucun hashtag'}</p>
                                     {imageToShowDetails?.hashtags && (
-                                    <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(imageToShowDetails.hashtags!, 'details-tags', 'Hashtags copiés !')}>
-                                        {copiedField === 'details-tags' ? <Check className="text-green-500"/> : <Copy size={16}/>}
-                                    </Button>
+                                        <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(imageToShowDetails.hashtags!, 'details-tags', 'Hashtags copiés !')}>
+                                            {copiedField === 'details-tags' ? <Check className="text-green-500" /> : <Copy size={16} />}
+                                        </Button>
                                     )}
                                 </div>
                             </div>
-                        </ScrollArea>
-                    </div>
+                        </div>
+                    </ScrollArea>
                     <DialogFooter>
                         <Button variant="secondary" onClick={() => setShowDetailsDialog(false)}>Fermer</Button>
-                         <Button 
+                        <Button
                             onClick={() => {
                                 const fullText = `${imageToShowDetails?.title || ''}\n\n${imageToShowDetails?.description || ''}\n\n${imageToShowDetails?.hashtags || ''}`;
                                 copyToClipboard(fullText.trim(), 'details-all', 'Contenu complet copié !');
                             }}
                             disabled={!imageToShowDetails?.title && !imageToShowDetails?.description && !imageToShowDetails?.hashtags}
                         >
-                            {copiedField === 'details-all' ? <Check className="mr-2"/> : <CopyPlus className="mr-2"/>}
+                            {copiedField === 'details-all' ? <Check className="mr-2" /> : <CopyPlus className="mr-2" />}
                             Tout Copier
                         </Button>
                     </DialogFooter>
