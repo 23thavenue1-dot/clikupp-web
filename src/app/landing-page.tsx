@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { UploadCloud, ShieldCheck, Gamepad2, Link as LinkIcon, HardDriveUpload, Ticket, Wand2, Library, Users, Code, Bot, Briefcase } from 'lucide-react';
+import { UploadCloud, ShieldCheck, Gamepad2, Link as LinkIcon, HardDriveUpload, Ticket, Wand2, Library, Users, Code, Bot, Briefcase, Camera } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   AlertDialog,
@@ -43,9 +43,9 @@ const features = [
 
 const targetUsers = [
     {
-        icon: Users,
-        title: "Pour les Créateurs & Community Managers",
-        description: "Gagnez un temps précieux. Générez des descriptions optimisées et des hashtags pertinents pour les réseaux sociaux en un clic."
+        icon: Camera,
+        title: "Pour les Créateurs & Photographes",
+        description: "Gagnez un temps précieux. Retouchez vos photos, générez des descriptions pertinentes et publiez plus rapidement sur les réseaux sociaux."
     },
     {
         icon: Bot,
