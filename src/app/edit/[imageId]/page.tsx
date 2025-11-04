@@ -3,13 +3,12 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useFirebase, useDoc, useMemoFirebase, useFirestore } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile } from '@/lib/firestore';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { ArrowLeft, Loader2, Sparkles, Wand2, Save } from 'lucide-react';
 import Link from 'next/link';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
@@ -19,6 +18,7 @@ import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 // --- Helper pour convertir Data URI en Blob ---
 async function dataUriToBlob(dataUri: string): Promise<Blob> {
@@ -84,8 +84,8 @@ export default function EditImagePage() {
     const imageId = params.imageId as string;
 
     const { user, isUserLoading, firebaseApp } = useFirebase();
-    const firestore = useFirestore();
     const { toast } = useToast();
+    const firestore = useFirestore();
 
     const [prompt, setPrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
@@ -153,7 +153,6 @@ export default function EditImagePage() {
         try {
             const storage = getStorage(firebaseApp);
             const blob = await dataUriToBlob(generatedImageUrl);
-            // Give it a unique name
             const newFileName = `ai-edited-${Date.now()}.png`;
             const imageFile = new File([blob], newFileName, { type: blob.type });
 
@@ -162,7 +161,7 @@ export default function EditImagePage() {
                 user,
                 imageFile,
                 `IA: ${prompt}`,
-                () => {} // Pas de suivi de progression nécessaire ici
+                () => {} 
             );
 
             await saveImageMetadata(firestore, user, { ...metadata, description: `Image originale modifiée avec l'instruction : "${prompt}"` });
@@ -184,7 +183,6 @@ export default function EditImagePage() {
             setIsSaving(false);
         }
     };
-
 
     // --- Render Logic ---
     if (isUserLoading || isImageLoading || isProfileLoading) {
@@ -210,11 +208,11 @@ export default function EditImagePage() {
     const hasAiTickets = (userProfile?.aiTicketCount ?? 0) > 0;
 
     return (
-        <div className="flex flex-col h-full">
-            <header className="flex-shrink-0 border-b">
+        <div className="flex flex-col h-[calc(100vh-4rem)]">
+            <header className="flex-shrink-0 border-b bg-background">
                  <div className="container mx-auto p-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="sm" asChild>
+                        <Button variant="outline" size="sm" asChild>
                             <Link href="/">
                                 <ArrowLeft className="mr-2 h-4 w-4"/>
                                 Retour
@@ -222,7 +220,7 @@ export default function EditImagePage() {
                         </Button>
                         <div>
                              <h1 className="text-lg font-semibold tracking-tight">Édition par IA</h1>
-                             <p className="text-sm text-muted-foreground hidden sm:block">Modifiez votre image avec une simple instruction.</p>
+                             <p className="text-sm text-muted-foreground hidden sm:block">Modifiez votre image avec une simple instruction en langage naturel.</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
@@ -232,32 +230,13 @@ export default function EditImagePage() {
                        </Badge>
                        <Button onClick={handleSaveAiImage} disabled={!generatedImageUrl || isSaving || isGenerating}>
                             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
-                            Enregistrer l'image
+                            Enregistrer la création
                         </Button>
                     </div>
                 </div>
             </header>
-            <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-px bg-border">
-                {/* Image Panel */}
-                <div className="lg:col-span-2 bg-muted/30 p-4 sm:p-8 flex flex-col items-center justify-center gap-4">
-                     <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                         <div className="flex flex-col items-center gap-2">
-                             <p className="text-sm font-semibold text-muted-foreground">AVANT</p>
-                             <div className="aspect-square w-full relative rounded-lg border overflow-hidden">
-                                 <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
-                             </div>
-                         </div>
-                         <div className="flex flex-col items-center gap-2">
-                              <p className="text-sm font-semibold text-muted-foreground">APRÈS</p>
-                             <div className="aspect-square w-full relative rounded-lg border bg-muted flex items-center justify-center">
-                                 {isGenerating && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
-                                 {!isGenerating && generatedImageUrl && <Image src={generatedImageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
-                                 {!isGenerating && !generatedImageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/50"/>}
-                             </div>
-                         </div>
-                     </div>
-                </div>
-
+            <main className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-px bg-border overflow-hidden">
+                
                 {/* Controls Panel */}
                 <div className="lg:col-span-1 bg-background flex flex-col h-full">
                      <ScrollArea className="flex-1">
@@ -274,23 +253,27 @@ export default function EditImagePage() {
                             </div>
 
                             <div className="space-y-4">
-                                <h2 className="text-base font-semibold">2. Ou choisissez une suggestion</h2>
-                                {suggestionCategories.map(category => (
-                                    <div key={category.name}>
-                                        <h3 className="text-sm font-medium text-muted-foreground mb-2">{category.name}</h3>
-                                        <div className="flex flex-wrap gap-2">
-                                            {category.prompts.map(p => (
-                                                <Button key={p} variant="outline" size="sm" className="text-xs h-auto py-1" onClick={() => setPrompt(p)} disabled={isGenerating || isSaving}>
-                                                    {p}
-                                                </Button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))}
+                                <h2 className="text-base font-semibold">2. Ou inspirez-vous</h2>
+                                <Accordion type="single" collapsible className="w-full">
+                                    {suggestionCategories.map(category => (
+                                        <AccordionItem value={category.name} key={category.name}>
+                                            <AccordionTrigger>{category.name}</AccordionTrigger>
+                                            <AccordionContent>
+                                                <div className="flex flex-wrap gap-2 pt-2">
+                                                    {category.prompts.map(p => (
+                                                        <Button key={p} variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p)} disabled={isGenerating || isSaving}>
+                                                            {p}
+                                                        </Button>
+                                                    ))}
+                                                </div>
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    ))}
+                                </Accordion>
                             </div>
                         </div>
                     </ScrollArea>
-                    <div className="p-4 sm:p-6 border-t mt-auto">
+                    <div className="p-4 sm:p-6 border-t mt-auto bg-background">
                          <Button 
                             className="w-full" 
                             size="lg"
@@ -300,11 +283,32 @@ export default function EditImagePage() {
                             {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5" />}
                             {isGenerating ? 'Génération en cours...' : 'Générer avec l\'IA'}
                          </Button>
-                         {!hasAiTickets && (
+                         {!hasAiTickets && !isGenerating && (
                             <p className="text-center text-sm text-destructive mt-2">Vous n'avez plus de tickets IA. Revenez demain !</p>
                          )}
                     </div>
                 </div>
+
+                {/* Image Panel */}
+                <div className="lg:col-span-1 bg-muted/30 p-4 sm:p-8 flex flex-col items-center justify-center gap-4">
+                     <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                         <div className="flex flex-col items-center gap-2">
+                             <p className="text-sm font-semibold text-muted-foreground">AVANT</p>
+                             <div className="aspect-square w-full relative rounded-lg border overflow-hidden bg-background">
+                                 <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
+                             </div>
+                         </div>
+                         <div className="flex flex-col items-center gap-2">
+                              <p className="text-sm font-semibold text-muted-foreground">APRÈS</p>
+                             <div className="aspect-square w-full relative rounded-lg border bg-muted flex items-center justify-center">
+                                 {isGenerating && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
+                                 {!isGenerating && generatedImageUrl && <Image src={generatedImageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
+                                 {!isGenerating && !generatedImageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/50"/>}
+                             </div>
+                         </div>
+                     </div>
+                </div>
+
             </main>
         </div>
     );
