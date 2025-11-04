@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -74,7 +73,17 @@ const suggestionCategories = [
             { title: "Désintégration", prompt: "Fais en sorte que le bord du sujet se désintègre en particules." },
             { title: "Zoom en mouvement", prompt: "Ajoute un effet de 'zoom en mouvement' (motion blur) vers le centre." },
         ]
-    }
+    },
+    {
+        name: "Événements & Saisons",
+        prompts: [
+            { title: "Ambiance Noël", prompt: "Transforme l'éclairage en une ambiance de Noël chaleureuse avec des tons dorés et rouges." },
+            { title: "Neige", prompt: "Ajoute de la neige qui tombe doucement sur toute l'image." },
+            { title: "Bonnet de Noël", prompt: "Ajoute un bonnet de Père Noël sur la tête du sujet principal." },
+            { title: "Guirlandes", prompt: "Incruste des guirlandes lumineuses (bokeh) en arrière-plan." },
+            { title: "Fond Hivernal", prompt: "Change l'arrière-plan pour un paysage d'hiver enneigé." },
+        ],
+    },
 ];
 
 
