@@ -2,9 +2,10 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { UploadCloud, ShieldCheck, Gamepad2, Link as LinkIcon, HardDriveUpload, Ticket, Wand2, Library, Users, Code, Bot, Briefcase, Camera } from 'lucide-react';
+import { UploadCloud, ShieldCheck, Gamepad2, Link as LinkIcon, HardDriveUpload, Ticket, Wand2, Library, Users, Code, Bot, Briefcase, Camera, ArrowRight, Sparkles } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   AlertDialog,
@@ -184,9 +185,52 @@ export function LandingPage() {
             </div>
           </div>
         </section>
+        
+        {/* AI Edit Showcase Section */}
+        <section className="py-20 sm:py-24">
+            <div className="container mx-auto px-4">
+                <div className="max-w-4xl mx-auto">
+                    <div className="text-center mb-12">
+                        <h2 className="text-3xl md:text-4xl font-bold">D'un simple selfie à une œuvre d'art.</h2>
+                        <p className="mt-3 max-w-2xl mx-auto text-muted-foreground">
+                            Décrivez la transformation que vous souhaitez en langage naturel. Notre IA s'occupe du reste.
+                            <br/>Prompt utilisé ici : <span className="font-semibold text-primary">"Transforme ce portrait pour le rendre plus attractif et charismatique. Optimise la lumière, lisse la peau et donne une expression de confiance."</span>
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                        <div className="flex flex-col items-center">
+                            <p className="font-semibold text-muted-foreground mb-2">AVANT</p>
+                            <div className="aspect-square w-full relative rounded-xl shadow-lg overflow-hidden">
+                                <Image 
+                                    src="https://images.unsplash.com/photo-1557053503-0c250a235775?q=80&w=2574&auto=format&fit=crop"
+                                    alt="Selfie original d'une femme"
+                                    fill
+                                    className="object-cover"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex flex-col items-center">
+                            <p className="font-semibold text-primary mb-2">APRÈS (Généré par l'IA)</p>
+                            <div className="aspect-square w-full relative rounded-xl shadow-2xl overflow-hidden border-2 border-primary/50">
+                                <Image 
+                                    src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=2576&auto=format&fit=crop"
+                                    alt="Selfie amélioré par l'intelligence artificielle"
+                                    fill
+                                    className="object-cover"
+                                />
+                                <div className="absolute top-3 right-3 p-2 bg-background/80 backdrop-blur-sm rounded-full">
+                                    <Sparkles className="h-6 w-6 text-primary"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
         {/* Target Users Section */}
-        <section className="py-20 sm:py-24">
+        <section className="py-20 sm:py-24 bg-muted/30">
              <div className="container mx-auto px-4">
                 <div className="text-center mb-12">
                     <h2 className="text-3xl md:text-4xl font-bold">Conçu pour les ambitieux.</h2>
@@ -196,7 +240,7 @@ export function LandingPage() {
                 </div>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                     {targetUsers.map((user) => (
-                        <div key={user.title} className="flex items-start gap-4 p-6 rounded-lg bg-muted/20">
+                        <div key={user.title} className="flex items-start gap-4 p-6 rounded-lg bg-background">
                            <div className="p-3 bg-primary/10 text-primary rounded-lg mt-1">
                                 <user.icon className="h-6 w-6" />
                            </div>
@@ -212,7 +256,7 @@ export function LandingPage() {
 
 
          {/* Call to Action Section */}
-        <section className="py-20 sm:py-24 bg-muted/30">
+        <section className="py-20 sm:py-24">
           <div className="container mx-auto px-4 text-center">
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Prêt à passer au niveau supérieur ?</h2>
             <p className="mt-3 text-lg text-muted-foreground">
@@ -236,3 +280,5 @@ export function LandingPage() {
     </div>
   );
 }
+
+    
