@@ -74,7 +74,11 @@ export default function EditImagePage() {
             toast({ title: 'Image générée !', description: 'Un ticket IA a été utilisé. Vous pouvez maintenant enregistrer votre création.' });
         } catch (error) {
             console.error(error);
-            toast({ variant: 'destructive', title: 'Erreur de génération', description: "L'IA n'a pas pu traiter votre demande. Essayez une autre instruction ou une autre image." });
+            toast({ 
+                variant: 'destructive', 
+                title: 'Génération bloquée par l\'IA', 
+                description: "L'IA a refusé de générer cette image, souvent à cause de ses filtres de sécurité. Conseil : Essayez de reformuler votre instruction pour être moins direct, ou utilisez un prompt suggéré." 
+            });
         } finally {
             setIsGenerating(false);
         }
