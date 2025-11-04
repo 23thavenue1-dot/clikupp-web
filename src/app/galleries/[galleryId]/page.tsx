@@ -1,12 +1,12 @@
 
 'use client';
 
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useFirebase } from '@/firebase';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { doc, getDoc, query, collection, orderBy } from 'firebase/firestore';
-import { type Gallery, type ImageMetadata, getImagesForGallery, removeImagesFromGallery, addImageToGallery } from '@/lib/firestore';
-import { Loader2, ArrowLeft, Image as ImageIcon, BoxSelect, Trash2, X, Check, PlusCircle, Settings } from 'lucide-react';
+import { type Gallery, type ImageMetadata, getImagesForGallery, removeImagesFromGallery, addImageToGallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, toggleImageInGallery, createGallery, addMultipleImagesToGalleries, saveImageMetadata, type UserProfile } from '@/lib/firestore';
+import { Loader2, ArrowLeft, Image as ImageIcon, BoxSelect, Trash2, X, Check, PlusCircle, Settings, MoreHorizontal, Sparkles, Pencil, Eye, Download, CopyPlus, Copy } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
@@ -24,17 +24,21 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useIsMobile } from '@/hooks/use-mobile';
+
 
 export default function GalleryDetailPage() {
-    const { user, isUserLoading } = useUser();
+    const { user, isUserLoading, firebaseApp } = useFirebase();
     const firestore = useFirestore();
     const router = useRouter();
     const params = useParams();
     const galleryId = params.galleryId as string;
     const { toast } = useToast();
+    const isMobile = useIsMobile();
 
     const [gallery, setGallery] = useState<Gallery | null>(null);
     const [images, setImages] = useState<ImageMetadata[]>([]);
@@ -43,12 +47,22 @@ export default function GalleryDetailPage() {
     const [isManageMode, setIsManageMode] = useState(false);
     const [isRemoveSelectionMode, setIsRemoveSelectionMode] = useState(false);
     const [selectedImagesForRemoval, setSelectedImagesForRemoval] = useState<Set<string>>(new Set());
-    const [isDeleting, setIsDeleting] = useState(false);
-    const [showDeleteAlert, setShowDeleteAlert] = useState(false);
-
+    
     const [isAddImagesDialogOpen, setIsAddImagesDialogOpen] = useState(false);
     const [selectedImagesForAddition, setSelectedImagesForAddition] = useState<Set<string>>(new Set());
     const [isAdding, setIsAdding] = useState(false);
+
+    // États copiés depuis ImageList.tsx
+    const [isDeleting, setIsDeleting] = useState<string | null>(null);
+    const [isDownloading, setIsDownloading] = useState<string | null>(null);
+    const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+    const [imageToDelete, setImageToDelete] = useState<ImageMetadata | null>(null);
+
+    const userDocRef = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return doc(firestore, `users/${user.uid}`);
+    }, [user, firestore]);
+    const { data: userProfile } = useDoc<UserProfile>(userDocRef);
     
     // Hook pour récupérer toutes les images de l'utilisateur
     const allUserImagesQuery = useMemoFirebase(() => {
@@ -174,6 +188,82 @@ export default function GalleryDetailPage() {
         return allUserImages.filter(img => !galleryImageIds.has(img.id));
     }, [allUserImages, gallery]);
 
+    // --- Fonctions copiées depuis ImageList.tsx ---
+    const openDeleteDialog = (image: ImageMetadata) => {
+        setImageToDelete(image);
+        setShowDeleteAlert(true);
+    };
+
+    const handleDeleteImage = async () => {
+        if (!imageToDelete || !user || !firestore) return;
+        
+        setIsDeleting(imageToDelete.id);
+
+        try {
+            await deleteImageMetadata(firestore, user.uid, imageToDelete.id);
+            toast({ title: "Image supprimée", description: "L'image a été supprimée avec succès de votre bibliothèque." });
+            await fetchGalleryData(); // Recharger les données pour que l'image disparaisse
+        } catch (error) {
+            console.error("Erreur lors de la suppression de l'image:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Erreur',
+                description: "Une erreur est survenue lors de la suppression de l'image."
+            });
+        } finally {
+            setIsDeleting(null);
+            setShowDeleteAlert(false);
+            setImageToDelete(null);
+        }
+    };
+
+    const handleDownload = async (image: ImageMetadata) => {
+        setIsDownloading(image.id);
+    
+        if (isMobile) {
+            window.open(image.directUrl, '_blank');
+            toast({
+                title: 'Ouvrir l\'image',
+                description: 'Appuyez longuement sur l\'image pour l\'enregistrer.',
+            });
+            setIsDownloading(null);
+            return;
+        }
+    
+        try {
+            const response = await fetch(image.directUrl);
+            if (!response.ok) throw new Error('Network response was not ok.');
+            const blob = await response.blob();
+    
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+
+            const fileExtension = image.mimeType?.split('/')[1] || 'jpg';
+            const fileName = image.title || image.originalName || `clikup-image-${image.id}`;
+            link.setAttribute('download', `${fileName}.${fileExtension}`);
+    
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+    
+            window.URL.revokeObjectURL(url);
+            toast({ title: 'Téléchargement lancé', description: `Votre image "${fileName}" est en cours de téléchargement.` });
+        } catch (error) {
+            console.error("Download error:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Erreur de téléchargement',
+                description: 'Impossible de télécharger l\'image. Veuillez réessayer.'
+            });
+        } finally {
+            setIsDownloading(null);
+        }
+    };
+    
+    // Pour l'instant, on ne met que les fonctions de suppression et de téléchargement.
+    // Celles pour l'édition et l'ajout aux galeries seront dans les étapes suivantes.
+
     if (isUserLoading || isLoading) {
         return (
             <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
@@ -293,7 +383,7 @@ export default function GalleryDetailPage() {
                                                 unoptimized
                                             />
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-                                            <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
+                                             <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
                                                 <p 
                                                 className="text-sm font-semibold truncate"
                                                 title={image.originalName}
