@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -42,6 +40,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { generateImageDescription } from '@/ai/flows/generate-description-flow';
+import { editImage } from '@/ai/flows/edit-image-flow';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -97,6 +96,8 @@ export function ImageList() {
     const [showAiEditDialog, setShowAiEditDialog] = useState(false);
     const [imageToAiEdit, setImageToAiEdit] = useState<ImageMetadata | null>(null);
     const [aiEditPrompt, setAiEditPrompt] = useState('');
+    const [isGeneratingAiImage, setIsGeneratingAiImage] = useState(false);
+    const [generatedAiImageUrl, setGeneratedAiImageUrl] = useState<string | null>(null);
 
 
     const imagesQuery = useMemoFirebase(() => {
@@ -147,6 +148,7 @@ export function ImageList() {
         setImageToAiEdit(image);
         setShowAiEditDialog(true);
         setAiEditPrompt('');
+        setGeneratedAiImageUrl(null);
     };
 
     const openAddToGalleryDialog = (image: ImageMetadata | null) => {
@@ -322,6 +324,48 @@ setCurrentDescription(result.description);
             }
             return newSet;
         });
+    };
+
+    const handleAiImageEdit = async () => {
+        if (!imageToAiEdit || !aiEditPrompt.trim() || !user || !firestore || !userProfile) return;
+
+        if (userProfile.aiTicketCount <= 0) {
+            toast({
+                variant: 'destructive',
+                title: 'Tickets IA épuisés',
+                description: 'Revenez demain pour obtenir plus de tickets.',
+            });
+            return;
+        }
+
+        setIsGeneratingAiImage(true);
+        setGeneratedAiImageUrl(null);
+        try {
+            const result = await editImage({
+                imageUrl: imageToAiEdit.directUrl,
+                prompt: aiEditPrompt,
+            });
+
+            if (result.newImageUrl) {
+                setGeneratedAiImageUrl(result.newImageUrl);
+                await decrementAiTicketCount(firestore, user.uid);
+                toast({
+                    title: 'Image générée !',
+                    description: 'Un ticket IA a été utilisé.',
+                });
+            } else {
+                throw new Error("L'IA n'a pas retourné d'image.");
+            }
+        } catch (error) {
+            console.error("Erreur d'édition IA:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Erreur de génération',
+                description: (error as Error).message || "Une erreur est survenue lors de l'édition par IA.",
+            });
+        } finally {
+            setIsGeneratingAiImage(false);
+        }
     };
 
 
@@ -801,44 +845,94 @@ setCurrentDescription(result.description);
             </Dialog>
 
             <Dialog open={showAiEditDialog} onOpenChange={setShowAiEditDialog}>
-                <DialogContent className="sm:max-w-xl">
+                <DialogContent className="sm:max-w-2xl">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Sparkles className="text-primary"/>
                             Édition par Intelligence Artificielle
                         </DialogTitle>
                         <DialogDescription>
-                            Décrivez les modifications que vous souhaitez apporter à l'image.
+                            Décrivez les modifications que vous souhaitez apporter à l'image. Un ticket IA sera utilisé.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
-                        <div className="relative aspect-video w-full overflow-hidden rounded-md border bg-muted">
-                            {imageToAiEdit && (
-                                <Image
-                                    src={imageToAiEdit.directUrl}
-                                    alt={imageToAiEdit.originalName || 'Image à éditer'}
-                                    fill
-                                    className="object-contain"
-                                    unoptimized
-                                />
-                            )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                            <div className="space-y-2">
+                                <Label>Avant</Label>
+                                <div className="relative aspect-video w-full overflow-hidden rounded-md border bg-muted">
+                                    {imageToAiEdit && (
+                                        <Image
+                                            src={imageToAiEdit.directUrl}
+                                            alt={imageToAiEdit.originalName || 'Image à éditer'}
+                                            fill
+                                            className="object-contain"
+                                            unoptimized
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Après</Label>
+                                <div className="relative aspect-video w-full overflow-hidden rounded-md border bg-muted flex items-center justify-center">
+                                    {isGeneratingAiImage && <Loader2 className="h-8 w-8 animate-spin text-primary" />}
+                                    {!isGeneratingAiImage && generatedAiImageUrl && (
+                                        <Image
+                                            src={generatedAiImageUrl}
+                                            alt="Image générée par l'IA"
+                                            fill
+                                            className="object-contain"
+                                            unoptimized
+                                        />
+                                    )}
+                                    {!isGeneratingAiImage && !generatedAiImageUrl && (
+                                        <p className="text-sm text-muted-foreground">Le résultat apparaîtra ici.</p>
+                                    )}
+                                </div>
+                            </div>
                         </div>
+
                         <div className="space-y-2">
-                            <Label htmlFor="ai-prompt">Votre instruction</Label>
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="ai-prompt">Votre instruction</Label>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                                            <Ticket className="h-4 w-4" />
+                                            <span>{userProfile?.aiTicketCount ?? 0}</span>
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{userProfile?.aiTicketCount ?? 0} tickets IA restants</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </div>
                             <Textarea 
                                 id="ai-prompt"
                                 placeholder="Ex: 'Rends le ciel plus dramatique', 'Transforme en peinture à l'huile'..."
                                 value={aiEditPrompt}
                                 onChange={(e) => setAiEditPrompt(e.target.value)}
                                 rows={2}
+                                disabled={isGeneratingAiImage}
                             />
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="secondary" onClick={() => setShowAiEditDialog(false)}>Annuler</Button>
-                        <Button disabled>
-                            <Wand2 className="mr-2"/>
-                            Générer
+                        <Button variant="secondary" onClick={() => setShowAiEditDialog(false)} disabled={isGeneratingAiImage}>Annuler</Button>
+                        <Button 
+                            onClick={handleAiImageEdit} 
+                            disabled={isGeneratingAiImage || !aiEditPrompt.trim() || !hasAiTickets}
+                        >
+                            {isGeneratingAiImage ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+                                    Génération en cours...
+                                </>
+                            ) : (
+                                <>
+                                    <Wand2 className="mr-2"/>
+                                    Générer
+                                </>
+                            )}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -847,5 +941,3 @@ setCurrentDescription(result.description);
         </TooltipProvider>
     );
 }
-
-    
