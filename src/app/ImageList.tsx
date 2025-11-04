@@ -735,35 +735,37 @@ setCurrentDescription(result.description);
                                 />
                             )}
                         </div>
-                        <div className="space-y-4">
-                            <div className="group/copy-item relative">
-                                <Label className="text-muted-foreground">Titre</Label>
-                                <p className="font-semibold text-lg pr-8">{imageToShowDetails?.title || 'Aucun titre'}</p>
-                                {imageToShowDetails?.title && (
-                                <Button variant="ghost" size="icon" className="absolute top-1/2 -translate-y-1/2 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(imageToShowDetails.title!, 'details-title', 'Titre copié !')}>
-                                    {copiedField === 'details-title' ? <Check className="text-green-500"/> : <Copy size={16}/>}
-                                </Button>
-                                )}
+                        <ScrollArea className="max-h-60 w-full pr-4">
+                            <div className="space-y-4">
+                                <div className="group/copy-item relative">
+                                    <Label className="text-muted-foreground">Titre</Label>
+                                    <p className="font-semibold text-lg pr-8">{imageToShowDetails?.title || 'Aucun titre'}</p>
+                                    {imageToShowDetails?.title && (
+                                    <Button variant="ghost" size="icon" className="absolute top-1/2 -translate-y-1/2 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(imageToShowDetails.title!, 'details-title', 'Titre copié !')}>
+                                        {copiedField === 'details-title' ? <Check className="text-green-500"/> : <Copy size={16}/>}
+                                    </Button>
+                                    )}
+                                </div>
+                                <div className="group/copy-item relative">
+                                    <Label className="text-muted-foreground">Description</Label>
+                                    <p className="text-sm whitespace-pre-wrap pr-8">{imageToShowDetails?.description || 'Aucune description'}</p>
+                                    {imageToShowDetails?.description && (
+                                    <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(imageToShowDetails.description!, 'details-desc', 'Description copiée !')}>
+                                        {copiedField === 'details-desc' ? <Check className="text-green-500"/> : <Copy size={16}/>}
+                                    </Button>
+                                    )}
+                                </div>
+                                <div className="group/copy-item relative">
+                                    <Label className="text-muted-foreground">Hashtags</Label>
+                                    <p className="text-sm text-primary pr-8">{imageToShowDetails?.hashtags || 'Aucun hashtag'}</p>
+                                    {imageToShowDetails?.hashtags && (
+                                    <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(imageToShowDetails.hashtags!, 'details-tags', 'Hashtags copiés !')}>
+                                        {copiedField === 'details-tags' ? <Check className="text-green-500"/> : <Copy size={16}/>}
+                                    </Button>
+                                    )}
+                                </div>
                             </div>
-                            <div className="group/copy-item relative">
-                                <Label className="text-muted-foreground">Description</Label>
-                                <p className="text-sm whitespace-pre-wrap pr-8">{imageToShowDetails?.description || 'Aucune description'}</p>
-                                {imageToShowDetails?.description && (
-                                <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(imageToShowDetails.description!, 'details-desc', 'Description copiée !')}>
-                                    {copiedField === 'details-desc' ? <Check className="text-green-500"/> : <Copy size={16}/>}
-                                </Button>
-                                )}
-                            </div>
-                            <div className="group/copy-item relative">
-                                <Label className="text-muted-foreground">Hashtags</Label>
-                                <p className="text-sm text-primary pr-8">{imageToShowDetails?.hashtags || 'Aucun hashtag'}</p>
-                                {imageToShowDetails?.hashtags && (
-                                <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(imageToShowDetails.hashtags!, 'details-tags', 'Hashtags copiés !')}>
-                                    {copiedField === 'details-tags' ? <Check className="text-green-500"/> : <Copy size={16}/>}
-                                </Button>
-                                )}
-                            </div>
-                        </div>
+                        </ScrollArea>
                     </div>
                     <DialogFooter>
                         <Button variant="secondary" onClick={() => setShowDetailsDialog(false)}>Fermer</Button>
@@ -850,6 +852,8 @@ setCurrentDescription(result.description);
 
 
 
+
+    
 
     
 
