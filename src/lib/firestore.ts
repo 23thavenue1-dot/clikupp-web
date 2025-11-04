@@ -433,27 +433,46 @@ export async function deleteGallery(firestore: Firestore, userId: string, galler
  * @param userId L'ID de l'utilisateur.
  * @param imageId L'ID de l'image à ajouter/supprimer.
  * @param galleryId L'ID de la galerie.
- * @param shouldBeInGallery Booléen indiquant si l'image doit être dans la galerie.
  */
-export async function toggleImageInGallery(firestore: Firestore, userId: string, imageId: string, galleryId: string, shouldBeInGallery: boolean): Promise<void> {
+export async function toggleImageInGallery(firestore: Firestore, userId: string, imageId: string, galleryId: string): Promise<void> {
     const galleryDocRef = doc(firestore, 'users', userId, 'galleries', galleryId);
+    
     try {
-        if (shouldBeInGallery) {
-            await updateDoc(galleryDocRef, { imageIds: arrayUnion(imageId) });
+        const gallerySnap = await getDoc(galleryDocRef);
+        if (!gallerySnap.exists()) {
+            throw new Error("Galerie introuvable.");
+        }
+        const galleryData = gallerySnap.data() as Gallery;
+        const isCurrentlyInGallery = galleryData.imageIds.includes(imageId);
+
+        if (isCurrentlyInGallery) {
+             await updateDoc(galleryDocRef, { imageIds: arrayRemove(imageId) });
         } else {
-            const gallerySnap = await getDoc(galleryDocRef);
-            if (gallerySnap.exists()) {
-                const galleryData = gallerySnap.data() as Gallery;
-                await updateDoc(galleryDocRef, {
-                    imageIds: galleryData.imageIds.filter(id => id !== imageId)
-                });
-            }
+             await updateDoc(galleryDocRef, { imageIds: arrayUnion(imageId) });
         }
     } catch (error) {
         console.error("Erreur lors de la mise à jour de l'image dans la galerie :", error);
         throw error;
     }
 }
+
+/**
+ * Ajoute une image à une galerie.
+ * @param firestore L'instance Firestore.
+ * @param userId L'ID de l'utilisateur.
+ * @param imageId L'ID de l'image à ajouter.
+ * @param galleryId L'ID de la galerie.
+ */
+export async function addImageToGallery(firestore: Firestore, userId: string, imageId: string, galleryId: string): Promise<void> {
+    const galleryDocRef = doc(firestore, 'users', userId, 'galleries', galleryId);
+    try {
+        await updateDoc(galleryDocRef, { imageIds: arrayUnion(imageId) });
+    } catch (error) {
+        console.error("Erreur lors de l'ajout de l'image à la galerie:", error);
+        throw error;
+    }
+}
+
 
 /**
  * Récupère toutes les images d'une galerie spécifique.

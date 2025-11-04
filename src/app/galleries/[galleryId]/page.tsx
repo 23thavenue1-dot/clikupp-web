@@ -1,12 +1,13 @@
 
+
 'use client';
 
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
-import { type Gallery, type ImageMetadata, getImagesForGallery, removeImagesFromGallery } from '@/lib/firestore';
-import { Loader2, ArrowLeft, Image as ImageIcon, BoxSelect, Trash2, X, Check } from 'lucide-react';
+import { type Gallery, type ImageMetadata, getImagesForGallery, removeImagesFromGallery, addImageToGallery } from '@/lib/firestore';
+import { Loader2, ArrowLeft, Image as ImageIcon, BoxSelect, Trash2, X, Check, PlusCircle, Settings } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
@@ -25,6 +26,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
 
 export default function GalleryDetailPage() {
     const { user, isUserLoading } = useUser();
@@ -38,10 +41,22 @@ export default function GalleryDetailPage() {
     const [images, setImages] = useState<ImageMetadata[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const [isSelectionMode, setIsSelectionMode] = useState(false);
-    const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
+    const [isManageMode, setIsManageMode] = useState(false);
+    const [isRemoveSelectionMode, setIsRemoveSelectionMode] = useState(false);
+    const [selectedImagesForRemoval, setSelectedImagesForRemoval] = useState<Set<string>>(new Set());
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+
+    const [isAddImagesDialogOpen, setIsAddImagesDialogOpen] = useState(false);
+    const [selectedImagesForAddition, setSelectedImagesForAddition] = useState<Set<string>>(new Set());
+    const [isAdding, setIsAdding] = useState(false);
+    
+    // Hook pour récupérer toutes les images de l'utilisateur
+    const allUserImagesQuery = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return query(collection(firestore, `users/${user.uid}/images`), orderBy('uploadTimestamp', 'desc'));
+    }, [user, firestore]);
+    const { data: allUserImages, isLoading: areAllImagesLoading } = useCollection<ImageMetadata>(allUserImagesQuery);
 
     useEffect(() => {
         if (!isUserLoading && !user) {
@@ -82,8 +97,20 @@ export default function GalleryDetailPage() {
         fetchGalleryData();
     }, [fetchGalleryData]);
 
-    const toggleSelection = (imageId: string) => {
-        setSelectedImages(prev => {
+    const toggleRemovalSelection = (imageId: string) => {
+        setSelectedImagesForRemoval(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(imageId)) {
+                newSet.delete(imageId);
+            } else {
+                newSet.add(imageId);
+            }
+            return newSet;
+        });
+    };
+    
+    const toggleAdditionSelection = (imageId: string) => {
+        setSelectedImagesForAddition(prev => {
             const newSet = new Set(prev);
             if (newSet.has(imageId)) {
                 newSet.delete(imageId);
@@ -95,18 +122,16 @@ export default function GalleryDetailPage() {
     };
 
     const handleRemoveImages = async () => {
-        if (!user || !firestore || selectedImages.size === 0) return;
+        if (!user || !firestore || selectedImagesForRemoval.size === 0) return;
         setIsDeleting(true);
         try {
-            await removeImagesFromGallery(firestore, user.uid, galleryId, Array.from(selectedImages));
+            await removeImagesFromGallery(firestore, user.uid, galleryId, Array.from(selectedImagesForRemoval));
             toast({
                 title: 'Images retirées',
-                description: `${selectedImages.size} image(s) ont été retirée(s) de la galerie.`
+                description: `${selectedImagesForRemoval.size} image(s) ont été retirée(s) de la galerie.`
             });
-            // Re-fetch data to update the view
-            await fetchGalleryData();
-            setIsSelectionMode(false);
-            setSelectedImages(new Set());
+            await fetchGalleryData(); // Recharger les données
+            cancelManagement(); // Quitter le mode gestion
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de retirer les images.' });
         } finally {
@@ -114,11 +139,41 @@ export default function GalleryDetailPage() {
             setShowDeleteAlert(false);
         }
     };
-
-    const handleToggleSelectionMode = () => {
-        setIsSelectionMode(!isSelectionMode);
-        setSelectedImages(new Set());
-    }
+    
+    const handleAddImages = async () => {
+        if (!user || !firestore || selectedImagesForAddition.size === 0) return;
+        setIsAdding(true);
+        try {
+            const addPromises = Array.from(selectedImagesForAddition).map(imageId => 
+                addImageToGallery(firestore, user.uid, imageId, galleryId)
+            );
+            await Promise.all(addPromises);
+            toast({
+                title: 'Images ajoutées',
+                description: `${selectedImagesForAddition.size} image(s) ont été ajoutée(s) à la galerie.`
+            });
+            await fetchGalleryData(); // Recharger
+            cancelManagement();
+            setIsAddImagesDialogOpen(false);
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible d\'ajouter les images.' });
+        } finally {
+            setIsAdding(false);
+        }
+    };
+    
+    const cancelManagement = () => {
+        setIsManageMode(false);
+        setIsRemoveSelectionMode(false);
+        setSelectedImagesForRemoval(new Set());
+        setSelectedImagesForAddition(new Set());
+    };
+    
+    const imagesNotInGallery = useMemo(() => {
+        if (!allUserImages || !gallery) return [];
+        const galleryImageIds = new Set(gallery.imageIds);
+        return allUserImages.filter(img => !galleryImageIds.has(img.id));
+    }, [allUserImages, gallery]);
 
     if (isUserLoading || isLoading) {
         return (
@@ -151,25 +206,57 @@ export default function GalleryDetailPage() {
                             </CardDescription>
                        </div>
                        {images.length > 0 && (
-                            <Button variant="outline" onClick={handleToggleSelectionMode}>
-                                {isSelectionMode ? <X className="mr-2 h-4 w-4"/> : <BoxSelect className="mr-2 h-4 w-4"/>}
-                                {isSelectionMode ? 'Annuler' : 'Sélectionner'}
+                            <Button variant="outline" onClick={() => setIsManageMode(!isManageMode)}>
+                                {isManageMode ? <X className="mr-2 h-4 w-4"/> : <Settings className="mr-2 h-4 w-4"/>}
+                                {isManageMode ? 'Annuler' : 'Gérer la galerie'}
                            </Button>
                        )}
                     </CardHeader>
                     <CardContent>
-                        {isSelectionMode && (
-                             <div className="sticky top-16 z-40 bg-background/80 backdrop-blur-sm -mx-6 mb-4 px-6 py-3 border-b flex items-center justify-between">
-                                <span className="font-semibold text-sm">{selectedImages.size} image(s) sélectionnée(s)</span>
-                                <Button 
-                                    variant="destructive" 
-                                    size="sm"
-                                    onClick={() => setShowDeleteAlert(true)}
-                                    disabled={selectedImages.size === 0}
-                                >
-                                    <Trash2 className="mr-2 h-4 w-4"/>
-                                    Retirer
-                                </Button>
+                        {isManageMode && (
+                             <div className="sticky top-16 z-40 bg-background/80 backdrop-blur-sm -mx-6 mb-4 px-6 py-3 border-b flex items-center justify-between gap-2">
+                                {isRemoveSelectionMode ? (
+                                    <>
+                                        <span className="font-semibold text-sm">{selectedImagesForRemoval.size} image(s) sélectionnée(s)</span>
+                                        <div className="flex gap-2">
+                                             <Button 
+                                                variant="destructive" 
+                                                size="sm"
+                                                onClick={() => setShowDeleteAlert(true)}
+                                                disabled={selectedImagesForRemoval.size === 0}
+                                            >
+                                                <Trash2 className="mr-2 h-4 w-4"/>
+                                                Retirer
+                                            </Button>
+                                            <Button variant="secondary" size="sm" onClick={() => setIsRemoveSelectionMode(false)}>
+                                                Terminer
+                                            </Button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="font-semibold text-sm">Mode Gestion</span>
+                                        <div className="flex gap-2">
+                                             <Button 
+                                                variant="default" 
+                                                size="sm"
+                                                onClick={() => setIsAddImagesDialogOpen(true)}
+                                            >
+                                                <PlusCircle className="mr-2 h-4 w-4"/>
+                                                Ajouter des images
+                                            </Button>
+                                            <Button 
+                                                variant="destructive" 
+                                                size="sm"
+                                                onClick={() => setIsRemoveSelectionMode(true)}
+                                                disabled={images.length === 0}
+                                            >
+                                                <Trash2 className="mr-2 h-4 w-4"/>
+                                                Retirer des images
+                                            </Button>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         )}
                         {images.length > 0 ? (
@@ -177,20 +264,20 @@ export default function GalleryDetailPage() {
                                 {images.map(image => (
                                      <div 
                                         key={image.id}
-                                        onClick={() => isSelectionMode && toggleSelection(image.id)}
+                                        onClick={() => isRemoveSelectionMode && toggleRemovalSelection(image.id)}
                                         className={cn(
                                             "group relative aspect-[4/5] w-full overflow-hidden rounded-lg border flex flex-col transition-all",
-                                            isSelectionMode && "cursor-pointer",
-                                            selectedImages.has(image.id) && "ring-2 ring-primary ring-offset-2"
+                                            isRemoveSelectionMode && "cursor-pointer",
+                                            selectedImagesForRemoval.has(image.id) && "ring-2 ring-primary ring-offset-2"
                                         )}
                                     >
-                                        {isSelectionMode && (
+                                        {isRemoveSelectionMode && (
                                             <div className="absolute top-2 left-2 z-10 bg-background rounded-full p-1 border">
                                                 <div className={cn(
                                                     "w-4 h-4 rounded-sm border-2 border-primary transition-colors",
-                                                    selectedImages.has(image.id) && "bg-primary"
+                                                    selectedImagesForRemoval.has(image.id) && "bg-primary"
                                                 )}>
-                                                    {selectedImages.has(image.id) && <Check className="w-3.5 h-3.5 text-primary-foreground"/>}
+                                                    {selectedImagesForRemoval.has(image.id) && <Check className="w-3.5 h-3.5 text-primary-foreground"/>}
                                                 </div>
                                             </div>
                                         )}
@@ -202,7 +289,7 @@ export default function GalleryDetailPage() {
                                                 sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
                                                 className={cn(
                                                     "object-cover bg-muted transition-transform",
-                                                    !isSelectionMode && "group-hover:scale-105"
+                                                    !isRemoveSelectionMode && "group-hover:scale-105"
                                                 )}
                                                 unoptimized
                                             />
@@ -236,7 +323,10 @@ export default function GalleryDetailPage() {
                             <div className="text-center py-16 border-2 border-dashed rounded-lg">
                                 <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground" />
                                 <h3 className="mt-4 text-lg font-semibold">Galerie Vide</h3>
-                                <p className="mt-2 text-sm text-muted-foreground">Ajoutez des images depuis votre bibliothèque principale pour les voir ici.</p>
+                                <p className="mt-2 text-sm text-muted-foreground">Utilisez le bouton "Gérer la galerie" pour y ajouter des images depuis votre bibliothèque.</p>
+                                <Button onClick={() => setIsManageMode(true)} className="mt-4">
+                                    Commencer à gérer
+                                </Button>
                             </div>
                         )}
                     </CardContent>
@@ -246,7 +336,7 @@ export default function GalleryDetailPage() {
             <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Retirer {selectedImages.size} image(s) ?</AlertDialogTitle>
+                        <AlertDialogTitle>Retirer {selectedImagesForRemoval.size} image(s) ?</AlertDialogTitle>
                         <AlertDialogDescription>
                             Cette action est irréversible. Les images sélectionnées seront retirées de cette galerie, mais elles resteront dans votre bibliothèque principale.
                         </AlertDialogDescription>
@@ -260,6 +350,72 @@ export default function GalleryDetailPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            
+            <Dialog open={isAddImagesDialogOpen} onOpenChange={setIsAddImagesDialogOpen}>
+                <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle>Ajouter des images à "{gallery?.name}"</DialogTitle>
+                        <DialogDescription>
+                            Sélectionnez les images de votre bibliothèque à ajouter à cette galerie.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <Separator/>
+                    <div className="flex-grow overflow-y-auto -mx-6 px-6">
+                        {areAllImagesLoading ? (
+                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4">
+                                {[...Array(8)].map((_, i) => <div key={i} className="aspect-square bg-muted rounded-md animate-pulse"></div>)}
+                            </div>
+                        ) : imagesNotInGallery.length > 0 ? (
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4">
+                                {imagesNotInGallery.map(image => (
+                                    <div 
+                                        key={image.id}
+                                        onClick={() => toggleAdditionSelection(image.id)}
+                                        className={cn("relative aspect-square rounded-lg overflow-hidden cursor-pointer group", selectedImagesForAddition.has(image.id) && "ring-2 ring-primary ring-offset-2")}
+                                    >
+                                        <Image
+                                            src={image.directUrl}
+                                            alt={image.originalName || 'Image'}
+                                            fill
+                                            sizes="(max-width: 768px) 50vw, 25vw"
+                                            className="object-cover"
+                                            unoptimized
+                                        />
+                                        <div className="absolute inset-0 bg-black/30 group-hover:bg-black/50 transition-colors" />
+                                        <div className="absolute top-2 left-2 z-10 bg-background rounded-full p-1 border">
+                                            <div className={cn(
+                                                "w-4 h-4 rounded-sm border-2 border-primary transition-colors",
+                                                selectedImagesForAddition.has(image.id) && "bg-primary"
+                                            )}>
+                                                {selectedImagesForAddition.has(image.id) && <Check className="w-3.5 h-3.5 text-primary-foreground"/>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                             <div className="flex flex-col items-center justify-center text-center text-muted-foreground h-full">
+                                <ImageIcon className="h-12 w-12 mb-4" />
+                                <p className="font-medium">Toutes vos images sont déjà ici.</p>
+                                <p className="text-sm">Aucune nouvelle image à ajouter.</p>
+                            </div>
+                        )}
+                    </div>
+                     <Separator/>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button variant="secondary">Annuler</Button>
+                        </DialogClose>
+                        <Button
+                            onClick={handleAddImages}
+                            disabled={isAdding || selectedImagesForAddition.size === 0}
+                        >
+                             {isAdding && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                            Ajouter {selectedImagesForAddition.size > 0 ? `${selectedImagesForAddition.size} image(s)` : ''}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
         </div>
     );

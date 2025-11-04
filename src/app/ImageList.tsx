@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -229,22 +230,21 @@ setCurrentDescription(result.description);
     };
 
     const handleSaveToGalleries = async () => {
-        if (!user || !firestore || !galleries || selectedGalleries.size === 0) return;
+        if (!user || !firestore || !galleries || (!imageToAddToGallery && selectedImages.size === 0)) return;
         setIsSavingToGallery(true);
-        
+    
         try {
             if (imageToAddToGallery) { // Cas image unique
                 const promises = galleries.map(gallery => {
                     const shouldBeInGallery = selectedGalleries.has(gallery.id);
-                    const isCurrentlyInGallery = gallery.imageIds.includes(imageToAddToGallery.id);
-                    if (shouldBeInGallery !== isCurrentlyInGallery) {
-                        return toggleImageInGallery(firestore, user.uid, imageToAddToGallery.id, gallery.id, shouldBeInGallery);
-                    }
-                    return Promise.resolve();
+                    // Pas besoin de vérifier si l'image y est déjà, toggleImageInGallery s'en occupe
+                    return toggleImageInGallery(firestore, user.uid, imageToAddToGallery.id, gallery.id);
                 });
                 await Promise.all(promises);
             } else if (selectedImages.size > 0) { // Cas sélection multiple
-                await addMultipleImagesToGalleries(firestore, user.uid, Array.from(selectedImages), Array.from(selectedGalleries));
+                if (selectedGalleries.size > 0) {
+                    await addMultipleImagesToGalleries(firestore, user.uid, Array.from(selectedImages), Array.from(selectedGalleries));
+                }
             }
             
             toast({ title: 'Galeries mises à jour', description: 'Les images ont bien été ajoutées aux galeries sélectionnées.' });
