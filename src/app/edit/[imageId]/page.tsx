@@ -62,8 +62,8 @@ const suggestionCategories = [
             "Donne à l'image un look cinématographique avec des couleurs intenses.",
             "Rends l'image en noir et blanc avec un fort contraste.",
             "Applique un filtre vintage, comme une vieille photo des années 70.",
-            "Ajoute des lumières néon roses et bleues pour un style 'cyberpunk'.",
             "Augmente le contraste et la saturation pour un look 'couverture de magazine'.",
+            "Ajoute des lumières néon roses et bleues pour un style 'cyberpunk'.",
         ]
     },
     {
@@ -72,8 +72,8 @@ const suggestionCategories = [
             "Ajoute des rayons de soleil qui traversent l'image.",
             "Ajoute un effet de pluie et des reflets sur le sol.",
             "Donne à l'image un effet maquette / miniature (tilt-shift).",
-            "Ajoute un effet de 'zoom en mouvement' (motion blur) vers le centre.",
             "Fais en sorte que le bord du sujet se désintègre en particules.",
+            "Ajoute un effet de 'zoom en mouvement' (motion blur) vers le centre.",
         ]
     }
 ];
@@ -309,5 +309,3 @@ export default function EditImagePage() {
         </div>
     );
 }
-
-    
