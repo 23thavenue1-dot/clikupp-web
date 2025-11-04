@@ -53,7 +53,42 @@ import { Badge } from '@/components/ui/badge';
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic';
 
-const aiPromptSuggestions: string[] = [];
+const aiPromptSuggestions = [
+  {
+    category: "Changements de Fond",
+    prompts: [
+      { label: "Plage Tropicale", value: "Remplace l'arrière-plan par une plage de sable blanc avec des palmiers et une mer turquoise." },
+      { label: "Montagnes Enneigées", value: "Change le fond pour un paysage de montagnes enneigées majestueuses sous un ciel bleu." },
+      { label: "Rue de Tokyo", value: "Place le sujet dans une rue de Tokyo la nuit, avec des néons lumineux et l'ambiance de la ville." },
+      { label: "Fond de Studio", value: "Remplace l'arrière-plan par un fond de studio professionnel gris uni." },
+      { label: "Forêt Enchantée", value: "Change le fond pour une forêt mystérieuse et enchantée, avec des rayons de lumière qui filtrent à travers les arbres." },
+      { label: "Champ de Lavande", value: "Remplace l'arrière-plan par un champ de lavande en Provence au coucher du soleil." },
+      { label: "Style Aquarelle", value: "Change l'arrière-plan pour un fond abstrait peint à l'aquarelle dans des tons pastel." },
+      { label: "Voyage dans l'Espace", value: "Place le sujet dans l'espace, avec des étoiles, des nébuleuses et la Terre en arrière-plan." },
+      { label: "Décor Post-Apo", value: "Remplace le fond par un paysage urbain post-apocalyptique et abandonné." },
+    ]
+  },
+  {
+    category: "Ambiance & Style",
+    prompts: [
+      { label: "Look Cinéma", value: "Donne à l'image un look cinématographique avec des couleurs plus intenses." },
+      { label: "Look Magazine", value: "Augmente le contraste et la saturation pour un look 'couverture de magazine'." },
+      { label: "Noir & Blanc Contraste", value: "Rends l'image en noir et blanc avec un fort contraste." },
+      { label: "Style Cyberpunk", value: "Ajoute des lumières néon roses et bleues pour un style 'cyberpunk'." },
+    ]
+  },
+  {
+    category: "Effets Spéciaux & Créatifs",
+    prompts: [
+      { label: "Rayons de Soleil", value: "Ajoute des rayons de soleil qui traversent les arbres/nuages." },
+      { label: "Effet Pluie", value: "Ajoute un effet de pluie et des reflets sur le sol." },
+      { label: "Effet Miniature", value: "Donne à l'image un effet maquette / miniature (tilt-shift)." },
+      { label: "Zoom en Mouvement", value: "Ajoute un effet de 'zoom en mouvement' (motion blur) vers le centre." },
+      { label: "Désintégration", value: "Fais en sorte que le bord droit du sujet se désintègre en particules." },
+      { label: "Explosion de Poudre", value: "Change le fond pour une explosion de poudre colorée, style festival Holi." },
+    ]
+  }
+];
 
 export function ImageList() {
     const { user, firebaseApp } = useFirebase();
@@ -962,22 +997,26 @@ setCurrentDescription(result.description);
                         </div>
 
                         {aiPromptSuggestions.length > 0 && (
-                            <div className="space-y-2">
-                                <Label>Suggestions</Label>
-                                <div className="flex flex-wrap gap-2">
-                                    {aiPromptSuggestions.map((prompt, index) => (
-                                        <Button
-                                            key={index}
-                                            variant="outline"
-                                            size="sm"
-                                            className="text-xs"
-                                            onClick={() => setAiEditPrompt(prompt)}
-                                            disabled={isGeneratingAiImage || isSavingAiImage}
-                                        >
-                                            {prompt.split("'")[1] || prompt.split(" ")[2]}
-                                        </Button>
-                                    ))}
-                                </div>
+                            <div className="space-y-6">
+                                {aiPromptSuggestions.map((category) => (
+                                    <div key={category.category}>
+                                        <Label className="font-semibold">{category.category}</Label>
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                            {category.prompts.map((prompt) => (
+                                                <Button
+                                                    key={prompt.label}
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="text-xs h-auto py-1 px-2"
+                                                    onClick={() => setAiEditPrompt(prompt.value)}
+                                                    disabled={isGeneratingAiImage || isSavingAiImage}
+                                                >
+                                                    {prompt.label}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         )}
 
@@ -1025,4 +1064,6 @@ setCurrentDescription(result.description);
 }
 
     
+    
+
     
