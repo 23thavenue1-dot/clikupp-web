@@ -53,18 +53,7 @@ import { Badge } from '@/components/ui/badge';
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic';
 
-const aiPromptSuggestions = [
-    "Donne à cette photo une ambiance 'golden hour' avec une lumière chaude et douce.",
-    "Ajoute un effet 'dreamy' avec un léger flou et une lueur douce.",
-    "Applique un grain de film et des couleurs désaturées pour un look 'film vintage'.",
-    "Ajoute des lumières néon roses et bleues pour un style 'cyberpunk'.",
-    "Incruste un 'lens flare' cinématique pour un effet plus dramatique.",
-    "Ajoute un effet de 'zoom en mouvement' (motion blur) vers le centre.",
-    "Remplace l'arrière-plan par un fond de studio uni de couleur pastel.",
-    "Ajoute un reflet de la scène sur un sol comme s'il venait de pleuvoir.",
-    "Fais en sorte que le bord droit du sujet se désintègre en particules.",
-    "Applique un léger effet 'glitch' / d'interférence sur l'image."
-];
+const aiPromptSuggestions: string[] = [];
 
 export function ImageList() {
     const { user, firebaseApp } = useFirebase();
@@ -972,23 +961,25 @@ setCurrentDescription(result.description);
                             />
                         </div>
 
-                        <div className="space-y-2">
-                            <Label>Suggestions</Label>
-                            <div className="flex flex-wrap gap-2">
-                                {aiPromptSuggestions.map((prompt, index) => (
-                                    <Button
-                                        key={index}
-                                        variant="outline"
-                                        size="sm"
-                                        className="text-xs"
-                                        onClick={() => setAiEditPrompt(prompt)}
-                                        disabled={isGeneratingAiImage || isSavingAiImage}
-                                    >
-                                        {prompt.split("'")[1] || prompt.split(" ")[2]}
-                                    </Button>
-                                ))}
+                        {aiPromptSuggestions.length > 0 && (
+                            <div className="space-y-2">
+                                <Label>Suggestions</Label>
+                                <div className="flex flex-wrap gap-2">
+                                    {aiPromptSuggestions.map((prompt, index) => (
+                                        <Button
+                                            key={index}
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-xs"
+                                            onClick={() => setAiEditPrompt(prompt)}
+                                            disabled={isGeneratingAiImage || isSavingAiImage}
+                                        >
+                                            {prompt.split("'")[1] || prompt.split(" ")[2]}
+                                        </Button>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                     </div>
                     <DialogFooter>
@@ -1033,4 +1024,5 @@ setCurrentDescription(result.description);
     );
 }
 
+    
     
