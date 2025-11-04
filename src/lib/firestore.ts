@@ -506,4 +506,33 @@ export async function removeImagesFromGallery(firestore: Firestore, userId: stri
         throw error;
     }
 }
+
+/**
+ * Ajoute plusieurs images à plusieurs galeries.
+ * @param firestore L'instance Firestore.
+ * @param userId L'ID de l'utilisateur.
+ * @param imageIds Les IDs des images à ajouter.
+ * @param galleryIds Les IDs des galeries à mettre à jour.
+ */
+export async function addMultipleImagesToGalleries(firestore: Firestore, userId: string, imageIds: string[], galleryIds: string[]): Promise<void> {
+    if (imageIds.length === 0 || galleryIds.length === 0) return;
+
+    const batch = writeBatch(firestore);
+
+    galleryIds.forEach(galleryId => {
+        const galleryDocRef = doc(firestore, 'users', userId, 'galleries', galleryId);
+        batch.update(galleryDocRef, {
+            imageIds: arrayUnion(...imageIds)
+        });
+    });
+
+    try {
+        await batch.commit();
+    } catch (error) {
+        console.error("Erreur lors de l'ajout multiple d'images aux galeries :", error);
+        // Pour une erreur de batch, il est plus complexe de déterminer le chemin exact.
+        // On peut remonter une erreur plus générique.
+        throw new Error("Impossible d'ajouter les images aux galeries.");
+    }
+}
     

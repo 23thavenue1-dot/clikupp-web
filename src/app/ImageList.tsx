@@ -7,10 +7,10 @@ import { collection, query, orderBy, doc } from 'firebase/firestore';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, toggleImageInGallery, createGallery } from '@/lib/firestore';
+import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, toggleImageInGallery, createGallery, addMultipleImagesToGalleries } from '@/lib/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Eye, CopyPlus, Ticket, PlusCircle } from 'lucide-react';
+import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Eye, CopyPlus, Ticket, PlusCircle, X, BoxSelect } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -44,6 +44,7 @@ import { generateImageDescription } from '@/ai/flows/generate-description-flow';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
+import { cn } from '@/lib/utils';
 
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic';
@@ -87,6 +88,9 @@ export function ImageList() {
     const [isSavingDescription, setIsSavingDescription] = useState(false);
     const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
     const [wasGeneratedByAI, setWasGeneratedByAI] = useState(false);
+
+    const [isSelectionMode, setIsSelectionMode] = useState(false);
+    const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
 
 
     const imagesQuery = useMemoFirebase(() => {
@@ -133,10 +137,16 @@ export function ImageList() {
         setCopiedField(null);
     };
 
-    const openAddToGalleryDialog = (image: ImageMetadata) => {
-        setImageToAddToGallery(image);
-        const containingGalleries = galleries?.filter(g => g.imageIds.includes(image.id)).map(g => g.id) || [];
-        setSelectedGalleries(new Set(containingGalleries));
+    const openAddToGalleryDialog = (image: ImageMetadata | null) => {
+        if (image) {
+            setImageToAddToGallery(image);
+            const containingGalleries = galleries?.filter(g => g.imageIds.includes(image.id)).map(g => g.id) || [];
+            setSelectedGalleries(new Set(containingGalleries));
+        } else {
+            // Mode sélection multiple, pas d'image unique
+            setImageToAddToGallery(null);
+            setSelectedGalleries(new Set()); // On part de zéro
+        }
         setNewGalleryName('');
         setShowAddToGalleryDialog(true);
     };
@@ -219,23 +229,28 @@ setCurrentDescription(result.description);
     };
 
     const handleSaveToGalleries = async () => {
-        if (!imageToAddToGallery || !user || !firestore || !galleries) return;
+        if (!user || !firestore || !galleries || selectedGalleries.size === 0) return;
         setIsSavingToGallery(true);
         
         try {
-            const promises = galleries.map(gallery => {
-                const shouldBeInGallery = selectedGalleries.has(gallery.id);
-                const isCurrentlyInGallery = gallery.imageIds.includes(imageToAddToGallery.id);
-                if (shouldBeInGallery !== isCurrentlyInGallery) {
-                    return toggleImageInGallery(firestore, user.uid, imageToAddToGallery.id, gallery.id, shouldBeInGallery);
-                }
-                return Promise.resolve();
-            });
-
-            await Promise.all(promises);
+            if (imageToAddToGallery) { // Cas image unique
+                const promises = galleries.map(gallery => {
+                    const shouldBeInGallery = selectedGalleries.has(gallery.id);
+                    const isCurrentlyInGallery = gallery.imageIds.includes(imageToAddToGallery.id);
+                    if (shouldBeInGallery !== isCurrentlyInGallery) {
+                        return toggleImageInGallery(firestore, user.uid, imageToAddToGallery.id, gallery.id, shouldBeInGallery);
+                    }
+                    return Promise.resolve();
+                });
+                await Promise.all(promises);
+            } else if (selectedImages.size > 0) { // Cas sélection multiple
+                await addMultipleImagesToGalleries(firestore, user.uid, Array.from(selectedImages), Array.from(selectedGalleries));
+            }
             
-            toast({ title: 'Galeries mises à jour', description: 'Les appartenances de l\'image aux galeries ont été mises à jour.' });
+            toast({ title: 'Galeries mises à jour', description: 'Les images ont bien été ajoutées aux galeries sélectionnées.' });
             setShowAddToGalleryDialog(false);
+            setIsSelectionMode(false);
+            setSelectedImages(new Set());
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de mettre à jour les galeries.' });
         } finally {
@@ -281,6 +296,23 @@ setCurrentDescription(result.description);
         }
     };
 
+    const handleToggleSelectionMode = () => {
+        setIsSelectionMode(!isSelectionMode);
+        setSelectedImages(new Set());
+    };
+
+    const toggleImageSelection = (imageId: string) => {
+        setSelectedImages(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(imageId)) {
+                newSet.delete(imageId);
+            } else {
+                newSet.add(imageId);
+            }
+            return newSet;
+        });
+    };
+
 
     const renderSkeleton = () => (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -299,12 +331,42 @@ setCurrentDescription(result.description);
 
     return (
         <TooltipProvider>
+            {isSelectionMode && (
+                <div className="sticky top-16 z-40 bg-background/80 backdrop-blur-sm -mx-6 mb-4 px-6 py-3 border-b flex items-center justify-between">
+                    <span className="font-semibold text-sm">{selectedImages.size} image(s) sélectionnée(s)</span>
+                    <div className="flex items-center gap-2">
+                         <Button 
+                            variant="default" 
+                            size="sm"
+                            onClick={() => openAddToGalleryDialog(null)}
+                            disabled={selectedImages.size === 0}
+                        >
+                            <CopyPlus className="mr-2 h-4 w-4"/>
+                            Ajouter à une galerie
+                        </Button>
+                        <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={handleToggleSelectionMode}
+                        >
+                           <X className="mr-2 h-4 w-4"/> Annuler
+                        </Button>
+                    </div>
+                </div>
+            )}
             <Card>
-                <CardHeader>
-                    <CardTitle>Mes images</CardTitle>
-                    <CardDescription>
-                        Voici la liste de vos images téléversées ou ajoutées par URL.
-                    </CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Mes images</CardTitle>
+                        <CardDescription>
+                            Voici la liste de vos images téléversées ou ajoutées par URL.
+                        </CardDescription>
+                    </div>
+                    {images && images.length > 0 && (
+                        <Button variant="outline" onClick={handleToggleSelectionMode} disabled={isSelectionMode}>
+                            <BoxSelect className="mr-2 h-4 w-4"/> Sélectionner
+                        </Button>
+                    )}
                 </CardHeader>
                 <CardContent>
                     {isLoading && renderSkeleton()}
@@ -320,65 +382,88 @@ setCurrentDescription(result.description);
                     {!isLoading && images && images.length > 0 && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                             {images.map(image => (
-                                <div key={image.id} className="group relative aspect-[4/5] w-full overflow-hidden rounded-lg border flex flex-col">
+                                <div 
+                                    key={image.id}
+                                    onClick={() => isSelectionMode && toggleImageSelection(image.id)}
+                                    className={cn(
+                                        "group relative aspect-[4/5] w-full overflow-hidden rounded-lg border flex flex-col transition-all",
+                                        isSelectionMode && "cursor-pointer",
+                                        selectedImages.has(image.id) && "ring-2 ring-primary ring-offset-2"
+                                    )}
+                                >
+                                    {isSelectionMode && (
+                                        <div className="absolute top-2 left-2 z-10 bg-background rounded-full p-1 border">
+                                            <div className={cn(
+                                                "w-4 h-4 rounded-sm border-2 border-primary transition-colors",
+                                                selectedImages.has(image.id) && "bg-primary"
+                                            )}>
+                                                {selectedImages.has(image.id) && <Check className="w-3.5 h-3.5 text-primary-foreground"/>}
+                                            </div>
+                                        </div>
+                                    )}
                                     <div className="relative aspect-square w-full">
                                         <Image
                                             src={image.directUrl}
                                             alt={image.originalName || 'Image téléversée'}
                                             fill
                                             sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
-                                            className="object-cover bg-muted transition-transform group-hover:scale-105"
+                                            className={cn(
+                                                "object-cover bg-muted transition-transform",
+                                                !isSelectionMode && "group-hover:scale-105"
+                                            )}
                                             unoptimized // Important pour les Data URLs et celles de Storage
                                         />
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-                                        <div className="absolute top-2 right-2 z-10 flex gap-2">
-                                            <Button
-                                                variant="secondary"
-                                                size="icon"
-                                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                onClick={() => openDetailsDialog(image)}
-                                                aria-label="Voir les détails"
-                                            >
-                                                <Eye size={16}/>
-                                            </Button>
-                                            <Button
-                                                variant="secondary"
-                                                size="icon"
-                                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                onClick={() => openEditDialog(image)}
-                                                aria-label="Modifier la description"
-                                            >
-                                                <Pencil size={16}/>
-                                            </Button>
-                                            <Button
-                                                variant="secondary"
-                                                size="icon"
-                                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                onClick={() => openAddToGalleryDialog(image)}
-                                                aria-label="Ajouter à une galerie"
-                                            >
-                                                <CopyPlus size={16}/>
-                                            </Button>
-                                            <Button
-                                                variant="secondary"
-                                                size="icon"
-                                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                onClick={() => openShareDialog(image)}
-                                                aria-label="Partager l'image"
-                                            >
-                                                <Share2 size={16}/>
-                                            </Button>
-                                            <Button
-                                                variant="destructive"
-                                                size="icon"
-                                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                onClick={() => openDeleteDialog(image)}
-                                                disabled={isDeleting === image.id}
-                                                aria-label="Supprimer l'image"
-                                            >
-                                                {isDeleting === image.id ? <Loader2 className="animate-spin" /> : <Trash2 size={16}/>}
-                                            </Button>
-                                        </div>
+                                        {!isSelectionMode && (
+                                            <div className="absolute top-2 right-2 z-10 flex gap-2">
+                                                <Button
+                                                    variant="secondary"
+                                                    size="icon"
+                                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => openDetailsDialog(image)}
+                                                    aria-label="Voir les détails"
+                                                >
+                                                    <Eye size={16}/>
+                                                </Button>
+                                                <Button
+                                                    variant="secondary"
+                                                    size="icon"
+                                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => openEditDialog(image)}
+                                                    aria-label="Modifier la description"
+                                                >
+                                                    <Pencil size={16}/>
+                                                </Button>
+                                                <Button
+                                                    variant="secondary"
+                                                    size="icon"
+                                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => openAddToGalleryDialog(image)}
+                                                    aria-label="Ajouter à une galerie"
+                                                >
+                                                    <CopyPlus size={16}/>
+                                                </Button>
+                                                <Button
+                                                    variant="secondary"
+                                                    size="icon"
+                                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => openShareDialog(image)}
+                                                    aria-label="Partager l'image"
+                                                >
+                                                    <Share2 size={16}/>
+                                                </Button>
+                                                <Button
+                                                    variant="destructive"
+                                                    size="icon"
+                                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => openDeleteDialog(image)}
+                                                    disabled={isDeleting === image.id}
+                                                    aria-label="Supprimer l'image"
+                                                >
+                                                    {isDeleting === image.id ? <Loader2 className="animate-spin" /> : <Trash2 size={16}/>}
+                                                </Button>
+                                            </div>
+                                        )}
                                         <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
                                             <p 
                                             className="text-sm font-semibold truncate"
@@ -650,7 +735,7 @@ setCurrentDescription(result.description);
                     <DialogHeader>
                         <DialogTitle>Ajouter à des galeries</DialogTitle>
                         <DialogDescription>
-                            Sélectionnez les galeries dans lesquelles vous souhaitez inclure cette image.
+                            Sélectionnez les galeries dans lesquelles vous souhaitez inclure cette image (ou ces images).
                         </DialogDescription>
                     </DialogHeader>
 
@@ -696,7 +781,7 @@ setCurrentDescription(result.description);
                     </div>
                     <DialogFooter>
                         <Button variant="secondary" onClick={() => setShowAddToGalleryDialog(false)}>Annuler</Button>
-                        <Button onClick={handleSaveToGalleries} disabled={isSavingToGallery}>
+                        <Button onClick={handleSaveToGalleries} disabled={isSavingToGallery || selectedGalleries.size === 0}>
                              {isSavingToGallery && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                             Enregistrer
                         </Button>
