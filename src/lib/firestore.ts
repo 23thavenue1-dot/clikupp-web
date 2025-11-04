@@ -20,6 +20,7 @@ import {
   query,
   where,
   getDoc,
+  arrayRemove,
 } from 'firebase/firestore';
 import { getStorage, ref, listAll, deleteObject, Storage } from 'firebase/storage';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -477,6 +478,31 @@ export async function getImagesForGallery(firestore: Firestore, userId: string, 
         return imageIds.map(id => imageMap.get(id)).filter(Boolean) as ImageMetadata[];
     } catch (error) {
         console.error("Erreur lors de la récupération des images pour la galerie :", error);
+        throw error;
+    }
+}
+
+/**
+ * Retire plusieurs images d'une galerie.
+ * @param firestore L'instance Firestore.
+ * @param userId L'ID de l'utilisateur.
+ * @param galleryId L'ID de la galerie.
+ * @param imageIds Un tableau d'IDs d'images à retirer.
+ */
+export async function removeImagesFromGallery(firestore: Firestore, userId: string, galleryId: string, imageIds: string[]): Promise<void> {
+    const galleryDocRef = doc(firestore, 'users', userId, 'galleries', galleryId);
+    try {
+        await updateDoc(galleryDocRef, {
+            imageIds: arrayRemove(...imageIds)
+        });
+    } catch (error) {
+        console.error("Erreur lors du retrait des images de la galerie :", error);
+        const permissionError = new FirestorePermissionError({
+            path: galleryDocRef.path,
+            operation: 'update',
+            requestResourceData: { imageIdsToRemove: imageIds },
+        });
+        errorEmitter.emit('permission-error', permissionError);
         throw error;
     }
 }
