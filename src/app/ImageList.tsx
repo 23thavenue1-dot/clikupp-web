@@ -1,15 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, useFirebase } from '@/firebase';
 import { collection, query, orderBy, doc } from 'firebase/firestore';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, toggleImageInGallery, createGallery, addMultipleImagesToGalleries } from '@/lib/firestore';
+import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, toggleImageInGallery, createGallery, addMultipleImagesToGalleries, saveImageMetadata } from '@/lib/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Eye, CopyPlus, Ticket, PlusCircle, X, BoxSelect, Sparkles } from 'lucide-react';
+import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Eye, CopyPlus, Ticket, PlusCircle, X, BoxSelect, Sparkles, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -45,12 +45,14 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
+import { uploadFileAndGetMetadata } from '@/lib/storage';
+import { getStorage } from 'firebase/storage';
 
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic';
 
 export function ImageList() {
-    const { user } = useUser();
+    const { user, firebaseApp } = useFirebase();
     const firestore = useFirestore();
     const { toast } = useToast();
 
@@ -98,6 +100,7 @@ export function ImageList() {
     const [aiEditPrompt, setAiEditPrompt] = useState('');
     const [isGeneratingAiImage, setIsGeneratingAiImage] = useState(false);
     const [generatedAiImageUrl, setGeneratedAiImageUrl] = useState<string | null>(null);
+    const [isSavingAiImage, setIsSavingAiImage] = useState(false);
 
 
     const imagesQuery = useMemoFirebase(() => {
@@ -365,6 +368,44 @@ setCurrentDescription(result.description);
             });
         } finally {
             setIsGeneratingAiImage(false);
+        }
+    };
+    
+    const handleSaveAiImage = async () => {
+        if (!generatedAiImageUrl || !user || !firestore || !firebaseApp) return;
+
+        setIsSavingAiImage(true);
+        try {
+            const response = await fetch(generatedAiImageUrl);
+            const blob = await response.blob();
+            const newFileName = `ai_edited_${Date.now()}.png`;
+            const imageFile = new File([blob], newFileName, { type: 'image/png' });
+
+            const storage = getStorage(firebaseApp);
+            const metadata = await uploadFileAndGetMetadata(
+                storage,
+                user,
+                imageFile,
+                `Édition IA : ${aiEditPrompt.substring(0, 30)}...`,
+                () => {} // Pas de suivi de progression pour la sauvegarde
+            );
+
+            await saveImageMetadata(firestore, user, metadata);
+
+            toast({
+                title: 'Image sauvegardée !',
+                description: 'Votre création a été ajoutée à votre galerie.',
+            });
+            setShowAiEditDialog(false); // Fermer la modale après sauvegarde
+        } catch (error) {
+             console.error("Erreur lors de la sauvegarde de l'image IA :", error);
+            toast({
+                variant: 'destructive',
+                title: 'Erreur de sauvegarde',
+                description: (error as Error).message || "Une erreur est survenue lors de l'enregistrement de l'image.",
+            });
+        } finally {
+            setIsSavingAiImage(false);
         }
     };
 
@@ -912,20 +953,36 @@ setCurrentDescription(result.description);
                                 value={aiEditPrompt}
                                 onChange={(e) => setAiEditPrompt(e.target.value)}
                                 rows={2}
-                                disabled={isGeneratingAiImage}
+                                disabled={isGeneratingAiImage || isSavingAiImage}
                             />
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="secondary" onClick={() => setShowAiEditDialog(false)} disabled={isGeneratingAiImage}>Annuler</Button>
+                        <Button variant="secondary" onClick={() => setShowAiEditDialog(false)} disabled={isGeneratingAiImage || isSavingAiImage}>Annuler</Button>
+                        <Button 
+                            onClick={handleSaveAiImage}
+                            disabled={!generatedAiImageUrl || isSavingAiImage || isGeneratingAiImage}
+                        >
+                            {isSavingAiImage ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+                                    Enregistrement...
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="mr-2"/>
+                                    Enregistrer l'image
+                                </>
+                            )}
+                        </Button>
                         <Button 
                             onClick={handleAiImageEdit} 
-                            disabled={isGeneratingAiImage || !aiEditPrompt.trim() || !hasAiTickets}
+                            disabled={isGeneratingAiImage || !aiEditPrompt.trim() || !hasAiTickets || isSavingAiImage}
                         >
                             {isGeneratingAiImage ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
-                                    Génération en cours...
+                                    Génération...
                                 </>
                             ) : (
                                 <>
