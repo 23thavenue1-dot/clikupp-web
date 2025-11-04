@@ -34,6 +34,7 @@ const suggestionCategories = [
             { title: "Peau lissée", prompt: "Lisse subtilement la peau tout en conservant sa texture naturelle." },
             { title: "Moins de cernes", prompt: "Réduis légèrement l'apparence des cernes sous les yeux." },
             { title: "Sourire éclatant", prompt: "Rends le blanc des yeux et les dents légèrement plus éclatants." },
+            { title: "Ajouter un sourire", prompt: "Modifie subtilement l'expression du visage pour ajouter un léger sourire naturel." },
             { title: "Regard net", prompt: "Accentue la netteté sur les yeux, les cils et les sourcils." },
             { title: "Couleurs ravivées", prompt: "Ravive subtilement la couleur naturelle des lèvres et des joues." },
             { title: "Effet 'Glow'", prompt: "Donne à la peau un effet 'glow' sain et lumineux." },
@@ -226,7 +227,7 @@ export default function EditImagePage() {
                         <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
                             {/* Prompt Input Area */}
                             <div className="flex flex-col space-y-3">
-                                 <h2 className="text-base font-semibold">1. Donnez votre instruction</h2>
+                                <h2 className="text-base font-semibold">1. Donnez votre instruction</h2>
                                  <Textarea
                                     placeholder="Ex: Rends le ciel plus dramatique et ajoute des éclairs..."
                                     value={prompt}
