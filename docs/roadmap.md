@@ -30,15 +30,9 @@ Maintenant que la base de l'application est stable et sécurisée, nous nous con
 ### La Vision
 L'objectif est de mettre en œuvre la vision définie dans notre document d'idées (`docs/idées.md`), à savoir transformer Clikup en un **assistant complet pour la création de contenu pour les réseaux sociaux**.
 
-### Plan de Développement et État Actuel
-Le plan technique détaillé pour cette intégration est disponible dans `docs/ia-feature-plan.md`. Il était découpé en plusieurs phases qui sont maintenant terminées :
-
-1.  **Phase 1 (Terminée) :** Génération automatique de descriptions, titres et hashtags pour les images.
-2.  **Phase 2 (Terminée) :** Édition d'images par IA en utilisant le langage naturel.
-    *   **Moteur IA Fonctionnel :** Le flow Genkit `editImageFlow` a été créé et intégré.
-    *   **Interface Complète :** Une page dédiée (`/edit/[imageId]`) permet aux utilisateurs d'entrer des instructions, de voir un aperçu "avant/après" et de sauvegarder leur création.
-    *   **Améliorations UX :** Des catégories de suggestions (y compris une catégorie saisonnière pour Noël) ont été ajoutées pour guider l'utilisateur. Le design a été affiné pour une meilleure clarté.
-    *   **Préparation à la Monétisation :** Le message d'épuisement des tickets a été rendu plus incitatif ("Plus de tickets ? Rechargez ici !").
+### État Actuel
+- **Génération de Descriptions (Terminée) :** L'IA peut générer des titres, descriptions et hashtags pour les images.
+- **Édition d'Images par IA (Terminée) :** La fonctionnalité est pleinement opérationnelle. Le flow Genkit `editImageFlow` est intégré à une page dédiée (`/edit/[imageId]`) qui permet l'édition en langage naturel, la prévisualisation et la sauvegarde des créations. Des suggestions de prompts sont également incluses pour guider l'utilisateur.
 
 ## 4. 🚀 Prochaines Étapes : Amélioration Continue et Monétisation
 

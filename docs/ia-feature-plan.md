@@ -20,29 +20,7 @@ Ce document détaille les étapes techniques pour transformer "Clikup" en un ass
 *   **Genkit**
 *   **Modèles d'édition d'image de Gemini** (`gemini-2.5-flash-image-preview`).
 
-**Implémentation Réalisée :**
-
-1.  **Création du Flow Genkit `editImageFlow` :**
-    *   **Fichier :** `src/ai/flows/edit-image-flow.ts`
-    *   **Input :** `{ imageUrl: string, prompt: string }`
-    *   **Output :** `{ newImageUrl: string }` (l'URL de la nouvelle image en data URI).
-    *   **Statut :** Le "moteur" de la fonctionnalité est en place.
-
-2.  **Création de la Page d'Édition :**
-    *   **Fichier :** `src/app/edit/[imageId]/page.tsx`
-    *   Mise en place d'une interface complète où l'utilisateur voit son image originale et le résultat généré côte à côte.
-    *   L'utilisateur peut écrire une instruction dans une zone de texte dédiée.
-    *   Après génération, l'image "avant" et "après" est affichée pour comparaison.
-    *   L'utilisateur peut sauvegarder la nouvelle version de l'image (ce qui la téléverse comme une nouvelle image dans sa galerie) et consomme un ticket IA.
-
-3.  **Ajout de Suggestions Créatives :**
-    *   **Catégories Intégrées :** Des catégories de prompts prédéfinis ("Retouches de Portrait", "Changements de Fond", "Ambiance & Style", "Effets Spéciaux") ont été ajoutées pour guider l'utilisateur.
-    *   **Catégorie Événementielle :** Une catégorie "Événements & Saisons" a été ajoutée et inaugurée avec des prompts sur le thème de Noël, rendant l'application dynamique et contextuelle.
-
-4.  **Améliorations UX :**
-    *   Le bouton de génération a été centré au-dessus des deux colonnes pour une meilleure visibilité.
-    *   Les cadres d'instruction et de suggestion ont été rendus de hauteur égale pour une meilleure cohésion visuelle.
-    *   Le message d'épuisement des tickets a été modifié en "Plus de tickets ? Rechargez ici !", préparant le terrain pour la future monétisation.
+**État :** Terminé. L'ensemble de la fonctionnalité, incluant le flow Genkit, la page d'édition, la comparaison avant/après et les suggestions, est pleinement opérationnel.
 
 ## Phase 3 : Partage Simplifié vers les Réseaux Sociaux (Long Terme)
 
