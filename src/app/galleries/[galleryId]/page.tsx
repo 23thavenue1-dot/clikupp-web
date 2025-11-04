@@ -443,9 +443,16 @@ export default function GalleryDetailPage() {
                                                 </div>
                                             )}
                                             {isPinned && !isRemoveSelectionMode && (
-                                                <div className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm rounded-full p-1.5 border-2 border-primary">
-                                                    <Pin className="w-3 h-3 text-primary"/>
-                                                </div>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm rounded-full p-1.5 border-2 border-primary">
+                                                            <Pin className="w-3 h-3 text-primary"/>
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Image épinglée</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
                                             )}
                                             <div className="relative aspect-square w-full">
                                                 <Image
@@ -737,5 +744,7 @@ export default function GalleryDetailPage() {
         </TooltipProvider>
     );
 }
+
+    
 
     
