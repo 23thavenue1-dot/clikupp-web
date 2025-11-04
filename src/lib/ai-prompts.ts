@@ -1,3 +1,4 @@
+
 'use client';
 
 export type PromptSuggestion = {
@@ -25,6 +26,7 @@ export const suggestionCategories: PromptCategory[] = [
             { title: "Personnage de jeu vidéo", prompt: "Fais de ce selfie le portrait d'un personnage de jeu vidéo fantaisie, en détourant parfaitement le sujet de son fond d'origine." },
             { title: "Double exposition", prompt: "Crée un effet de double exposition en superposant mon visage détouré avec un paysage de forêt." },
             { title: "Nature sauvage", prompt: "Détoure le sujet de la photo et remplace l'arrière-plan par un paysage de nature sauvage." },
+            { title: "Jouet Collector", prompt: "Détoure le sujet et transforme-le en jouet collector (type figurine) dans son emballage d'origine." },
         ],
     },
     {
@@ -34,7 +36,7 @@ export const suggestionCategories: PromptCategory[] = [
             { title: "Lumière douce", prompt: "Adoucis la lumière sur le visage pour un rendu plus flatteur." },
             { title: "Peau lissée", prompt: "Lisse subtilement la peau tout en conservant sa texture naturelle." },
             { title: "Moins de cernes", prompt: "Réduis légèrement l'apparence des cernes sous les yeux." },
-            { title: "Sourire éclatant", prompt: "Rends le blanc des yeux et les dents légèrement plus éclatants." },
+            { title: "Sourire naturel", prompt: "Donne un sourrir naturel" },
             { title: "Ajouter un sourire", prompt: "Modifie subtilement l'expression du visage pour ajouter un léger sourire naturel." },
             { title: "Regard net", prompt: "Accentue la netteté sur les yeux, les cils et les sourcils." },
             { title: "Couleurs ravivées", prompt: "Ravive subtilement la couleur naturelle des lèvres et des joues." },
