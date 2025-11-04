@@ -2,7 +2,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useFirebase, useDoc, useMemoFirebase, useFirestore } from '@/firebase';
+import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile } from '@/lib/firestore';
 import { useEffect, useState } from 'react';
@@ -35,6 +35,7 @@ const suggestionCategories = [
             { title: "Astronaute", prompt: "Place-moi dans l'espace, avec un casque d'astronaute et un fond de nébuleuses." },
             { title: "Cyberpunk", prompt: "Donne à ce selfie une ambiance cyberpunk avec des néons et une atmosphère de nuit pluvieuse." },
             { title: "Aventurier dans la jungle", prompt: "Transforme-moi en aventurier dans une jungle dense et mystérieuse." },
+            { title: "Nature sauvage", prompt: "Remplace l'arrière-plan par un paysage de nature sauvage." },
             { title: "Style bande dessinée", prompt: "Applique un style de bande dessinée (comic book) à ce selfie, avec des contours marqués." },
             { title: "Personnage de jeu vidéo", prompt: "Fais de ce selfie le portrait d'un personnage de jeu vidéo fantaisie." },
             { title: "Double exposition", prompt: "Crée un effet de double exposition en superposant mon visage avec un paysage de forêt." },
@@ -227,6 +228,24 @@ export default function EditImagePage() {
             
             <div className="container mx-auto">
                 <main className="py-6 space-y-6">
+                    
+                    <div className="flex flex-col items-center gap-4">
+                        <Button 
+                            size="lg"
+                            onClick={handleGenerate}
+                            disabled={!prompt || isGenerating || isSaving || !hasAiTickets}
+                            className="w-full max-w-sm"
+                        >
+                            {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5" />}
+                            {isGenerating ? 'Génération en cours...' : 'Générer avec l\'IA'}
+                        </Button>
+                        {!hasAiTickets && !isGenerating && (
+                            <p className="text-center text-xs text-primary font-semibold cursor-pointer hover:underline">
+                                Plus de tickets ? Rechargez ici !
+                            </p>
+                        )}
+                    </div>
+                    
                     {/* -- IMAGE PREVIEW PANEL -- */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center justify-items-center">
                         <div className="w-full max-w-md flex flex-col items-center gap-2">
@@ -245,22 +264,6 @@ export default function EditImagePage() {
                         </div>
                     </div>
 
-                    {/* -- GENERATE BUTTON -- */}
-                    <div className="flex flex-col items-center gap-2">
-                        <Button 
-                            size="lg"
-                            onClick={handleGenerate}
-                            disabled={!prompt || isGenerating || isSaving || !hasAiTickets}
-                        >
-                            {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5" />}
-                            {isGenerating ? 'Génération en cours...' : 'Générer avec l\'IA'}
-                        </Button>
-                        {!hasAiTickets && !isGenerating && (
-                            <p className="text-center text-xs text-destructive font-semibold cursor-pointer hover:underline">
-                                Plus de tickets ? Rechargez ici !
-                            </p>
-                        )}
-                    </div>
 
                     {/* -- CONTROLS PANEL -- */}
                     <div className="rounded-lg border bg-background/95 backdrop-blur-sm shadow-sm">
