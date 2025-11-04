@@ -251,9 +251,9 @@ export default function EditImagePage() {
                             </div>
 
                             {/* Suggestions Area */}
-                            <div className="space-y-3">
+                            <div className="flex flex-col space-y-3">
                                 <h2 className="text-base font-semibold">2. Ou inspirez-vous</h2>
-                                <ScrollArea className="h-full w-full rounded-md border p-2 bg-muted/40" style={{minHeight: '196px'}}>
+                                <ScrollArea className="flex-grow w-full rounded-md border p-2 bg-muted/40">
                                     <Accordion type="single" collapsible className="w-full">
                                         {suggestionCategories.map(category => (
                                             <AccordionItem value={category.name} key={category.name}>
@@ -279,3 +279,5 @@ export default function EditImagePage() {
         </div>
     );
 }
+
+    
