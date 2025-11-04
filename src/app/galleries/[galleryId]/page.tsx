@@ -3,7 +3,7 @@
 
 import { useUser, useFirestore } from '@/firebase';
 import { useRouter, useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { type Gallery, type ImageMetadata, getImagesForGallery, removeImagesFromGallery } from '@/lib/firestore';
 import { Loader2, ArrowLeft, Image as ImageIcon, Select, Trash2, X, Check } from 'lucide-react';
@@ -49,7 +49,7 @@ export default function GalleryDetailPage() {
         }
     }, [user, isUserLoading, router]);
 
-    const fetchGalleryData = async () => {
+    const fetchGalleryData = useCallback(async () => {
         if (!user || !firestore || !galleryId) return;
         setIsLoading(true);
         try {
@@ -76,11 +76,11 @@ export default function GalleryDetailPage() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [user, firestore, galleryId, toast, router]);
 
     useEffect(() => {
         fetchGalleryData();
-    }, [user, firestore, galleryId]);
+    }, [fetchGalleryData]);
 
     const toggleSelection = (imageId: string) => {
         setSelectedImages(prev => {
