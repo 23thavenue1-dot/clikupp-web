@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { UploadCloud, ShieldCheck, Gamepad2, Link as LinkIcon, HardDriveUpload, Ticket, Wand2, Library, Users, Code } from 'lucide-react';
+import { UploadCloud, ShieldCheck, Gamepad2, Link as LinkIcon, HardDriveUpload, Ticket, Wand2, Library, Users, Code, Bot, Briefcase } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   AlertDialog,
@@ -44,23 +44,23 @@ const features = [
 const targetUsers = [
     {
         icon: Users,
-        title: "Créateurs de Contenu",
-        description: "Gagnez un temps précieux en générant des descriptions optimisées et des hashtags pertinents pour vos réseaux sociaux."
+        title: "Pour les Créateurs & Community Managers",
+        description: "Gagnez un temps précieux. Générez des descriptions optimisées et des hashtags pertinents pour les réseaux sociaux en un clic."
+    },
+    {
+        icon: Bot,
+        title: "Pour les Amateurs & Curieux de l'IA",
+        description: "Expérimentez avec l'édition d'image par le langage. Transformez vos photos en œuvres d'art et découvrez votre potentiel créatif."
     },
     {
         icon: Code,
-        title: "Développeurs & Intégrateurs",
-        description: "Hébergez rapidement vos ressources graphiques et obtenez des liens stables pour vos projets web sans configuration complexe."
-    },
-    {
-        icon: Gamepad2,
-        title: "Amateurs & Curieux",
-        description: "Stockez vos photos, progressez grâce à notre système de succès et expérimentez avec des outils d'édition IA amusants."
+        title: "Pour les Développeurs & Intégrateurs",
+        description: "Hébergez rapidement vos ressources graphiques et obtenez des liens stables pour vos projets web, sans configuration complexe."
     },
      {
-        icon: ShieldCheck,
-        title: "Utilisateurs de Forums",
-        description: "Partagez facilement vos images sur les forums et les blogs avec des liens BBCode et HTML prêts à l'emploi."
+        icon: Briefcase,
+        title: "Pour les Professionnels & Agences",
+        description: "Utilisez Clikup comme un outil de productivité pour enrichir votre contenu visuel et présenter des créations impeccables."
     }
 ]
 
@@ -85,12 +85,9 @@ function UploaderDemo() {
             </CardHeader>
             <CardContent>
                 <Tabs defaultValue="file" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3">
+                    <TabsList className="grid w-full grid-cols-2">
                          <AlertDialogTrigger asChild>
                             <TabsTrigger value="file" className="cursor-pointer"><UploadCloud className="mr-2 h-4 w-4"/>Via Fichier</TabsTrigger>
-                         </AlertDialogTrigger>
-                         <AlertDialogTrigger asChild>
-                            <TabsTrigger value="storage" className="cursor-pointer"><HardDriveUpload className="mr-2 h-4 w-4"/>Via Storage</TabsTrigger>
                          </AlertDialogTrigger>
                          <AlertDialogTrigger asChild>
                             <TabsTrigger value="url" className="cursor-pointer"><LinkIcon className="mr-2 h-4 w-4"/>Via URL</TabsTrigger>
@@ -192,9 +189,9 @@ export function LandingPage() {
         <section className="py-20 sm:py-24">
              <div className="container mx-auto px-4">
                 <div className="text-center mb-12">
-                    <h2 className="text-3xl md:text-4xl font-bold">Conçu pour vous.</h2>
+                    <h2 className="text-3xl md:text-4xl font-bold">Conçu pour les ambitieux.</h2>
                     <p className="mt-3 max-w-xl mx-auto text-muted-foreground">
-                        Que vous soyez un créateur aguerri, un développeur, ou simplement à la recherche d'un outil fiable.
+                        Que vous soyez créateur, développeur ou professionnel, Clikup est votre allié productivité.
                     </p>
                 </div>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
