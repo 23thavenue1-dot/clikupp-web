@@ -55,6 +55,20 @@ type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic';
 
 const aiPromptSuggestions = [
   {
+    category: "Retouches de Portrait",
+    prompts: [
+      { label: "Lumière Douce", value: "Adoucis la lumière sur le visage pour un rendu plus flatteur." },
+      { label: "Peau Naturelle", value: "Lisse subtilement la peau tout en conservant sa texture naturelle." },
+      { label: "Anti-Cernes", value: "Réduis légèrement l'apparence des cernes et des poches sous les yeux." },
+      { label: "Sourire Éclatant", value: "Rends le blanc des yeux et les dents légèrement plus éclatants." },
+      { label: "Regard Intense", value: "Accentue la netteté sur les yeux, les cils et les sourcils pour intensifier le regard." },
+      { label: "Bonne Mine", value: "Ravive subtilement la couleur naturelle des lèvres et des joues." },
+      { label: "Effet 'Glow'", value: "Donne à la peau un effet 'glow' sain et lumineux." },
+      { label: "Anti-Brillance", value: "Atténue les reflets de brillance sur la peau (front, nez, menton)." },
+      { label: "Visage Structuré", value: "Accentue légèrement la définition de la mâchoire pour un visage plus structuré." },
+    ]
+  },
+  {
     category: "Changements de Fond",
     prompts: [
       { label: "Plage Tropicale", value: "Remplace l'arrière-plan par une plage de sable blanc avec des palmiers et une mer turquoise." },
