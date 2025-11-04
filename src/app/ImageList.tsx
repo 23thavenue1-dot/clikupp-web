@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, toggleImageInGallery, createGallery, addMultipleImagesToGalleries } from '@/lib/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Eye, CopyPlus, Ticket, PlusCircle, X, BoxSelect } from 'lucide-react';
+import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Eye, CopyPlus, Ticket, PlusCircle, X, BoxSelect, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -93,6 +93,11 @@ export function ImageList() {
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
 
+    // State for AI image editing
+    const [showAiEditDialog, setShowAiEditDialog] = useState(false);
+    const [imageToAiEdit, setImageToAiEdit] = useState<ImageMetadata | null>(null);
+    const [aiEditPrompt, setAiEditPrompt] = useState('');
+
 
     const imagesQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -136,6 +141,12 @@ export function ImageList() {
         setImageToShowDetails(image);
         setShowDetailsDialog(true);
         setCopiedField(null);
+    };
+    
+    const openAiEditDialog = (image: ImageMetadata) => {
+        setImageToAiEdit(image);
+        setShowAiEditDialog(true);
+        setAiEditPrompt('');
     };
 
     const openAddToGalleryDialog = (image: ImageMetadata | null) => {
@@ -420,10 +431,10 @@ setCurrentDescription(result.description);
                                                     variant="secondary"
                                                     size="icon"
                                                     className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => openDetailsDialog(image)}
-                                                    aria-label="Voir les détails"
+                                                    onClick={() => openAiEditDialog(image)}
+                                                    aria-label="Éditer avec l'IA"
                                                 >
-                                                    <Eye size={16}/>
+                                                    <Sparkles size={16}/>
                                                 </Button>
                                                 <Button
                                                     variant="secondary"
@@ -788,6 +799,53 @@ setCurrentDescription(result.description);
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <Dialog open={showAiEditDialog} onOpenChange={setShowAiEditDialog}>
+                <DialogContent className="sm:max-w-xl">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Sparkles className="text-primary"/>
+                            Édition par Intelligence Artificielle
+                        </DialogTitle>
+                        <DialogDescription>
+                            Décrivez les modifications que vous souhaitez apporter à l'image.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="relative aspect-video w-full overflow-hidden rounded-md border bg-muted">
+                            {imageToAiEdit && (
+                                <Image
+                                    src={imageToAiEdit.directUrl}
+                                    alt={imageToAiEdit.originalName || 'Image à éditer'}
+                                    fill
+                                    className="object-contain"
+                                    unoptimized
+                                />
+                            )}
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="ai-prompt">Votre instruction</Label>
+                            <Textarea 
+                                id="ai-prompt"
+                                placeholder="Ex: 'Rends le ciel plus dramatique', 'Transforme en peinture à l'huile'..."
+                                value={aiEditPrompt}
+                                onChange={(e) => setAiEditPrompt(e.target.value)}
+                                rows={2}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="secondary" onClick={() => setShowAiEditDialog(false)}>Annuler</Button>
+                        <Button disabled>
+                            <Wand2 className="mr-2"/>
+                            Générer
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
         </TooltipProvider>
     );
 }
+
+    
