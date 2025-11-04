@@ -8,7 +8,7 @@ Ce document sert de point de sauvegarde et de journal de bord pour les grandes �
 
 *   **Authentification Robuste :** Les utilisateurs peuvent s'inscrire et se connecter de manière fiable.
 *   **Upload d'Images Polyvalent :** Trois méthodes de téléversement sont disponibles et fonctionnelles (Fichier, Storage, URL).
-*   **Galerie d'Images Dynamique :** Les images téléversées s'affichent correctement et peuvent être gérées (suppression, partage).
+*   **Galerie d'Images Dynamique :** Les images téléversées s'affichent correctement et peuvent être gérées (suppression, partage, téléchargement).
 *   **Système de Tickets Opérationnel :** Le contrôle des coûts et des abus via un système de tickets quotidiens est en place et fonctionnel (décompte et recharge).
 *   **Interface Stable :** Le thème visuel est personnalisable (Clair, Nuit, Mid) et ne présente plus de bugs de blocage.
 
@@ -52,6 +52,16 @@ Le chemin vers la stabilité a été marqué par la résolution de plusieurs pro
     1.  **Correction Systématique :** Nous avons passé en revue plusieurs fichiers, notamment `dropdown-menu.tsx`, `card.tsx`, `ImageList.tsx` et `edit/[imageId]/page.tsx`, pour remplacer toutes les occurrences de l'attribut `class` par `className`.
     2.  **Correction d'Importation :** Une erreur de build a été causée par une mauvaise importation (`useFirestore` importé depuis `lib/firestore` au lieu de `@/firebase`). Elle a été corrigée dans `edit/[imageId]/page.tsx`.
 *   **Résultat :** Une base de code plus propre, sans avertissements, et conforme aux standards de React/JSX.
+
+### Implémentation de la Fonctionnalité de Téléchargement
+
+*   **Objectif :** Permettre aux utilisateurs de télécharger leurs propres images sur leur appareil.
+*   **Développement :**
+    1.  **Ajout d'un bouton de téléchargement** dans un menu d'options sur chaque image pour une interface épurée.
+    2.  **Logique adaptative :** Le comportement a été adapté pour les appareils mobiles (ouverture dans un nouvel onglet) et les ordinateurs (téléchargement direct).
+    3.  **Amélioration du nommage** des fichiers téléchargés pour plus de clarté.
+    4.  **Ajout d'un retour visuel** (icône de chargement) et d'une gestion des erreurs pour une expérience utilisateur robuste.
+*   **Résultat :** Une fonctionnalité de téléchargement complète, stable et intuitive sur toutes les plateformes.
 
 ## 3. Prochaines Étapes : L'Innovation Continue
 

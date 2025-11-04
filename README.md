@@ -17,6 +17,7 @@
     *   **Téléversement Polyvalent :** Trois méthodes d'upload sont disponibles : depuis un fichier local (rapide et sécurisé), via une URL externe ou directement sur le cloud (Firebase Storage).
     *   **Galerie Personnelle :** Toutes les images téléversées sont affichées dans une galerie privée où l'utilisateur peut les consulter et les gérer.
     *   **Organisation par Galeries (Albums) :** Les utilisateurs peuvent créer des galeries personnalisées, y ajouter des images (individuellement ou par sélection multiple) et les retirer, offrant une organisation complète de leur bibliothèque visuelle.
+    *   **Téléchargement Facile :** Chaque image peut être facilement téléchargée sur ordinateur ou téléphone, avec une expérience adaptée à chaque plateforme.
 
 *   **Système de Tickets Équitable :**
     *   Pour garantir une utilisation équitable et maîtriser les coûts, chaque utilisateur reçoit **5 tickets de téléversement** et **3 tickets IA** par jour. Ce système prévient les abus tout en offrant un accès quotidien gratuit et prévisible.
