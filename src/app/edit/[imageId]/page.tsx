@@ -231,6 +231,21 @@ export default function EditImagePage() {
                         </div>
                     </div>
 
+                    {/* -- GENERATE BUTTON -- */}
+                    <div className="flex flex-col items-center gap-2">
+                        <Button 
+                            size="lg"
+                            onClick={handleGenerate}
+                            disabled={!prompt || isGenerating || isSaving || !hasAiTickets}
+                        >
+                            {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5" />}
+                            {isGenerating ? 'Génération en cours...' : 'Générer avec l\'IA'}
+                        </Button>
+                        {!hasAiTickets && !isGenerating && (
+                            <p className="text-center text-xs text-destructive">Vous n'avez plus de tickets IA. Revenez demain !</p>
+                        )}
+                    </div>
+
                     {/* -- CONTROLS PANEL -- */}
                     <div className="rounded-lg border bg-background/95 backdrop-blur-sm shadow-sm">
                         <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
@@ -245,18 +260,6 @@ export default function EditImagePage() {
                                     disabled={isGenerating || isSaving}
                                     className="flex-grow"
                                 />
-                                <Button 
-                                    className="w-full" 
-                                    size="lg"
-                                    onClick={handleGenerate}
-                                    disabled={!prompt || isGenerating || isSaving || !hasAiTickets}
-                                >
-                                    {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5" />}
-                                    {isGenerating ? 'Génération en cours...' : 'Générer avec l\'IA'}
-                                </Button>
-                                {!hasAiTickets && !isGenerating && (
-                                   <p className="text-center text-xs text-destructive mt-1">Vous n'avez plus de tickets IA. Revenez demain !</p>
-                                )}
                             </div>
 
                             {/* Suggestions Area */}
