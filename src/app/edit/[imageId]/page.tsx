@@ -2,7 +2,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useFirebase, useDoc, useMemoFirebase, useFirestore } from '@/firebase';
+import { useFirebase, useDoc, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile } from '@/lib/firestore';
 import { useEffect, useState } from 'react';
@@ -29,6 +29,7 @@ async function dataUriToBlob(dataUri: string): Promise<Blob> {
 const suggestionCategories = [
     {
         name: "Selfie",
+        description: "Transformez vos autoportraits.",
         prompts: [
             { title: "Héros de film d'action", prompt: "Détoure le sujet de la photo et transforme-le en héros d'affiche de film d'action, avec des explosions en arrière-plan et un éclairage dramatique." },
             { title: "Portrait d'art", prompt: "Détoure le sujet et transforme ce selfie en une peinture à l'huile de style classique." },
@@ -43,6 +44,7 @@ const suggestionCategories = [
     },
     {
         name: "Retouches de Portrait",
+        description: "Améliorations subtiles du visage.",
         prompts: [
             { title: "Lumière douce", prompt: "Adoucis la lumière sur le visage pour un rendu plus flatteur." },
             { title: "Peau lissée", prompt: "Lisse subtilement la peau tout en conservant sa texture naturelle." },
@@ -58,20 +60,22 @@ const suggestionCategories = [
     },
     {
         name: "Changements de Fond",
+        description: "Transportez votre sujet ailleurs.",
         prompts: [
-            { title: "Plage", prompt: "Remplace l'arrière-plan par une plage de sable blanc et mer turquoise." },
-            { title: "Montagnes", prompt: "Change le fond pour un paysage de montagnes enneigées." },
-            { title: "Tokyo (nuit)", prompt: "Place le sujet dans une rue de Tokyo la nuit, avec des néons." },
-            { title: "Studio", prompt: "Remplace le fond par un fond de studio professionnel gris." },
-            { title: "Forêt enchantée", prompt: "Change le fond pour une forêt mystérieuse et enchantée." },
-            { title: "Champ de lavande", prompt: "Remplace le fond par un champ de lavande au coucher du soleil." },
-            { title: "Aquarelle", prompt: "Change l'arrière-plan pour un fond abstrait peint à l'aquarelle." },
-            { title: "Espace", prompt: "Place le sujet dans l'espace, avec des étoiles et des nébuleuses." },
-            { title: "Post-apocalyptique", prompt: "Remplace le fond par un paysage urbain post-apocalyptique." },
+            { title: "Plage", prompt: "Détoure le sujet et remplace l'arrière-plan par une plage de sable blanc et mer turquoise." },
+            { title: "Montagnes", prompt: "Détoure le sujet et change le fond pour un paysage de montagnes enneigées." },
+            { title: "Tokyo (nuit)", prompt: "Détoure le sujet et place-le dans une rue de Tokyo la nuit, avec des néons." },
+            { title: "Studio", prompt: "Détoure le sujet et remplace le fond par un fond de studio professionnel gris." },
+            { title: "Forêt enchantée", prompt: "Détoure le sujet et change le fond pour une forêt mystérieuse et enchantée." },
+            { title: "Champ de lavande", prompt: "Détoure le sujet et remplace le fond par un champ de lavande au coucher du soleil." },
+            { title: "Aquarelle", prompt: "Détoure le sujet et change l'arrière-plan pour un fond abstrait peint à l'aquarelle." },
+            { title: "Espace", prompt: "Détoure le sujet et place-le dans l'espace, avec des étoiles et des nébuleuses." },
+            { title: "Post-apocalyptique", prompt: "Détoure le sujet et remplace le fond par un paysage urbain post-apocalyptique." },
         ]
     },
     {
         name: "Ambiance & Style",
+        description: "Changez l'atmosphère de l'image.",
         prompts: [
             { title: "Cinématographique", prompt: "Donne à l'image un look cinématographique avec des couleurs intenses." },
             { title: "Noir & Blanc", prompt: "Rends l'image en noir et blanc avec un fort contraste." },
@@ -81,6 +85,7 @@ const suggestionCategories = [
     },
     {
         name: "Effets Spéciaux & Créatifs",
+        description: "Pour des résultats originaux.",
         prompts: [
             { title: "Rayons de soleil", prompt: "Ajoute des rayons de soleil qui traversent l'image." },
             { title: "Effet de pluie", prompt: "Ajoute un effet de pluie et des reflets sur le sol." },
@@ -91,6 +96,7 @@ const suggestionCategories = [
     },
     {
         name: "Événements & Saisons",
+        description: "Adaptez vos images aux occasions.",
         prompts: [
             { title: "Ambiance Noël", prompt: "Transforme l'éclairage en une ambiance de Noël chaleureuse avec des tons dorés et rouges." },
             { title: "Neige", prompt: "Ajoute de la neige qui tombe doucement sur toute l'image." },
@@ -288,7 +294,12 @@ export default function EditImagePage() {
                                     <Accordion type="single" collapsible className="w-full">
                                         {suggestionCategories.map(category => (
                                             <AccordionItem value={category.name} key={category.name}>
-                                                <AccordionTrigger className="text-sm py-2">{category.name}</AccordionTrigger>
+                                                <AccordionTrigger className="text-sm py-2 hover:no-underline">
+                                                    <div className="flex flex-col text-left">
+                                                        <span className="font-semibold">{category.name}</span>
+                                                        <span className="text-xs text-muted-foreground font-normal">{category.description}</span>
+                                                    </div>
+                                                </AccordionTrigger>
                                                 <AccordionContent>
                                                     <div className="flex flex-wrap gap-2 pt-2">
                                                         {category.prompts.map(p => (
