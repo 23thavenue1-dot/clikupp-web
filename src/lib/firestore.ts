@@ -44,6 +44,7 @@ export interface UserProfile {
   level: number;
   xp: number;
   unlockedAchievements: string[];
+  pinnedImageIds?: string[];
   initialPhotoURL: string | null;
   profilePictureUpdateCount: number;
 }
@@ -506,6 +507,31 @@ export async function toggleImagePinInGallery(firestore: Firestore, userId: stri
         console.error(`Erreur lors de ${pin ? "l'épinglage" : "du désépinglage"} de l'image:`, error);
         const permissionError = new FirestorePermissionError({
             path: galleryDocRef.path,
+            operation: 'update',
+            requestResourceData: { imageIdToToggle: imageId },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        throw error;
+    }
+}
+
+/**
+ * Épingle ou désépingle une image globalement pour un utilisateur.
+ * @param firestore L'instance Firestore.
+ * @param userId L'ID de l'utilisateur.
+ * @param imageId L'ID de l'image.
+ * @param pin `true` pour épingler, `false` pour désépingler.
+ */
+export async function toggleGlobalImagePin(firestore: Firestore, userId: string, imageId: string, pin: boolean): Promise<void> {
+    const userDocRef = doc(firestore, 'users', userId);
+    try {
+        await updateDoc(userDocRef, {
+            pinnedImageIds: pin ? arrayUnion(imageId) : arrayRemove(imageId)
+        });
+    } catch (error) {
+        console.error(`Erreur lors de ${pin ? "l'épinglage" : "du désépinglage"} de l'image globale:`, error);
+        const permissionError = new FirestorePermissionError({
+            path: userDocRef.path,
             operation: 'update',
             requestResourceData: { imageIdToToggle: imageId },
         });

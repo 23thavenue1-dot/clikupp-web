@@ -8,10 +8,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, createGallery, addMultipleImagesToGalleries } from '@/lib/firestore';
+import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, createGallery, addMultipleImagesToGalleries, toggleGlobalImagePin } from '@/lib/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, CopyPlus, Ticket, PlusCircle, X, BoxSelect, Sparkles, Save, Download, MoreHorizontal } from 'lucide-react';
+import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, CopyPlus, Ticket, PlusCircle, X, BoxSelect, Sparkles, Save, Download, MoreHorizontal, PinOff, Pin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -67,7 +67,7 @@ export function ImageList() {
         if (!user || !firestore) return null;
         return doc(firestore, `users/${user.uid}`);
     }, [user, firestore]);
-    const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+    const { data: userProfile, refetch: refetchUserProfile } = useDoc<UserProfile>(userDocRef);
 
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [isDownloading, setIsDownloading] = useState<string | null>(null);
@@ -109,6 +109,18 @@ export function ImageList() {
     }, [user, firestore]);
     const { data: galleries } = useCollection<Gallery>(galleriesQuery);
     
+    const sortedImages = useMemo(() => {
+        if (!images) return [];
+        const pinnedIds = new Set(userProfile?.pinnedImageIds || []);
+        return [...images].sort((a, b) => {
+            const aIsPinned = pinnedIds.has(a.id);
+            const bIsPinned = pinnedIds.has(b.id);
+            if (aIsPinned && !bIsPinned) return -1;
+            if (!aIsPinned && bIsPinned) return 1;
+            return 0; // Conserver l'ordre original (par date) sinon
+        });
+    }, [images, userProfile]);
+
     useEffect(() => {
         if (imageToEdit) {
             setCurrentTitle(imageToEdit.title || '');
@@ -341,6 +353,22 @@ export function ImageList() {
         });
     };
 
+    const handleToggleGlobalPin = async (image: ImageMetadata) => {
+        if (!user || !firestore || !userProfile) return;
+
+        const isCurrentlyPinned = userProfile.pinnedImageIds?.includes(image.id) ?? false;
+        
+        try {
+            await toggleGlobalImagePin(firestore, user.uid, image.id, !isCurrentlyPinned);
+            toast({
+                title: isCurrentlyPinned ? 'Image désépinglée' : 'Image épinglée globalement',
+            });
+            refetchUserProfile();
+        } catch (error) {
+             toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de modifier l'épingle." });
+        }
+    };
+
 
     const renderSkeleton = () => (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -399,7 +427,7 @@ export function ImageList() {
                 <CardContent>
                     {isLoading && renderSkeleton()}
 
-                    {!isLoading && (!images || images.length === 0) && (
+                    {!isLoading && (!sortedImages || sortedImages.length === 0) && (
                         <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
                             <ImageIcon className="h-12 w-12 mb-4" />
                             <p className="font-medium">Aucune image pour le moment.</p>
@@ -407,9 +435,11 @@ export function ImageList() {
                         </div>
                     )}
                     
-                    {!isLoading && images && images.length > 0 && (
+                    {!isLoading && sortedImages && sortedImages.length > 0 && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                            {images.map(image => (
+                            {sortedImages.map(image => {
+                                const isPinned = userProfile?.pinnedImageIds?.includes(image.id) ?? false;
+                                return (
                                 <div 
                                     key={image.id}
                                     onClick={() => isSelectionMode && toggleImageSelection(image.id)}
@@ -419,7 +449,7 @@ export function ImageList() {
                                         selectedImages.has(image.id) && "ring-2 ring-primary ring-offset-2"
                                     )}
                                 >
-                                    {isSelectionMode && (
+                                    {isSelectionMode ? (
                                         <div className="absolute top-2 left-2 z-10 bg-background rounded-full p-1 border">
                                             <div className={cn(
                                                 "w-4 h-4 rounded-sm border-2 border-primary transition-colors",
@@ -428,6 +458,19 @@ export function ImageList() {
                                                 {selectedImages.has(image.id) && <Check className="w-3.5 h-3.5 text-primary-foreground"/>}
                                             </div>
                                         </div>
+                                    ) : (
+                                        isPinned && (
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm rounded-full p-1.5 border-2 border-primary">
+                                                        <Pin className="w-3 h-3 text-primary"/>
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Épinglée globalement</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        )
                                     )}
                                     <div className="relative aspect-square w-full">
                                         <Image
@@ -455,6 +498,11 @@ export function ImageList() {
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem onClick={() => handleToggleGlobalPin(image)}>
+                                                            {isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
+                                                            <span>{isPinned ? 'Désépingler' : 'Épingler'}</span>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
                                                         <DropdownMenuItem asChild>
                                                             <Link href={`/edit/${image.id}`}>
                                                                 <Sparkles className="mr-2 h-4 w-4" />
@@ -512,7 +560,7 @@ export function ImageList() {
                                         </p>
                                     </div>
                                 </div>
-                            ))}
+                            )})}
                         </div>
                     )}
                 </CardContent>
