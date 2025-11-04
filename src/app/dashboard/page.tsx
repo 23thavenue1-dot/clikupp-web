@@ -156,7 +156,7 @@ export default function DashboardPage() {
   const stats = [
     {
       title: 'Images téléversées',
-      value: isImagesLoading ? <Skeleton class="h-6 w-10"/> : (userImages?.length ?? 0).toString(),
+      value: isImagesLoading ? <Skeleton className="h-6 w-10"/> : (userImages?.length ?? 0).toString(),
       icon: Camera,
       description: 'Le nombre total de vos images sur la plateforme.',
     },
@@ -183,19 +183,19 @@ export default function DashboardPage() {
 
   if (isUserLoading || isProfileLoading) {
       return (
-        <div class="flex items-center justify-center min-h-screen">
-          <Loader2 class="h-8 w-8 animate-spin text-primary" />
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       );
   }
 
   return (
     <TooltipProvider>
-      <div class="container mx-auto p-4 sm:p-6 lg:p-8">
-        <div class="w-full max-w-4xl mx-auto space-y-8">
+      <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+        <div className="w-full max-w-4xl mx-auto space-y-8">
           <header>
-            <h1 class="text-3xl font-bold tracking-tight">Tableau de Bord</h1>
-            <p class="text-muted-foreground mt-1">Vos statistiques, succès et progression sur Clikup.</p>
+            <h1 className="text-3xl font-bold tracking-tight">Tableau de Bord</h1>
+            <p className="text-muted-foreground mt-1">Vos statistiques, succès et progression sur Clikup.</p>
           </header>
 
           <Card>
@@ -203,13 +203,13 @@ export default function DashboardPage() {
                   <CardTitle>Progression & Niveau</CardTitle>
                   <CardDescription>Gagnez de l'expérience en débloquant des succès pour monter en niveau.</CardDescription>
               </CardHeader>
-              <CardContent class="space-y-4">
-                  <div class="flex justify-between items-center mb-2">
-                      <p class="font-semibold">Niveau {currentLevel}</p>
-                      <p class="text-sm text-muted-foreground">Prochain niveau : {XP_PER_LEVEL} XP</p>
+              <CardContent className="space-y-4">
+                  <div className="flex justify-between items-center mb-2">
+                      <p className="font-semibold">Niveau {currentLevel}</p>
+                      <p className="text-sm text-muted-foreground">Prochain niveau : {XP_PER_LEVEL} XP</p>
                   </div>
                   <Progress value={progressPercentage} />
-                  <p class="text-center text-sm text-muted-foreground">Votre progression : {currentXp} / {XP_PER_LEVEL} XP</p>
+                  <p className="text-center text-sm text-muted-foreground">Votre progression : {currentXp} / {XP_PER_LEVEL} XP</p>
               </CardContent>
           </Card>
 
@@ -219,16 +219,16 @@ export default function DashboardPage() {
               <CardDescription>Un aperçu de votre activité sur la plateforme.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {stats.map((stat) => (
-                  <div key={stat.title} class="p-4 border rounded-lg flex items-start gap-4 bg-muted/20">
-                    <div class="bg-primary/10 text-primary p-3 rounded-md">
-                      <stat.icon class="h-6 w-6" />
+                  <div key={stat.title} className="p-4 border rounded-lg flex items-start gap-4 bg-muted/20">
+                    <div className="bg-primary/10 text-primary p-3 rounded-md">
+                      <stat.icon className="h-6 w-6" />
                     </div>
                     <div>
-                      <p class="text-sm text-muted-foreground">{stat.title}</p>
-                      <div class="text-2xl font-bold">{stat.value}</div>
-                      <p class="text-xs text-muted-foreground mt-1">{stat.description}</p>
+                      <p className="text-sm text-muted-foreground">{stat.title}</p>
+                      <div className="text-2xl font-bold">{stat.value}</div>
+                      <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
                     </div>
                   </div>
                 ))}
@@ -242,34 +242,34 @@ export default function DashboardPage() {
               <CardDescription>Collectionnez des badges uniques en montant de niveau.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div class="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-4">
+              <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-4">
                 {badges.map((badge) => {
                   const unlocked = currentLevel >= badge.level;
                   return (
                     <Tooltip key={badge.title}>
                       <TooltipTrigger asChild>
                         <div
-                          class={`relative aspect-square p-2 border rounded-lg flex flex-col items-center justify-center text-center transition-opacity ${!unlocked ? 'opacity-50' : 'bg-primary/5 border-primary/20'}`}
+                          className={`relative aspect-square p-2 border rounded-lg flex flex-col items-center justify-center text-center transition-opacity ${!unlocked ? 'opacity-50' : 'bg-primary/5 border-primary/20'}`}
                         >
                           {unlocked && (
-                              <div class="absolute top-1 right-1 bg-green-500 rounded-full p-0.5">
-                                  <Check class="h-3 w-3 text-white" />
+                              <div className="absolute top-1 right-1 bg-green-500 rounded-full p-0.5">
+                                  <Check className="h-3 w-3 text-white" />
                               </div>
                           )}
-                          <div class={`p-2 rounded-full mb-1 ${unlocked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                            <badge.icon class="h-6 w-6" />
+                          <div className={`p-2 rounded-full mb-1 ${unlocked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                            <badge.icon className="h-6 w-6" />
                           </div>
-                          <p class="text-[10px] font-semibold truncate max-w-full">{badge.title}</p>
+                          <p className="text-[10px] font-semibold truncate max-w-full">{badge.title}</p>
                         </div>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p class="font-semibold">{badge.title}</p>
+                        <p className="font-semibold">{badge.title}</p>
                         {unlocked ? (
-                          <p class="text-sm text-green-600 dark:text-green-400 italic">{badge.motivation}</p>
+                          <p className="text-sm text-green-600 dark:text-green-400 italic">{badge.motivation}</p>
                         ) : (
-                          <p class="text-sm text-muted-foreground">Atteindre le niveau {badge.level}.</p>
+                          <p className="text-sm text-muted-foreground">Atteindre le niveau {badge.level}.</p>
                         )}
-                        {!unlocked && <p class="text-xs font-bold text-center mt-1">(Verrouillé)</p>}
+                        {!unlocked && <p className="text-xs font-bold text-center mt-1">(Verrouillé)</p>}
                       </TooltipContent>
                     </Tooltip>
                   )
@@ -284,7 +284,7 @@ export default function DashboardPage() {
               <CardDescription>Débloquez des succès pour gagner {XP_PER_ACHIEVEMENT} XP chacun.</CardDescription>
             </CardHeader>
             <CardContent>
-               <div class="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-4">
+               <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-4">
                 {unlockedAchievements.map((achievement) => {
                     const progress = !achievement.unlocked && achievement.getProgress && userProfile && userImages && userNotes && user
                     // @ts-ignore
@@ -295,28 +295,28 @@ export default function DashboardPage() {
                         <Tooltip key={achievement.title}>
                             <TooltipTrigger asChild>
                                <div
-                                class={`relative aspect-square p-2 border rounded-lg flex flex-col items-center justify-center text-center transition-all duration-300 ${!achievement.unlocked ? 'opacity-60' : 'bg-primary/5 border-primary/20'}`}
+                                className={`relative aspect-square p-2 border rounded-lg flex flex-col items-center justify-center text-center transition-all duration-300 ${!achievement.unlocked ? 'opacity-60' : 'bg-primary/5 border-primary/20'}`}
                                >
-                                <div class={`p-2 rounded-full mb-1 transition-colors ${achievement.unlocked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                                    <achievement.icon class="h-6 w-6" />
+                                <div className={`p-2 rounded-full mb-1 transition-colors ${achievement.unlocked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                                    <achievement.icon className="h-6 w-6" />
                                 </div>
-                                <p class="text-[10px] font-semibold truncate max-w-full">{achievement.title}</p>
+                                <p className="text-[10px] font-semibold truncate max-w-full">{achievement.title}</p>
                                 {achievement.unlocked && (
-                                    <div class="absolute top-1 right-1 bg-green-500 rounded-full p-0.5">
-                                        <Check class="h-3 w-3 text-white" />
+                                    <div className="absolute top-1 right-1 bg-green-500 rounded-full p-0.5">
+                                        <Check className="h-3 w-3 text-white" />
                                     </div>
                                 )}
                                </div>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p class="font-semibold">{achievement.title}</p>
-                                <p class="text-sm text-muted-foreground">{achievement.description}</p>
+                                <p className="font-semibold">{achievement.title}</p>
+                                <p className="text-sm text-muted-foreground">{achievement.description}</p>
                                 {progress && progress.target > 1 && (
-                                    <p class="text-sm text-muted-foreground mt-1">
+                                    <p className="text-sm text-muted-foreground mt-1">
                                         Progression : {Math.min(progress.current, progress.target)} / {progress.target}
                                     </p>
                                 )}
-                                {!achievement.unlocked && <p class="text-xs font-bold text-center mt-1">(Verrouillé)</p>}
+                                {!achievement.unlocked && <p className="text-xs font-bold text-center mt-1">(Verrouillé)</p>}
                             </TooltipContent>
                         </Tooltip>
                     )
@@ -330,5 +330,3 @@ export default function DashboardPage() {
     </TooltipProvider>
   );
 }
-
-    
