@@ -186,7 +186,7 @@ export function ImageList() {
             toast({
                 variant: 'destructive',
                 title: 'Tickets IA épuisés',
-                description: 'Revenez demain pour obtenir plus de tickets IA !',
+                description: 'Plus de tickets ? Achetez-en plus !',
             });
             return;
         }
@@ -319,12 +319,12 @@ setCurrentDescription(result.description);
 
 
     const renderSkeleton = () => (
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {[...Array(3)].map((_, i) => (
-                <div key={i} class="space-y-2">
-                    <Skeleton class="aspect-square w-full rounded-lg" />
-                    <Skeleton class="h-4 w-3/4" />
-                    <Skeleton class="h-3 w-1/2" />
+                <div key={i} className="space-y-2">
+                    <Skeleton className="aspect-square w-full rounded-lg" />
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
                 </div>
             ))}
         </div>
@@ -336,16 +336,16 @@ setCurrentDescription(result.description);
     return (
         <TooltipProvider>
             {isSelectionMode && (
-                <div class="sticky top-16 z-40 bg-background/80 backdrop-blur-sm -mx-6 mb-4 px-6 py-3 border-b flex items-center justify-between">
-                    <span class="font-semibold text-sm">{selectedImages.size} image(s) sélectionnée(s)</span>
-                    <div class="flex items-center gap-2">
+                <div className="sticky top-16 z-40 bg-background/80 backdrop-blur-sm -mx-6 mb-4 px-6 py-3 border-b flex items-center justify-between">
+                    <span className="font-semibold text-sm">{selectedImages.size} image(s) sélectionnée(s)</span>
+                    <div className="flex items-center gap-2">
                          <Button 
                             variant="default" 
                             size="sm"
                             onClick={() => openAddToGalleryDialog(null)}
                             disabled={selectedImages.size === 0}
                         >
-                            <CopyPlus class="mr-2 h-4 w-4"/>
+                            <CopyPlus className="mr-2 h-4 w-4"/>
                             Ajouter à une galerie
                         </Button>
                         <Button 
@@ -353,13 +353,13 @@ setCurrentDescription(result.description);
                             size="sm"
                             onClick={handleToggleSelectionMode}
                         >
-                           <X class="mr-2 h-4 w-4"/> Annuler
+                           <X className="mr-2 h-4 w-4"/> Annuler
                         </Button>
                     </div>
                 </div>
             )}
             <Card>
-                <CardHeader class="flex flex-row items-center justify-between">
+                <CardHeader className="flex flex-row items-center justify-between">
                     <div>
                         <CardTitle>Mes images</CardTitle>
                         <CardDescription>
@@ -368,7 +368,7 @@ setCurrentDescription(result.description);
                     </div>
                     {images && images.length > 0 && (
                         <Button variant="outline" onClick={handleToggleSelectionMode} disabled={isSelectionMode}>
-                            <BoxSelect class="mr-2 h-4 w-4"/> Sélectionner
+                            <BoxSelect className="mr-2 h-4 w-4"/> Sélectionner
                         </Button>
                     )}
                 </CardHeader>
@@ -376,54 +376,54 @@ setCurrentDescription(result.description);
                     {isLoading && renderSkeleton()}
 
                     {!isLoading && (!images || images.length === 0) && (
-                        <div class="flex flex-col items-center justify-center text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
-                            <ImageIcon class="h-12 w-12 mb-4" />
-                            <p class="font-medium">Aucune image pour le moment.</p>
-                            <p class="text-sm">Utilisez le module ci-dessus pour en ajouter une.</p>
+                        <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
+                            <ImageIcon className="h-12 w-12 mb-4" />
+                            <p className="font-medium">Aucune image pour le moment.</p>
+                            <p className="text-sm">Utilisez le module ci-dessus pour en ajouter une.</p>
                         </div>
                     )}
                     
                     {!isLoading && images && images.length > 0 && (
-                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                             {images.map(image => (
                                 <div 
                                     key={image.id}
                                     onClick={() => isSelectionMode && toggleImageSelection(image.id)}
-                                    class={cn(
+                                    className={cn(
                                         "group relative aspect-[4/5] w-full overflow-hidden rounded-lg border flex flex-col transition-all",
                                         isSelectionMode && "cursor-pointer",
                                         selectedImages.has(image.id) && "ring-2 ring-primary ring-offset-2"
                                     )}
                                 >
                                     {isSelectionMode && (
-                                        <div class="absolute top-2 left-2 z-10 bg-background rounded-full p-1 border">
-                                            <div class={cn(
+                                        <div className="absolute top-2 left-2 z-10 bg-background rounded-full p-1 border">
+                                            <div className={cn(
                                                 "w-4 h-4 rounded-sm border-2 border-primary transition-colors",
                                                 selectedImages.has(image.id) && "bg-primary"
                                             )}>
-                                                {selectedImages.has(image.id) && <Check class="w-3.5 h-3.5 text-primary-foreground"/>}
+                                                {selectedImages.has(image.id) && <Check className="w-3.5 h-3.5 text-primary-foreground"/>}
                                             </div>
                                         </div>
                                     )}
-                                    <div class="relative aspect-square w-full">
+                                    <div className="relative aspect-square w-full">
                                         <Image
                                             src={image.directUrl}
                                             alt={image.originalName || 'Image téléversée'}
                                             fill
                                             sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
-                                            class={cn(
+                                            className={cn(
                                                 "object-cover bg-muted transition-transform",
                                                 !isSelectionMode && "group-hover:scale-105"
                                             )}
                                             unoptimized // Important pour les Data URLs et celles de Storage
                                         />
-                                        <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
                                         {!isSelectionMode && (
-                                            <div class="absolute top-2 right-2 z-10 flex gap-2">
+                                            <div className="absolute top-2 right-2 z-10 flex gap-2">
                                                 <Button
                                                     variant="secondary"
                                                     size="icon"
-                                                    class="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                                                     asChild
                                                     aria-label="Éditer avec l'IA"
                                                 >
@@ -434,7 +434,7 @@ setCurrentDescription(result.description);
                                                 <Button
                                                     variant="secondary"
                                                     size="icon"
-                                                    class="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                                                     onClick={() => openEditDialog(image)}
                                                     aria-label="Modifier la description"
                                                 >
@@ -443,7 +443,7 @@ setCurrentDescription(result.description);
                                                 <Button
                                                     variant="secondary"
                                                     size="icon"
-                                                    class="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                                                     onClick={() => openAddToGalleryDialog(image)}
                                                     aria-label="Ajouter à une galerie"
                                                 >
@@ -452,7 +452,7 @@ setCurrentDescription(result.description);
                                                 <Button
                                                     variant="secondary"
                                                     size="icon"
-                                                    class="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                                                     onClick={() => openShareDialog(image)}
                                                     aria-label="Partager l'image"
                                                 >
@@ -461,34 +461,34 @@ setCurrentDescription(result.description);
                                                 <Button
                                                     variant="destructive"
                                                     size="icon"
-                                                    class="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                                                     onClick={() => openDeleteDialog(image)}
                                                     disabled={isDeleting === image.id}
                                                     aria-label="Supprimer l'image"
                                                 >
-                                                    {isDeleting === image.id ? <Loader2 class="animate-spin" /> : <Trash2 size={16}/>}
+                                                    {isDeleting === image.id ? <Loader2 className="animate-spin" /> : <Trash2 size={16}/>}
                                                 </Button>
                                             </div>
                                         )}
-                                        <div class="absolute bottom-0 left-0 right-0 p-3 text-white">
+                                        <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
                                             <p 
-                                            class="text-sm font-semibold truncate"
+                                            className="text-sm font-semibold truncate"
                                             title={image.originalName}
                                             >
                                                 {image.originalName || 'Image depuis URL'}
                                             </p>
                                             {image.uploadTimestamp && (
-                                                <p class="text-xs opacity-80">
+                                                <p className="text-xs opacity-80">
                                                     {formatDistanceToNow(image.uploadTimestamp.toDate(), { addSuffix: true, locale: fr })}
                                                 </p>
                                             )}
                                         </div>
                                     </div>
-                                    <div class="p-3 bg-card flex-grow flex flex-col gap-1">
+                                    <div className="p-3 bg-card flex-grow flex flex-col gap-1">
                                         {image.title && (
-                                            <p class="font-semibold text-sm line-clamp-2">{image.title}</p>
+                                            <p className="font-semibold text-sm line-clamp-2">{image.title}</p>
                                         )}
-                                        <p class="text-xs text-muted-foreground italic line-clamp-2">
+                                        <p className="text-xs text-muted-foreground italic line-clamp-2">
                                             {image.description || (image.title ? '' : 'Aucune description.')}
                                         </p>
                                     </div>
@@ -509,7 +509,7 @@ setCurrentDescription(result.description);
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                     <AlertDialogCancel>Annuler</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteImage} class="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
+                    <AlertDialogAction onClick={handleDeleteImage} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -522,31 +522,31 @@ setCurrentDescription(result.description);
                         Copiez l'un des liens ci-dessous pour partager votre image.
                     </DialogDescription>
                     </DialogHeader>
-                    <div class="space-y-4 pt-2">
-                        <div class="space-y-2">
+                    <div className="space-y-4 pt-2">
+                        <div className="space-y-2">
                             <Label htmlFor="directLink">Lien direct (URL)</Label>
-                            <div class="flex items-center gap-2">
-                                <Input id="directLink" readOnly value={imageToShare?.directUrl || ''} class="bg-muted text-xs truncate"/>
+                            <div className="flex items-center gap-2">
+                                <Input id="directLink" readOnly value={imageToShare?.directUrl || ''} className="bg-muted text-xs truncate"/>
                                 <Button variant="ghost" size="icon" onClick={() => copyToClipboard(imageToShare?.directUrl || '', 'direct', 'Lien copié !')}>
-                                    {copiedField === 'direct' ? <Check class="text-green-500"/> : <Copy />}
+                                    {copiedField === 'direct' ? <Check className="text-green-500"/> : <Copy />}
                                 </Button>
                             </div>
                         </div>
-                         <div class="space-y-2">
+                         <div className="space-y-2">
                             <Label htmlFor="bbCodeLink">Pour forum (BBCode)</Label>
-                            <div class="flex items-center gap-2">
-                                <Input id="bbCodeLink" readOnly value={imageToShare?.bbCode || ''} class="bg-muted text-xs truncate"/>
+                            <div className="flex items-center gap-2">
+                                <Input id="bbCodeLink" readOnly value={imageToShare?.bbCode || ''} className="bg-muted text-xs truncate"/>
                                 <Button variant="ghost" size="icon" onClick={() => copyToClipboard(imageToShare?.bbCode || '', 'bbcode', 'BBCode copié !')}>
-                                    {copiedField === 'bbcode' ? <Check class="text-green-500"/> : <Copy />}
+                                    {copiedField === 'bbcode' ? <Check className="text-green-500"/> : <Copy />}
                                 </Button>
                             </div>
                         </div>
-                         <div class="space-y-2">
+                         <div className="space-y-2">
                             <Label htmlFor="htmlLink">Pour site web (HTML)</Label>
-                            <div class="flex items-center gap-2">
-                                <Input id="htmlLink" readOnly value={imageToShare?.htmlCode || ''} class="bg-muted text-xs truncate"/>
+                            <div className="flex items-center gap-2">
+                                <Input id="htmlLink" readOnly value={imageToShare?.htmlCode || ''} className="bg-muted text-xs truncate"/>
                                 <Button variant="ghost" size="icon" onClick={() => copyToClipboard(imageToShare?.htmlCode || '', 'html', 'Code HTML copié !')}>
-                                    {copiedField === 'html' ? <Check class="text-green-500"/> : <Copy />}
+                                    {copiedField === 'html' ? <Check className="text-green-500"/> : <Copy />}
                                 </Button>
                             </div>
                         </div>
@@ -555,16 +555,16 @@ setCurrentDescription(result.description);
             </Dialog>
 
             <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-                <DialogContent class="sm:max-w-md">
+                <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                     <DialogTitle>Modifier et Générer</DialogTitle>
                     <DialogDescription>
                         Laissez l'IA générer un contenu optimisé pour vos réseaux sociaux.
                     </DialogDescription>
                     </DialogHeader>
-                    <div class="space-y-4 py-4">
+                    <div className="space-y-4 py-4">
                         
-                        <div class="space-y-2">
+                        <div className="space-y-2">
                             <Label htmlFor="title">Titre (généré par IA)</Label>
                             <Input 
                                 id="title"
@@ -575,7 +575,7 @@ setCurrentDescription(result.description);
                             />
                         </div>
                         
-                        <div class="space-y-2">
+                        <div className="space-y-2">
                             <Label htmlFor="description">Description</Label>
                             <Textarea 
                                 id="description"
@@ -587,7 +587,7 @@ setCurrentDescription(result.description);
                             />
                         </div>
                         
-                        <div class="space-y-2">
+                        <div className="space-y-2">
                             <Label htmlFor="hashtags">Hashtags (générés par IA)</Label>
                             <Textarea 
                                 id="hashtags"
@@ -601,11 +601,11 @@ setCurrentDescription(result.description);
 
                         <Separator />
 
-                        <div class="space-y-2">
-                             <div class="flex items-center justify-between">
+                        <div className="space-y-2">
+                             <div className="flex items-center justify-between">
                                 <Label>Génération par IA</Label>
-                                <div class="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                                    <Ticket class="h-4 w-4" />
+                                <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                                    <Ticket className="h-4 w-4" />
                                     <span>{userProfile?.aiTicketCount ?? 0} restants</span>
                                 </div>
                             </div>
@@ -615,13 +615,13 @@ setCurrentDescription(result.description);
                                         <DropdownMenuTrigger asChild disabled={isGeneratingDescription || isSavingDescription || !hasAiTickets}>
                                             <Button 
                                                 variant="outline" 
-                                                class="w-full"
+                                                className="w-full"
                                                 aria-label="Générer avec l'IA"
                                             >
                                                 {isGeneratingDescription ? (
-                                                    <Loader2 class="mr-2 h-4 w-4 animate-spin"/>
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
                                                 ) : (
-                                                    <Wand2 class="mr-2 h-4 w-4"/>
+                                                    <Wand2 className="mr-2 h-4 w-4"/>
                                                 )}
                                                 {isGeneratingDescription ? 'Génération...' : 'Générer avec l\'IA pour...'}
                                             </Button>
@@ -629,29 +629,29 @@ setCurrentDescription(result.description);
                                     </TooltipTrigger>
                                     {!hasAiTickets && (
                                         <TooltipContent>
-                                            <p class="cursor-pointer font-semibold text-primary">Plus de tickets ? Achetez-en plus !</p>
+                                            <p className="cursor-pointer font-semibold text-primary">Plus de tickets ? Achetez-en plus !</p>
                                         </TooltipContent>
                                     )}
                                 </Tooltip>
-                                <DropdownMenuContent class="w-56">
+                                <DropdownMenuContent className="w-56">
                                     <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}>
-                                        <Instagram class="mr-2 h-4 w-4" />
+                                        <Instagram className="mr-2 h-4 w-4" />
                                         <span>Instagram</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleGenerateDescription('facebook')}>
-                                        <Facebook class="mr-2 h-4 w-4" />
+                                        <Facebook className="mr-2 h-4 w-4" />
                                         <span>Facebook</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleGenerateDescription('x')}>
-                                        <MessageSquare class="mr-2 h-4 w-4" />
+                                        <MessageSquare className="mr-2 h-4 w-4" />
                                         <span>X (Twitter)</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleGenerateDescription('tiktok')}>
-                                        <VenetianMask class="mr-2 h-4 w-4" />
+                                        <VenetianMask className="mr-2 h-4 w-4" />
                                         <span>TikTok</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleGenerateDescription('generic')}>
-                                        <Wand2 class="mr-2 h-4 w-4" />
+                                        <Wand2 className="mr-2 h-4 w-4" />
                                         <span>Générique</span>
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
@@ -661,7 +661,7 @@ setCurrentDescription(result.description);
                     <DialogFooter>
                         <Button variant="secondary" onClick={() => setShowEditDialog(false)} disabled={isSavingDescription}>Annuler</Button>
                         <Button onClick={handleSaveDescription} disabled={isSavingDescription || isGeneratingDescription}>
-                            {isSavingDescription && <Loader2 class="mr-2 h-4 w-4 animate-spin"/>}
+                            {isSavingDescription && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                             Enregistrer
                         </Button>
                     </DialogFooter>
@@ -669,7 +669,7 @@ setCurrentDescription(result.description);
             </Dialog>
 
             <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-                <DialogContent class="sm:max-w-lg">
+                <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
                     <DialogTitle>Détails de l'image</DialogTitle>
                     {imageToShowDetails?.uploadTimestamp && (
@@ -678,43 +678,43 @@ setCurrentDescription(result.description);
                          </DialogDescription>
                     )}
                     </DialogHeader>
-                    <div class="space-y-4 pt-2">
-                        <div class="relative aspect-video w-full overflow-hidden rounded-md border bg-muted">
+                    <div className="space-y-4 pt-2">
+                        <div className="relative aspect-video w-full overflow-hidden rounded-md border bg-muted">
                             {imageToShowDetails && (
                                 <Image
                                     src={imageToShowDetails.directUrl}
                                     alt={imageToShowDetails.originalName || 'Image'}
                                     fill
-                                    class="object-contain"
+                                    className="object-contain"
                                     unoptimized
                                 />
                             )}
                         </div>
-                        <div class="space-y-4">
-                            <div class="group/copy-item relative">
-                                <Label class="text-muted-foreground">Titre</Label>
-                                <p class="font-semibold text-lg pr-8">{imageToShowDetails?.title || 'Aucun titre'}</p>
+                        <div className="space-y-4">
+                            <div className="group/copy-item relative">
+                                <Label className="text-muted-foreground">Titre</Label>
+                                <p className="font-semibold text-lg pr-8">{imageToShowDetails?.title || 'Aucun titre'}</p>
                                 {imageToShowDetails?.title && (
-                                <Button variant="ghost" size="icon" class="absolute top-1/2 -translate-y-1/2 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(imageToShowDetails.title!, 'details-title', 'Titre copié !')}>
-                                    {copiedField === 'details-title' ? <Check class="text-green-500"/> : <Copy size={16}/>}
+                                <Button variant="ghost" size="icon" className="absolute top-1/2 -translate-y-1/2 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(imageToShowDetails.title!, 'details-title', 'Titre copié !')}>
+                                    {copiedField === 'details-title' ? <Check className="text-green-500"/> : <Copy size={16}/>}
                                 </Button>
                                 )}
                             </div>
-                            <div class="group/copy-item relative">
-                                <Label class="text-muted-foreground">Description</Label>
-                                <p class="text-sm whitespace-pre-wrap pr-8">{imageToShowDetails?.description || 'Aucune description'}</p>
+                            <div className="group/copy-item relative">
+                                <Label className="text-muted-foreground">Description</Label>
+                                <p className="text-sm whitespace-pre-wrap pr-8">{imageToShowDetails?.description || 'Aucune description'}</p>
                                 {imageToShowDetails?.description && (
-                                <Button variant="ghost" size="icon" class="absolute top-0 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(imageToShowDetails.description!, 'details-desc', 'Description copiée !')}>
-                                    {copiedField === 'details-desc' ? <Check class="text-green-500"/> : <Copy size={16}/>}
+                                <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(imageToShowDetails.description!, 'details-desc', 'Description copiée !')}>
+                                    {copiedField === 'details-desc' ? <Check className="text-green-500"/> : <Copy size={16}/>}
                                 </Button>
                                 )}
                             </div>
-                            <div class="group/copy-item relative">
-                                <Label class="text-muted-foreground">Hashtags</Label>
-                                <p class="text-sm text-primary pr-8">{imageToShowDetails?.hashtags || 'Aucun hashtag'}</p>
+                            <div className="group/copy-item relative">
+                                <Label className="text-muted-foreground">Hashtags</Label>
+                                <p className="text-sm text-primary pr-8">{imageToShowDetails?.hashtags || 'Aucun hashtag'}</p>
                                 {imageToShowDetails?.hashtags && (
-                                <Button variant="ghost" size="icon" class="absolute top-0 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(imageToShowDetails.hashtags!, 'details-tags', 'Hashtags copiés !')}>
-                                    {copiedField === 'details-tags' ? <Check class="text-green-500"/> : <Copy size={16}/>}
+                                <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8 opacity-0 group-hover/copy-item:opacity-100" onClick={() => copyToClipboard(imageToShowDetails.hashtags!, 'details-tags', 'Hashtags copiés !')}>
+                                    {copiedField === 'details-tags' ? <Check className="text-green-500"/> : <Copy size={16}/>}
                                 </Button>
                                 )}
                             </div>
@@ -729,7 +729,7 @@ setCurrentDescription(result.description);
                             }}
                             disabled={!imageToShowDetails?.title && !imageToShowDetails?.description && !imageToShowDetails?.hashtags}
                         >
-                            {copiedField === 'details-all' ? <Check class="mr-2"/> : <CopyPlus class="mr-2"/>}
+                            {copiedField === 'details-all' ? <Check className="mr-2"/> : <CopyPlus className="mr-2"/>}
                             Tout Copier
                         </Button>
                     </DialogFooter>
@@ -745,7 +745,7 @@ setCurrentDescription(result.description);
                         </DialogDescription>
                     </DialogHeader>
 
-                     <div class="flex items-center space-x-2 pt-4">
+                     <div className="flex items-center space-x-2 pt-4">
                         <Input 
                             id="new-gallery" 
                             placeholder="Nom de la nouvelle galerie..."
@@ -754,17 +754,17 @@ setCurrentDescription(result.description);
                             disabled={isCreatingGallery}
                         />
                         <Button onClick={handleCreateGalleryOnTheFly} disabled={!newGalleryName.trim() || isCreatingGallery}>
-                            {isCreatingGallery ? <Loader2 class="h-4 w-4 animate-spin"/> : <PlusCircle class="h-4 w-4" />}
-                            <span class="ml-2 hidden sm:inline">Créer</span>
+                            {isCreatingGallery ? <Loader2 className="h-4 w-4 animate-spin"/> : <PlusCircle className="h-4 w-4" />}
+                            <span className="ml-2 hidden sm:inline">Créer</span>
                         </Button>
                     </div>
                     <Separator/>
 
-                    <div class="py-2 space-y-4">
+                    <div className="py-2 space-y-4">
                         {galleries && galleries.length > 0 ? (
-                            <div class="space-y-2 max-h-60 overflow-y-auto pr-2">
+                            <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                                 {galleries.map(gallery => (
-                                    <div key={gallery.id} class="flex items-center space-x-3 rounded-md p-2 hover:bg-muted/50">
+                                    <div key={gallery.id} className="flex items-center space-x-3 rounded-md p-2 hover:bg-muted/50">
                                         <Checkbox
                                             id={`gallery-${gallery.id}`}
                                             checked={selectedGalleries.has(gallery.id)}
@@ -772,7 +772,7 @@ setCurrentDescription(result.description);
                                         />
                                         <label
                                             htmlFor={`gallery-${gallery.id}`}
-                                            class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1 cursor-pointer"
+                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1 cursor-pointer"
                                         >
                                             {gallery.name}
                                         </label>
@@ -780,7 +780,7 @@ setCurrentDescription(result.description);
                                 ))}
                             </div>
                         ) : (
-                            <p class="text-sm text-center text-muted-foreground py-4">
+                            <p className="text-sm text-center text-muted-foreground py-4">
                                 Aucune galerie créée pour le moment. Utilisez le champ ci-dessus pour en créer une.
                             </p>
                         )}
@@ -788,7 +788,7 @@ setCurrentDescription(result.description);
                     <DialogFooter>
                         <Button variant="secondary" onClick={() => setShowAddToGalleryDialog(false)}>Annuler</Button>
                         <Button onClick={handleSaveToGalleries} disabled={isSavingToGallery || selectedGalleries.size === 0}>
-                             {isSavingToGallery && <Loader2 class="mr-2 h-4 w-4 animate-spin"/>}
+                             {isSavingToGallery && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                             Enregistrer
                         </Button>
                     </DialogFooter>
@@ -798,3 +798,5 @@ setCurrentDescription(result.description);
         </TooltipProvider>
     );
 }
+
+    
