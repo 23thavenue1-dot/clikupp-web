@@ -150,6 +150,13 @@
             "type": "string"
           }
         },
+        "pinnedImageIds": {
+            "type": "array",
+            "description": "A list of image IDs that the user has globally pinned or marked as favorites.",
+            "items": {
+                "type": "string"
+            }
+        },
         "initialPhotoURL": {
           "type": [
             "string",
