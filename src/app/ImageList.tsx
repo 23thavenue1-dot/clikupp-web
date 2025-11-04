@@ -186,7 +186,6 @@ export function ImageList() {
     const handleDownload = async (image: ImageMetadata) => {
         setIsDownloading(image.id);
     
-        // Comportement pour mobile
         if (isMobile) {
             window.open(image.directUrl, '_blank');
             toast({
@@ -197,7 +196,6 @@ export function ImageList() {
             return;
         }
     
-        // Comportement pour ordinateur
         try {
             const response = await fetch(image.directUrl);
             if (!response.ok) throw new Error('Network response was not ok.');
@@ -206,8 +204,10 @@ export function ImageList() {
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            const fileName = image.originalName || `clikup-image-${image.id}.jpg`;
-            link.setAttribute('download', fileName);
+
+            const fileExtension = image.mimeType?.split('/')[1] || 'jpg';
+            const fileName = image.originalName || image.title || `clikup-image-${image.id}`;
+            link.setAttribute('download', `${fileName}.${fileExtension}`);
     
             document.body.appendChild(link);
             link.click();
@@ -845,5 +845,7 @@ setCurrentDescription(result.description);
 
 
 
+
+    
 
     
