@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, toggleImageInGallery, createGallery, addMultipleImagesToGalleries, saveImageMetadata } from '@/lib/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Eye, CopyPlus, Ticket, PlusCircle, X, BoxSelect, Sparkles, Save } from 'lucide-react';
+import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Eye, CopyPlus, Ticket, PlusCircle, X, BoxSelect, Sparkles, Save, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -66,6 +66,7 @@ export function ImageList() {
     const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
+    const [isDownloading, setIsDownloading] = useState<string | null>(null);
     const [showDeleteAlert, setShowDeleteAlert] = useState(false);
     const [imageToDelete, setImageToDelete] = useState<ImageMetadata | null>(null);
 
@@ -176,6 +177,44 @@ export function ImageList() {
             setIsDeleting(null);
             setShowDeleteAlert(false);
             setImageToDelete(null);
+        }
+    };
+
+    const handleDownload = async (image: ImageMetadata) => {
+        setIsDownloading(image.id);
+        try {
+            // Fetch the image data
+            const response = await fetch(image.directUrl);
+            if (!response.ok) {
+                throw new Error('Network response was not ok.');
+            }
+            const blob = await response.blob();
+    
+            // Create a temporary link to trigger the download
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            // Use original name or a fallback name
+            const fileName = image.originalName || `clikup-image-${image.id}.jpg`;
+            link.setAttribute('download', fileName);
+    
+            // Append to the document, click, and then remove
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+    
+            // Revoke the object URL to free up memory
+            window.URL.revokeObjectURL(url);
+            toast({ title: 'Téléchargement lancé', description: `Votre image "${fileName}" est en cours de téléchargement.` });
+        } catch (error) {
+            console.error("Download error:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Erreur de téléchargement',
+                description: 'Impossible de télécharger l\'image. Veuillez réessayer.'
+            });
+        } finally {
+            setIsDownloading(null);
         }
     };
 
@@ -457,6 +496,16 @@ setCurrentDescription(result.description);
                                                     aria-label="Partager l'image"
                                                 >
                                                     <Share2 size={16}/>
+                                                </Button>
+                                                <Button
+                                                    variant="secondary"
+                                                    size="icon"
+                                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => handleDownload(image)}
+                                                    disabled={isDownloading === image.id}
+                                                    aria-label="Télécharger l'image"
+                                                >
+                                                    {isDownloading === image.id ? <Loader2 className="animate-spin" /> : <Download size={16}/>}
                                                 </Button>
                                                 <Button
                                                     variant="destructive"
@@ -798,5 +847,7 @@ setCurrentDescription(result.description);
         </TooltipProvider>
     );
 }
+
+    
 
     
