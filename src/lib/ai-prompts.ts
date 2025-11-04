@@ -19,7 +19,7 @@ export const suggestionCategories: PromptCategory[] = [
         prompts: [
             { title: "Héros de film d'action", prompt: "Détoure le sujet de la photo et transforme-le en héros d'affiche de film d'action, avec des explosions en arrière-plan et un éclairage dramatique." },
             { title: "Portrait d'art", prompt: "Détoure le sujet et transforme ce selfie en une peinture à l'huile de style classique." },
-            { title: "Astronaute", prompt: "Détoure mon visage, ajoute un casque d'astronaute réaliste et place-moi dans l'espace avec un fond de nébuleuses." },
+            { title: "Planète", prompt: "Selfie du personnage sur une planète extra terretre (réaliste)." },
             { title: "Cyberpunk", prompt: "Détoure le sujet et donne-lui une ambiance cyberpunk avec des néons et une atmosphère de nuit pluvieuse en arrière-plan." },
             { title: "Aventurier dans la jungle", prompt: "Détoure le sujet et transforme-moi en aventurier dans une jungle dense et mystérieuse." },
             { title: "Style bande dessinée", prompt: "Applique un style de bande dessinée (comic book) à ce selfie, en détourant bien le sujet." },
@@ -27,6 +27,7 @@ export const suggestionCategories: PromptCategory[] = [
             { title: "Double exposition", prompt: "Crée un effet de double exposition en superposant mon visage détouré avec un paysage de forêt." },
             { title: "Nature sauvage", prompt: "Détoure le sujet de la photo et remplace l'arrière-plan par un paysage de nature sauvage." },
             { title: "Jouet Collector", prompt: "Détoure le sujet et transforme-le en jouet collector (type figurine) dans son emballage d'origine." },
+            { title: "Homme/Femme d'affaires", prompt: "Détoure le sujet, habille-le avec un costume élégant (costard) et donne-lui une expression qui inspire confiance." },
         ],
     },
     {
