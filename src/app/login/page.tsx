@@ -44,7 +44,6 @@ export default function LoginPage() {
       toast({ title: "Connexion réussie", description: "Vous allez être redirigé." });
       router.push("/");
     } catch (error: any) {
-      console.error(error);
       let description = "Une erreur inattendue est survenue.";
       if (error.code === 'auth/invalid-credential') {
         description = "L'adresse e-mail ou le mot de passe est incorrect.";
