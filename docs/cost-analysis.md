@@ -33,68 +33,68 @@ Notre projet repose principalement sur Firebase et les services Google AI. La pl
 
 ## 2. Stratégies de Monétisation
 
-Notre modèle économique doit être attractif, compétitif et rentable. Nous proposons une approche hybride qui combine un modèle "Freemium" (un palier gratuit et un abonnement) avec des achats uniques.
+Notre modèle économique doit être attractif, compétitif et rentable. Nous proposons une approche hybride qui combine un modèle "Freemium" (un palier gratuit et plusieurs abonnements) avec des achats uniques (packs de tickets).
 
-### Piste 1 : Le Modèle "Freemium" (Abonnement et Gratuit)
+### Piste 1 : Le Modèle "Freemium" - Abonnements
 
-#### a) Offre Gratuite
-C'est l'offre actuelle, conçue pour attirer un maximum d'utilisateurs et leur faire découvrir la valeur de Clikup.
-*   **Tickets Upload :** 5 par jour.
-*   **Tickets IA :** 3 par jour (pour la génération de description ou l'édition).
-*   **Stockage :** Limité (ex: 1 Go par utilisateur, à définir plus tard).
-*   **Financement :** Amorti par les utilisateurs payants et potentiellement par de la publicité discrète à l'avenir.
+#### a) Offre Gratuite (L'Actuelle)
+*   **Pour qui ?** Pour attirer un maximum d'utilisateurs et leur faire découvrir la valeur de Clikup.
+*   **Contenu :** 5 tickets Upload/jour, 3 tickets IA/jour, 1 Go de stockage.
 
 #### b) Offre "Créateur" (Abonnement)
-Une offre payante conçue pour les utilisateurs intensifs, les créateurs de contenu et les professionnels.
+*   **Pour qui ?** L'amateur éclairé ou l'utilisateur régulier qui a besoin de plus de flexibilité.
 *   **Prix Proposé :** **4,99 € / mois**.
-*   **Tickets Upload :** **Illimités**.
-*   **Tickets IA :** **100 par mois**. Un quota généreux qui couvre la quasi-totalité des besoins tout en protégeant contre les abus extrêmes.
-*   **Stockage :** Étendu (ex: 50 Go).
-*   **Avantages supplémentaires :** Pas de publicités, accès en avant-première aux nouvelles fonctionnalités.
+*   **Contenu :**
+    *   **500** tickets d'upload par mois.
+    *   **50** tickets IA par mois.
+    *   20 Go de stockage.
+    *   Badge "Créateur" sur le profil.
+
+#### c) Offre "Pro" (Abonnement)
+*   **Pour qui ?** Le créateur de contenu sérieux, freelance ou community manager.
+*   **Prix Proposé :** **9,99 € / mois**.
+*   **Contenu :**
+    *   Tickets d'upload **illimités**.
+    *   **150** tickets IA par mois.
+    *   100 Go de stockage.
+    *   Badge "Pro" et accès en avant-première aux nouvelles fonctionnalités.
+
+#### d) Offre "Maître" (Abonnement)
+*   **Pour qui ?** Les agences, les entreprises et les utilisateurs très intensifs ("power users").
+*   **Prix Proposé :** **19,99 € / mois**.
+*   **Contenu :**
+    *   Tickets d'upload **illimités**.
+    *   **400** tickets IA par mois.
+    *   500 Go de stockage.
+    *   Badge "Maître" et support client prioritaire.
 
 ### Piste 2 : Les Packs "À la Carte" (Achats Uniques)
 
-Pour les utilisateurs de l'offre gratuite qui ont un besoin ponctuel sans vouloir s'abonner. Ces packs fournissent une flexibilité et une source de revenus additionnelle.
+Pour les utilisateurs (gratuits ou abonnés) qui ont un besoin ponctuel et intense.
 
-*   **Pack "Boost Upload"**
-    *   **Contenu :** 50 tickets d'upload supplémentaires.
-    *   **Prix Proposé :** **1,99 €**.
-    *   **Cible :** L'utilisateur qui doit téléverser un album de vacances en une seule fois.
+#### a) Packs "Boost Upload"
+*   **Cible :** L'utilisateur qui doit téléverser un gros album de vacances ou un projet ponctuel.
+*   **Formules :**
+    *   **S :** 50 tickets pour **1,99 €**.
+    *   **M :** 120 tickets pour **3,99 €**.
+    *   **L :** 300 tickets pour **7,99 €**.
 
-*   **Pack "Boost IA"**
-    *   **Contenu :** 25 tickets IA supplémentaires.
-    *   **Prix Proposé :** **2,99 €**.
-    *   **Justification :** Le prix est plus élevé car les appels à l'IA d'édition d'image sont plus coûteux pour le service.
-    *   **Cible :** L'utilisateur qui veut expérimenter intensivement avec l'édition IA sur un projet spécifique.
-
----
-
-## 3. Analyse de Rentabilité (basée sur les prix proposés)
-
-*   **Coût d'un utilisateur gratuit actif :** ~0,50 € / mois (voir analyse précédente). Ce coût est raisonnable.
-*   **Rentabilité de l'Offre "Créateur" (4,99 €) :**
-    *   Un usage intensif (ex: 500 uploads + 100 générations IA) coûterait au service environ 1,00 € (storage) + 0,30 € (IA) = **1,30 €**.
-    *   La **marge brute par abonné serait d'environ 3,69 €**, ce qui est très sain et permet de financer les utilisateurs gratuits et le développement futur.
-*   **Rentabilité des Packs :** Les prix proposés (1,99 € et 2,99 €) couvrent très largement les coûts des tickets correspondants, assurant une bonne rentabilité sur chaque achat.
+#### b) Packs "Boost IA"
+*   **Cible :** L'utilisateur qui veut expérimenter intensivement avec l'IA sur un projet créatif.
+*   **Formules :**
+    *   **S :** 20 tickets pour **2,99 €**.
+    *   **M :** 50 tickets pour **5,99 €**.
+    *   **L :** 150 tickets pour **14,99 €**.
+*(Note : Les tickets IA sont plus chers car ils reflètent le coût plus élevé des appels aux modèles d'IA générative d'images.)*
 
 ---
 
-## 4. Analyse Concurrentielle et Positionnement
+## 3. Analyse de Rentabilité et Positionnement
 
-| Aspect | Concurrents (Imgur, etc.) | Clikup (Notre Projet) |
-| --- | --- | --- |
-| **Fonctionnalité Clé** | Hébergement et partage simple. | **Hébergement "augmenté" par l'IA** (description, édition créative). C'est notre différenciateur majeur. |
-| **Expérience (UX)** | Souvent datée ou surchargée de publicités et de contenu communautaire. | **Moderne, propre et contrôlée.** Interface soignée, thèmes, gamification (niveaux, succès). |
-| **Cible Utilisateur** | Grand public, utilisateurs de forums. | **Créateurs de contenu, blogueurs, community managers, développeurs, amateurs d'IA.** |
-| **Monétisation** | Publicité massive, abonnements simples (sans pub). | **Modèle basé sur la valeur :** L'abonnement et les packs débloquent une puissance (l'IA) et une commodité (uploads illimités) que les concurrents n'ont pas. |
-
-### Conclusion Stratégique
-
-Clikup ne doit pas se battre sur le terrain du "tout gratuit et illimité". Notre force est de proposer une **valeur ajoutée spectaculaire** grâce à l'IA.
-
-Notre cible est l'utilisateur qui veut **gagner du temps, améliorer son contenu et être plus créatif**. Pour cette cible, un abonnement à 4,99 €/mois ou l'achat ponctuel d'un pack est un investissement logique et attractif.
+*   **Rentabilité :** Les prix proposés pour les abonnements et les packs sont structurés pour couvrir largement les coûts opérationnels estimés (stockage, bande passante, appels API IA), même pour un usage intensif, tout en assurant une marge brute saine pour financer les utilisateurs gratuits et le développement futur.
+*   **Positionnement :** Cette structure tarifaire positionne Clikup comme une solution "premium" mais accessible. Contrairement aux hébergeurs gratuits financés par la publicité, Clikup vend de la **valeur ajoutée** (puissance de l'IA, gain de temps, organisation) et de la **commodité** (limites élevées, stockage étendu). Notre cible n'est pas l'utilisateur qui cherche le "tout gratuit", mais celui qui cherche le **meilleur outil**.
 
 ### Prochaines Étapes Techniques :
-1.  **Créer la page "Boutique" :** Concevoir l'interface où les offres (Abonnement "Créateur" et Packs "Boost") seront présentées.
-2.  **Intégrer une solution de paiement :** Mettre en place un service comme Stripe pour gérer les abonnements et les paiements uniques.
-3.  **Mettre à jour la logique des tickets :** Modifier le code pour que le système puisse gérer les tickets illimités (pour les abonnés) et l'ajout de tickets (via les packs).
+1.  **Créer la page "Boutique" :** Concevoir l'interface où toutes ces offres seront présentées de manière claire et attractive.
+2.  **Intégrer une solution de paiement :** Mettre en place un service comme Stripe pour gérer les abonnements récurrents et les paiements uniques.
+3.  **Mettre à jour la logique des tickets :** Modifier le code pour que le système puisse gérer les tickets mensuels (pour les abonnés), les quotas de stockage et l'ajout de tickets achetés via les packs.
