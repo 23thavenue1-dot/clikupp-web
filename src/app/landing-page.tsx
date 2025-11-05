@@ -189,12 +189,11 @@ export function LandingPage() {
         {/* AI Edit Showcase Section */}
         <section className="py-20 sm:py-24">
             <div className="container mx-auto px-4">
-                <div className="max-w-3xl mx-auto">
+                <div className="max-w-4xl mx-auto">
                     <div className="text-center mb-12">
                         <h2 className="text-3xl md:text-4xl font-bold">D'un simple selfie à une photo professionnelle.</h2>
                         <p className="mt-3 max-w-2xl mx-auto text-muted-foreground">
-                            Décrivez la transformation que vous souhaitez en langage naturel. Notre IA s'occupe du reste.
-                            <br/>Prompt utilisé ici : <span className="font-semibold text-primary">Selfie du personnage dans un paysage de nature sauvage (réaliste, naturel).</span>
+                            Prompt utilisé ici : <span className="font-semibold text-primary">Selfie du personnage dans un paysage de nature sauvage (réaliste, naturel).</span>
                         </p>
                     </div>
 
@@ -214,7 +213,7 @@ export function LandingPage() {
                             <p className="font-semibold text-primary mb-2">APRÈS (Généré par l'IA)</p>
                             <div className="aspect-square w-full relative rounded-xl shadow-2xl overflow-hidden border-2 border-primary/50">
                                 <Image 
-                                    src="https://firebasestorage.googleapis.com/v0/b/studio-9587105821-540bd.firebasestorage.app/o/users%2F7nDHEQjIR9UYfgg0mwKhd4oGPCP2%2F1762297917204_ai-edited-1762297917203.png?alt=media&token=0cbc4fa6-ee5a-46f2-b7a2-d15d1dc450a7"
+                                    src="https://firebasestorage.googleapis.com/v0/b/studio-9587105821-540bd.firebasestorage.app/o/users%2F7nDHEQjIR9UYfgg0mwKhd4oGPCP2%2F1762304236813_ai-edited-1762304236812.png?alt=media&token=8de2362c-392d-4516-9f9b-47f9a342905d"
                                     alt="Portrait amélioré par l'intelligence artificielle, plus charismatique"
                                     fill
                                     className="object-cover"
