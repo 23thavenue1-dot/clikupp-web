@@ -294,7 +294,8 @@ export default function GalleryDetailPage() {
     
     const handleGenerateDescription = async (platform: Platform) => {
         if (!imageToEdit || !user || !userProfile) return;
-        if (userProfile.aiTicketCount <= 0) {
+        const totalAiTickets = (userProfile.aiTicketCount || 0) + (userProfile.subscriptionAiTickets || 0) + (userProfile.packAiTickets || 0);
+        if (totalAiTickets <= 0) {
             toast({ variant: 'destructive', title: 'Tickets IA épuisés' });
             return;
         }
@@ -306,7 +307,7 @@ export default function GalleryDetailPage() {
             setCurrentDescription(result.description);
             setHashtagsString(result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' '));
             setWasGeneratedByAI(true);
-            await decrementAiTicketCount(firestore, user.uid);
+            await decrementAiTicketCount(firestore, user.uid, userProfile);
             toast({ title: "Contenu généré !", description: `Un ticket IA a été utilisé.` });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur IA' });
@@ -331,7 +332,10 @@ export default function GalleryDetailPage() {
         }
     };
 
-    const hasAiTickets = (userProfile?.aiTicketCount ?? 0) > 0;
+    const hasAiTickets = useMemo(() => {
+        if (!userProfile) return false;
+        return (userProfile.aiTicketCount || 0) + (userProfile.subscriptionAiTickets || 0) + (userProfile.packAiTickets || 0) > 0;
+    }, [userProfile]);
 
     if (isUserLoading || isLoading) {
         return (
@@ -595,7 +599,7 @@ export default function GalleryDetailPage() {
                                 <Label>Génération par IA</Label>
                                 <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
                                     <Ticket className="h-4 w-4" />
-                                    <span>{userProfile?.aiTicketCount ?? 0} restants</span>
+                                    <span>{(userProfile?.aiTicketCount ?? 0) + (userProfile?.subscriptionAiTickets ?? 0) + (userProfile?.packAiTickets ?? 0)} restants</span>
                                 </div>
                             </div>
                             <DropdownMenu>

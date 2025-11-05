@@ -734,7 +734,7 @@ export function ImageList() {
                                              <TooltipContent>
                                                 <Link href="/shop">
                                                     <p className="cursor-pointer font-semibold text-primary flex items-center gap-2">
-                                                        <ShoppingCart className="h-4 w-4" />
+                                                        <ShoppingCart className="mr-2 h-4 w-4" />
                                                         Plus de tickets ? Rechargez dans la boutique !
                                                     </p>
                                                 </Link>
