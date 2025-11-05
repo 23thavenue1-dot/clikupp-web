@@ -84,7 +84,7 @@ export default function SecretMessagesPage() {
                                     </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="px-4 pb-4">
-                                     <p className="pl-16">
+                                     <p className="pl-16 whitespace-pre-wrap">
                                         {message.content}
                                     </p>
                                 </AccordionContent>
