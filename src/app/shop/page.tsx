@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -9,6 +10,8 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, addDoc, onSnapshot } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 
 const subscriptions = [
@@ -91,19 +94,28 @@ export default function ShopPage() {
 
         setLoadingPriceId(priceId);
 
-        try {
-            // Créer un document dans la sous-collection checkout_sessions de l'utilisateur
-            const checkoutSessionRef = await addDoc(
-                collection(firestore, 'customers', user.uid, 'checkout_sessions'), 
-                {
-                    mode: mode,
-                    price: priceId,
-                    success_url: `${window.location.origin}/`,
-                    cancel_url: window.location.href,
-                }
-            );
+        const sessionData = {
+            mode: mode,
+            price: priceId,
+            success_url: `${window.location.origin}/`,
+            cancel_url: window.location.href,
+        };
+        
+        const sessionsCollectionRef = collection(firestore, 'customers', user.uid, 'checkout_sessions');
 
-            // Écouter les changements sur ce document
+        try {
+            const checkoutSessionRef = await addDoc(sessionsCollectionRef, sessionData)
+                .catch(error => {
+                    const permissionError = new FirestorePermissionError({
+                        path: `${sessionsCollectionRef.path}`,
+                        operation: 'create',
+                        requestResourceData: sessionData,
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                    // Re-throw to stop execution
+                    throw permissionError;
+                });
+
             const unsubscribe = onSnapshot(checkoutSessionRef, (snap) => {
                 const { error, url } = snap.data() || {};
                 
@@ -115,24 +127,26 @@ export default function ShopPage() {
                         description: error.message || "La communication avec le service de paiement a échoué.",
                     });
                     setLoadingPriceId(null);
-                    unsubscribe(); // Arrêter l'écoute
+                    unsubscribe();
                 }
                 
                 if (url) {
-                    // Rediriger vers la page de paiement de Stripe
                     window.location.assign(url);
-                    // L'écouteur s'arrêtera car la page change, pas besoin de `unsubscribe()` ici.
                 }
+            }, (error) => { // onSnapshot error callback
+                const permissionError = new FirestorePermissionError({
+                    path: checkoutSessionRef.path,
+                    operation: 'get',
+                });
+                errorEmitter.emit('permission-error', permissionError);
+                setLoadingPriceId(null);
+                unsubscribe();
             });
 
         } catch (error) {
-            console.error("Erreur lors de la création de la session checkout dans Firestore:", error);
-            toast({
-                variant: 'destructive',
-                title: 'Erreur',
-                description: "Impossible d'initier la session de paiement. Veuillez réessayer.",
-            });
+            // Errors from addDoc (like permission denied) are caught here
             setLoadingPriceId(null);
+            // No need for a toast here, the error emitter will handle it.
         }
     };
 
