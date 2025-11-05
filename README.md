@@ -1,6 +1,6 @@
 # Projet Clikup : Votre Plateforme d'Hébergement d'Images Intelligente
 
-**Clikup** est une application web moderne et sécurisée conçue pour l'hébergement, la gestion et le partage d'images. Plus qu'un simple outil de téléversement, Clikup a pour vocation de devenir un compagnon créatif intelligent, évoluant pour répondre aux besoins des créateurs de contenu, des développeurs et des utilisateurs quotidiens.
+**Clikup** est une application web moderne et sécurisée conçue pour l'hébergement, la gestion et le partage d'images, augmentée par une IA pour l'édition et l'amélioration de vos créations. Plus qu'un simple outil de téléversement, Clikup a pour vocation de devenir un compagnon créatif intelligent, évoluant pour répondre aux besoins des créateurs de contenu, des développeurs et des utilisateurs quotidiens.
 
 ---
 
