@@ -106,20 +106,29 @@
         },
         "ticketCount": {
           "type": "number",
-          "description": "Number of remaining upload tickets for the user."
+          "description": "Number of remaining daily upload tickets for the user."
         },
         "lastTicketRefill": {
           "type": "string",
-          "description": "Timestamp of the last time the user's tickets were refilled.",
+          "description": "Timestamp of the last time the user's daily tickets were refilled.",
           "format": "date-time"
         },
         "aiTicketCount": {
           "type": "number",
-          "description": "Number of remaining AI generation tickets for the user."
+          "description": "Number of remaining daily AI generation tickets for the user."
         },
         "lastAiTicketRefill": {
           "type": "string",
-          "description": "Timestamp of the last time the user's AI tickets were refilled.",
+          "description": "Timestamp of the last time the user's daily AI tickets were refilled.",
+          "format": "date-time"
+        },
+        "aiTicketMonthlyCount": {
+          "type": "number",
+          "description": "Tracks the total number of free AI tickets granted in the current monthly cycle."
+        },
+        "aiTicketMonthlyReset": {
+          "type": "string",
+          "description": "Timestamp of the last time the monthly AI ticket counter was reset.",
           "format": "date-time"
         },
         "emailNotifications": {
@@ -179,6 +188,8 @@
         "lastTicketRefill",
         "aiTicketCount",
         "lastAiTicketRefill",
+        "aiTicketMonthlyCount",
+        "aiTicketMonthlyReset",
         "level",
         "xp",
         "profilePictureUpdateCount"

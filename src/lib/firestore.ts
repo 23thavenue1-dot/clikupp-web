@@ -26,7 +26,7 @@ import { getStorage, ref, listAll, deleteObject, Storage } from 'firebase/storag
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import type { User } from 'firebase/auth';
-import { isBefore, startOfDay } from 'date-fns';
+import { isBefore, startOfDay, startOfMonth } from 'date-fns';
 
 // Correspond à la structure dans backend.json
 export interface UserProfile {
@@ -38,6 +38,8 @@ export interface UserProfile {
   lastTicketRefill: Timestamp;
   aiTicketCount: number;
   lastAiTicketRefill: Timestamp;
+  aiTicketMonthlyCount: number;
+  aiTicketMonthlyReset: Timestamp;
   emailNotifications?: boolean;
   bio?: string;
   websiteUrl?: string;
@@ -90,34 +92,51 @@ export type Gallery = {
   createdAt: Timestamp;
 };
 
+const DAILY_UPLOAD_TICKETS = 5;
+const DAILY_AI_TICKETS = 3;
+const MONTHLY_AI_TICKET_LIMIT = 40;
 
 /**
- * Vérifie et recharge les tickets (upload et IA) de l'utilisateur si nécessaire.
- * La recharge a lieu si la dernière recharge date d'un jour précédent.
+ * Vérifie et recharge les tickets de l'utilisateur (journaliers et mensuels).
  * @param firestore L'instance Firestore.
  * @param userDocRef La référence au document de l'utilisateur.
  * @param userProfile Le profil de l'utilisateur.
  */
 export async function checkAndRefillTickets(firestore: Firestore, userDocRef: DocumentReference, userProfile: UserProfile): Promise<void> {
-    const today = new Date();
+    const now = new Date();
     const updates: { [key: string]: any } = {};
 
-    // 1. Vérification des tickets d'upload
-    if (userProfile.lastTicketRefill) {
-        const lastRefillDate = userProfile.lastTicketRefill.toDate();
-        if (isBefore(startOfDay(lastRefillDate), startOfDay(today))) {
-            updates.ticketCount = 5;
-            updates.lastTicketRefill = serverTimestamp();
-        }
+    // --- Gestion des Tickets Mensuels (doit être fait avant les tickets journaliers) ---
+    const lastMonthlyReset = userProfile.aiTicketMonthlyReset.toDate();
+    if (isBefore(startOfMonth(lastMonthlyReset), startOfMonth(now))) {
+        updates.aiTicketMonthlyCount = 0;
+        updates.aiTicketMonthlyReset = serverTimestamp();
     }
 
-    // 2. Vérification des tickets IA
-    if (userProfile.lastAiTicketRefill) {
-        const lastAiRefillDate = userProfile.lastAiTicketRefill.toDate();
-        if (isBefore(startOfDay(lastAiRefillDate), startOfDay(today))) {
-            updates.aiTicketCount = 3;
-            updates.lastAiTicketRefill = serverTimestamp();
+    // --- Gestion des Tickets Journaliers d'Upload ---
+    const lastUploadRefill = userProfile.lastTicketRefill.toDate();
+    if (isBefore(startOfDay(lastUploadRefill), startOfDay(now))) {
+        updates.ticketCount = DAILY_UPLOAD_TICKETS;
+        updates.lastTicketRefill = serverTimestamp();
+    }
+
+    // --- Gestion des Tickets Journaliers IA (avec la limite mensuelle) ---
+    const lastAiRefill = userProfile.lastAiTicketRefill.toDate();
+    const currentMonthlyCount = 'aiTicketMonthlyCount' in updates ? 0 : userProfile.aiTicketMonthlyCount;
+    
+    if (isBefore(startOfDay(lastAiRefill), startOfDay(now))) {
+        if (currentMonthlyCount < MONTHLY_AI_TICKET_LIMIT) {
+            const ticketsToGrant = Math.min(DAILY_AI_TICKETS, MONTHLY_AI_TICKET_LIMIT - currentMonthlyCount);
+            if (ticketsToGrant > 0) {
+                updates.aiTicketCount = ticketsToGrant;
+                updates.aiTicketMonthlyCount = increment(ticketsToGrant);
+            } else {
+                 updates.aiTicketCount = 0;
+            }
+        } else {
+            updates.aiTicketCount = 0; // Limite mensuelle atteinte
         }
+        updates.lastAiTicketRefill = serverTimestamp();
     }
 
     // Appliquer les mises à jour si nécessaire
@@ -717,6 +736,4 @@ export async function addMultipleImagesToGalleries(
         throw new Error("Impossible de mettre à jour les galeries.");
     }
 }
-    
-
     
