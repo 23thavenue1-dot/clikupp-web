@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { Stripe } from 'stripe';
@@ -17,7 +18,7 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
  * @param user - L'objet utilisateur authentifié.
  * @returns L'ID du client Stripe (cus_...).
  */
-async function getOrCreateCustomer(firestore: Firestore, user: User): Promise<string> {
+async function getOrCreateCustomer(firestore: Firestore, user: { uid: string; email: string | null; displayName?: string | null }): Promise<string> {
     const customerDocRef = doc(firestore, 'customers', user.uid);
     const customerSnap = await getDoc(customerDocRef);
 
@@ -52,7 +53,7 @@ async function getOrCreateCustomer(firestore: Firestore, user: User): Promise<st
  * @param mode - 'payment' pour un achat unique, 'subscription' pour un abonnement.
  * @returns La session de paiement Stripe.
  */
-export async function createStripeCheckout(priceId: string, firestore: Firestore, user: User, mode: 'payment' | 'subscription' = 'payment') {
+export async function createStripeCheckout(priceId: string, firestore: Firestore, user: { uid: string; email: string | null; displayName?: string | null }, mode: 'payment' | 'subscription' = 'payment') {
     const customerId = await getOrCreateCustomer(firestore, user);
     
     const origin = headers().get('origin') || 'http://localhost:9002';
@@ -77,3 +78,4 @@ export async function createStripeCheckout(priceId: string, firestore: Firestore
 
     return session;
 }
+

@@ -2,25 +2,28 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { createStripeCheckout } from '@/lib/stripe';
 import { initializeFirebase } from '@/firebase/server'; 
+import { getAuth } from 'firebase-admin/auth';
 
 export async function POST(req: NextRequest) {
     try {
-        const { priceId, mode, userId, userEmail } = await req.json();
+        const { priceId, mode, userId } = await req.json();
 
-        if (!priceId || !mode || !userId || !userEmail) {
-            return new NextResponse('Les informations de paiement sont incomplètes (priceId, mode, userId, userEmail).', { status: 400 });
+        if (!priceId || !mode || !userId) {
+            return new NextResponse('Les informations de paiement sont incomplètes (priceId, mode, userId).', { status: 400 });
         }
         
         // Initialisation de l'admin Firebase pour la communication serveur
-        const { firestore } = initializeFirebase();
+        const { firestore, auth } = initializeFirebase();
 
-        // Créer un semblant d'objet utilisateur pour la fonction getOrCreateCustomer
+        // Récupérer les informations complètes de l'utilisateur depuis Firebase Auth
+        const userRecord = await auth.getUser(userId);
+
         const user = { 
-            uid: userId, 
-            email: userEmail,
+            uid: userRecord.uid, 
+            email: userRecord.email,
+            displayName: userRecord.displayName
         };
 
-        // @ts-ignore
         const session = await createStripeCheckout(priceId, firestore, user, mode);
 
         if (session.url) {
@@ -34,5 +37,3 @@ export async function POST(req: NextRequest) {
         return new NextResponse((error as Error).message, { status: 500 });
     }
 }
-
-    
