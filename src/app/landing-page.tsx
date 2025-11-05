@@ -203,8 +203,8 @@ export function LandingPage() {
                             <p className="font-semibold text-muted-foreground mb-2">AVANT</p>
                             <div className="aspect-square w-full relative rounded-xl shadow-lg overflow-hidden">
                                 <Image 
-                                    src="https://images.unsplash.com/photo-1557053503-0c250a235775?q=80&w=2574&auto=format&fit=crop"
-                                    alt="Selfie original d'une femme"
+                                    src="https://images.unsplash.com/photo-1542909168-82c3e7fdca5c?q=80&w=2680&auto=format&fit=crop"
+                                    alt="Portrait d'un homme avant la retouche par IA"
                                     fill
                                     className="object-cover"
                                 />
@@ -214,8 +214,8 @@ export function LandingPage() {
                             <p className="font-semibold text-primary mb-2">APRÈS (Généré par l'IA)</p>
                             <div className="aspect-square w-full relative rounded-xl shadow-2xl overflow-hidden border-2 border-primary/50">
                                 <Image 
-                                    src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=2576&auto=format&fit=crop"
-                                    alt="Selfie amélioré par l'intelligence artificielle"
+                                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=2574&auto=format&fit=crop"
+                                    alt="Portrait amélioré par l'intelligence artificielle, plus charismatique"
                                     fill
                                     className="object-cover"
                                 />
@@ -280,5 +280,3 @@ export function LandingPage() {
     </div>
   );
 }
-
-    
