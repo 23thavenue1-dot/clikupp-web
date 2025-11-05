@@ -105,7 +105,7 @@ export function NotesSection() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Mon Pense-bête</CardTitle>
+                <CardTitle>Bloc-notes / To-do du jour</CardTitle>
                 <CardDescription>
                     Utilisez cet espace pour noter rapidement des idées, des tâches ou toute autre information.
                 </CardDescription>
