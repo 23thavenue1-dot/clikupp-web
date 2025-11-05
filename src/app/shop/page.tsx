@@ -95,7 +95,12 @@ export default function ShopPage() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ priceId, mode, userId: user.uid, userEmail: user.email }),
+                body: JSON.stringify({ 
+                    priceId, 
+                    mode, 
+                    userId: user.uid, 
+                    userEmail: user.email 
+                }),
             });
 
             if (!response.ok) {
@@ -233,5 +238,3 @@ export default function ShopPage() {
         </div>
     );
 }
-
-    

@@ -4,7 +4,6 @@
 
 import { Stripe } from 'stripe';
 import { headers } from 'next/headers';
-import type { User } from 'firebase/auth'; // Import complet de User
 import { doc, getDoc, setDoc, Firestore } from 'firebase/firestore';
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
@@ -12,13 +11,20 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   typescript: true,
 });
 
+// Type simplifié pour les informations utilisateur nécessaires
+type UserInfo = {
+    uid: string;
+    email: string | null;
+    displayName?: string | null;
+}
+
 /**
  * Récupère l'ID client Stripe d'un utilisateur depuis Firestore ou en crée un nouveau.
  * @param firestore - Instance de Firestore.
- * @param user - L'objet utilisateur authentifié.
+ * @param user - L'objet contenant les informations de l'utilisateur.
  * @returns L'ID du client Stripe (cus_...).
  */
-async function getOrCreateCustomer(firestore: Firestore, user: { uid: string; email: string | null; displayName?: string | null }): Promise<string> {
+async function getOrCreateCustomer(firestore: Firestore, user: UserInfo): Promise<string> {
     const customerDocRef = doc(firestore, 'customers', user.uid);
     const customerSnap = await getDoc(customerDocRef);
 
@@ -49,11 +55,11 @@ async function getOrCreateCustomer(firestore: Firestore, user: { uid: string; em
  * Crée une session de paiement Stripe Checkout.
  * @param priceId - L'ID du prix de l'article dans Stripe.
  * @param firestore - Instance de Firestore.
- * @param user - L'objet utilisateur authentifié.
+ * @param user - L'objet contenant les informations de l'utilisateur.
  * @param mode - 'payment' pour un achat unique, 'subscription' pour un abonnement.
  * @returns La session de paiement Stripe.
  */
-export async function createStripeCheckout(priceId: string, firestore: Firestore, user: { uid: string; email: string | null; displayName?: string | null }, mode: 'payment' | 'subscription' = 'payment') {
+export async function createStripeCheckout(priceId: string, firestore: Firestore, user: UserInfo, mode: 'payment' | 'subscription' = 'payment') {
     const customerId = await getOrCreateCustomer(firestore, user);
     
     const origin = headers().get('origin') || 'http://localhost:9002';
@@ -78,4 +84,3 @@ export async function createStripeCheckout(priceId: string, firestore: Firestore
 
     return session;
 }
-
