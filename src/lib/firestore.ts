@@ -258,6 +258,59 @@ export async function deleteImageMetadata(firestore: Firestore, userId: string, 
   }
 }
 
+/**
+ * Supprime plusieurs images de Firestore et de Storage.
+ * @param firestore Instance de Firestore.
+ * @param storage Instance de Storage.
+ * @param userId ID de l'utilisateur.
+ * @param imageIds Tableau d'IDs des images à supprimer.
+ */
+export async function deleteMultipleImages(firestore: Firestore, storage: Storage, userId: string, imageIds: string[]): Promise<void> {
+    const batch = writeBatch(firestore);
+    const imageRefsToDelete: DocumentReference[] = [];
+
+    // Étape 1 : Récupérer les chemins de stockage et préparer la suppression Firestore
+    for (const imageId of imageIds) {
+        const imageDocRef = doc(firestore, `users/${userId}/images`, imageId);
+        imageRefsToDelete.push(imageDocRef);
+        batch.delete(imageDocRef);
+    }
+    
+    const imageDocs = await Promise.all(imageRefsToDelete.map(ref => getDoc(ref)));
+
+    // Étape 2 : Supprimer les fichiers de Storage
+    const storageDeletePromises = imageDocs
+        .map(docSnap => docSnap.data() as ImageMetadata)
+        .filter(data => data && data.storagePath)
+        .map(data => {
+            const storageRef = ref(storage, data.storagePath);
+            return deleteObject(storageRef).catch(error => {
+                // Log l'erreur mais ne bloque pas la suppression des autres fichiers
+                console.warn(`Impossible de supprimer le fichier de Storage: ${data.storagePath}`, error);
+            });
+        });
+
+    await Promise.all(storageDeletePromises);
+
+    // Étape 3 : Exécuter la suppression en batch sur Firestore
+    await batch.commit();
+
+    // Étape 4 (Optionnel mais recommandé) : Retirer les IDs des images de toutes les galeries
+    const galleriesQuery = query(collection(firestore, 'users', userId, 'galleries'));
+    const galleriesSnapshot = await getDocs(galleriesQuery);
+    const galleryUpdateBatch = writeBatch(firestore);
+
+    galleriesSnapshot.forEach(galleryDoc => {
+        const galleryData = galleryDoc.data() as Gallery;
+        const newImageIds = galleryData.imageIds.filter(id => !imageIds.includes(id));
+        if (newImageIds.length !== galleryData.imageIds.length) {
+            galleryUpdateBatch.update(galleryDoc.ref, { imageIds: newImageIds });
+        }
+    });
+
+    await galleryUpdateBatch.commit();
+}
+
 
 /**
  * Sauvegarde une nouvelle note pour l'utilisateur dans Firestore.

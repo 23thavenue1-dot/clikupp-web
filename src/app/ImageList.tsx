@@ -8,7 +8,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, createGallery, addMultipleImagesToGalleries, toggleGlobalImagePin } from '@/lib/firestore';
+import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, createGallery, addMultipleImagesToGalleries, toggleGlobalImagePin, deleteMultipleImages } from '@/lib/firestore';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, CopyPlus, Ticket, PlusCircle, X, BoxSelect, Sparkles, Save, Download, MoreHorizontal, PinOff, Pin } from 'lucide-react';
@@ -73,6 +73,8 @@ export function ImageList() {
     const [isDownloading, setIsDownloading] = useState<string | null>(null);
     const [showDeleteAlert, setShowDeleteAlert] = useState(false);
     const [imageToDelete, setImageToDelete] = useState<ImageMetadata | null>(null);
+
+    const [showMultiDeleteAlert, setShowMultiDeleteAlert] = useState(false);
 
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [imageToEdit, setImageToEdit] = useState<ImageMetadata | null>(null);
@@ -177,6 +179,37 @@ export function ImageList() {
             setIsDeleting(null);
             setShowDeleteAlert(false);
             setImageToDelete(null);
+        }
+    };
+
+    const handleMultiDelete = async () => {
+        if (selectedImages.size === 0 || !user || !firestore || !firebaseApp) return;
+    
+        setIsDeleting('multi'); // Indicate that a multi-delete operation is in progress
+    
+        try {
+            const imageIdsToDelete = Array.from(selectedImages);
+            await deleteMultipleImages(firestore, getStorage(firebaseApp), user.uid, imageIdsToDelete);
+    
+            toast({
+                title: `${imageIdsToDelete.length} image(s) supprimée(s)`,
+                description: "Les images sélectionnées ont été définitivement supprimées.",
+            });
+    
+            // Reset selection mode
+            setIsSelectionMode(false);
+            setSelectedImages(new Set());
+    
+        } catch (error) {
+            console.error("Erreur lors de la suppression multiple :", error);
+            toast({
+                variant: 'destructive',
+                title: 'Erreur de suppression',
+                description: "Une erreur est survenue. Certaines images n'ont peut-être pas été supprimées."
+            });
+        } finally {
+            setIsDeleting(null);
+            setShowMultiDeleteAlert(false);
         }
     };
 
@@ -401,7 +434,16 @@ export function ImageList() {
                             disabled={selectedImages.size === 0}
                         >
                             <CopyPlus className="mr-2 h-4 w-4"/>
-                            Ajouter à une galerie
+                            Ajouter à
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setShowMultiDeleteAlert(true)}
+                            disabled={selectedImages.size === 0}
+                        >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Supprimer
                         </Button>
                         <Button 
                             variant="outline" 
@@ -580,6 +622,24 @@ export function ImageList() {
                     <AlertDialogFooter>
                     <AlertDialogCancel>Annuler</AlertDialogCancel>
                     <AlertDialogAction onClick={handleDeleteImage} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            
+            <AlertDialog open={showMultiDeleteAlert} onOpenChange={setShowMultiDeleteAlert}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Supprimer {selectedImages.size} image(s) ?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Cette action est irréversible. Les images sélectionnées seront définitivement supprimées de votre compte.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting === 'multi'}>Annuler</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleMultiDelete} disabled={isDeleting === 'multi'} className="bg-destructive hover:bg-destructive/90">
+                            {isDeleting === 'multi' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Supprimer
+                        </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
