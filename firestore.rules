@@ -109,6 +109,15 @@ service cloud.firestore {
         allow delete: if isExistingOwner(userId);
       }
     }
+    
+    /**
+     * @description Defines access rules for Stripe customer documents.
+     * @path /customers/{userId}
+     */
+    match /customers/{userId} {
+      allow read, create, update: if isOwner(userId);
+      allow list, delete: if false;
+    }
 
     /**
      * @description Defines access rules for admin role documents.
