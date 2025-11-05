@@ -1,8 +1,9 @@
+
 'use server';
 
 import { Stripe } from 'stripe';
 import { headers } from 'next/headers';
-import { User } from 'firebase/auth';
+import type { User } from 'firebase/auth'; // Import complet de User
 import { doc, getDoc, setDoc, Firestore } from 'firebase/firestore';
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
@@ -17,7 +18,7 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
  * @returns L'ID du client Stripe (cus_...).
  */
 async function getOrCreateCustomer(firestore: Firestore, user: User): Promise<string> {
-    const customerDocRef = doc(firestore, `customers/${user.uid}`);
+    const customerDocRef = doc(firestore, 'customers', user.uid);
     const customerSnap = await getDoc(customerDocRef);
 
     if (customerSnap.exists() && customerSnap.data().stripeId) {
