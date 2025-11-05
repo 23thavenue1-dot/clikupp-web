@@ -117,7 +117,10 @@ export function ImageList() {
             const bIsPinned = pinnedIds.has(b.id);
             if (aIsPinned && !bIsPinned) return -1;
             if (!aIsPinned && bIsPinned) return 1;
-            return 0; // Conserver l'ordre original (par date) sinon
+            // Si le statut d'épingle est le même, trier par date de téléversement
+            const dateA = a.uploadTimestamp?.toDate()?.getTime() || 0;
+            const dateB = b.uploadTimestamp?.toDate()?.getTime() || 0;
+            return dateB - dateA;
         });
     }, [images, userProfile]);
 
@@ -363,7 +366,7 @@ export function ImageList() {
             toast({
                 title: isCurrentlyPinned ? 'Image désépinglée' : 'Image épinglée globalement',
             });
-            refetchUserProfile();
+            // No need to call refetch, useDoc handles it.
         } catch (error) {
              toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de modifier l'épingle." });
         }
@@ -757,5 +760,7 @@ export function ImageList() {
         </TooltipProvider>
     );
 }
+
+    
 
     
