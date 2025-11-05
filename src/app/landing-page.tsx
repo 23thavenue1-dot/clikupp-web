@@ -202,7 +202,7 @@ export function LandingPage() {
                             <p className="font-semibold text-muted-foreground mb-2">AVANT</p>
                             <div className="aspect-square w-full relative rounded-xl shadow-lg overflow-hidden">
                                 <Image 
-                                    src="https://firebasestorage.googleapis.com/v0/b/studio-9587105821-540bd.firebasestorage.app/o/users%2F7nDHEQjIR9UYfgg0mwKhd4oGPCP2%2F1762304969125_ai-edited-1762304969125.png?alt=media&token=ced55748-0009-423a-a044-67c25df8a53a"
+                                    src="https://firebasestorage.googleapis.com/v0/b/studio-9587105821-540bd.firebasestorage.app/o/users%2F7nDHEQjIR9UYfgg0mwKhd4oGPCP2%2F1762307101344_ai-edited-1762307101344.png?alt=media&token=31491910-23f6-4358-8df9-2564432335a3"
                                     alt="Portrait d'un homme avant la retouche par IA"
                                     fill
                                     className="object-cover"
