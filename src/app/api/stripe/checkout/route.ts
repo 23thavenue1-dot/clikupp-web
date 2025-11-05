@@ -26,11 +26,14 @@ export async function POST(req: NextRequest) {
         if (session.url) {
             return NextResponse.json({ url: session.url });
         } else {
-             return new NextResponse('La création de la session Stripe a échoué.', { status: 500 });
+             // S'assurer de toujours renvoyer une réponse JSON valide en cas d'échec interne
+             return NextResponse.json({ error: { message: "La création de la session Stripe a échoué." } }, { status: 500 });
         }
 
     } catch (error) {
         console.error('API Checkout Error:', error);
-        return new NextResponse((error as Error).message, { status: 500 });
+        // Renvoyer une erreur JSON claire au client
+        const errorMessage = (error instanceof Error) ? error.message : 'Une erreur inconnue est survenue';
+        return NextResponse.json({ error: { message: errorMessage } }, { status: 500 });
     }
 }
