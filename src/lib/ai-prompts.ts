@@ -29,6 +29,7 @@ export const suggestionCategories: PromptCategory[] = [
             { title: "Jouet Collector", prompt: "Détoure le sujet et transforme-le en jouet collector (type figurine) dans son emballage d'origine." },
             { title: "Homme/Femme d'affaires", prompt: "Détoure le sujet, habille-le avec un costume élégant (costard) et donne-lui une expression qui inspire confiance." },
             { title: "Look Sportif", prompt: "Détoure le sujet, donne-lui une tenue de sport et une allure athlétique et affirmée." },
+            { title: "Photo Publicitaire", prompt: "Rends la photo, prise par un photographe proffésionnel pour une publicité." },
         ],
     },
     {
