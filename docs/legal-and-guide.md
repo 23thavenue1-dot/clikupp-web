@@ -59,18 +59,10 @@ Nous croyons en une communication transparente. Si vous êtes déçu par un rés
 3.  **Consommez un autre ticket :** Chaque génération est unique. Une nouvelle tentative peut produire un résultat complètement différent et plus satisfaisant.
 
 ### b) Comment nous contacter ?
-Pour tout problème technique, question ou suggestion, le meilleur moyen de nous contacter est d'ouvrir une **"Issue"** (un ticket de support) sur notre dépôt GitHub public.
+Pour tout problème technique, question ou suggestion, la méthode la plus efficace est de nous contacter en créant un "ticket" sur notre page de support.
 
-#### Qu'est-ce que GitHub Issues et pourquoi l'utiliser ?
-*   **Qu'est-ce que c'est ?** GitHub est la plateforme où le code de notre projet est géré. La section "Issues" est notre service client officiel : un espace centralisé pour tous les retours.
-*   **Comment ça marche ?** Vous créez un "ticket" pour décrire votre problème ou votre idée. Vous pouvez même y joindre des captures d'écran.
-*   **Pourquoi c'est mieux pour vous ?**
-    *   **Transparence et Suivi :** Votre demande est officiellement enregistrée et visible. Vous pouvez suivre son statut (en cours, résolu...).
-    *   **Pas de demande perdue :** Contrairement à un email, votre ticket ne se perdra pas.
-    *   **Communauté :** D'autres utilisateurs rencontrant le même problème peuvent voir votre ticket et y contribuer, ce qui nous aide à le résoudre plus vite pour tout le monde.
+Cela garantit que votre demande est bien enregistrée, suivie et ne se perdra pas. C'est la méthode la plus directe pour obtenir de l'aide de notre part.
 
-C'est la méthode la plus professionnelle et la plus efficace pour garantir que chaque demande soit prise en compte.
-
-*   **Lien vers le support GitHub :** `[Insérer ici le lien vers les Issues de votre dépôt GitHub]`
+*   **Lien vers le support :** `[Insérer ici le lien vers les Issues de votre dépôt GitHub]`
 
 Merci de faire partie de l'aventure Clikup !
