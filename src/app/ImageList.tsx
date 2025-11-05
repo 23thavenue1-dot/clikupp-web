@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, createGallery, addMultipleImagesToGalleries, toggleGlobalImagePin, deleteMultipleImages } from '@/lib/firestore';
-import { formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow, addMonths, startOfMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, CopyPlus, Ticket, PlusCircle, X, BoxSelect, Sparkles, Save, Download, MoreHorizontal, PinOff, Pin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -405,6 +405,9 @@ export function ImageList() {
         }
     };
 
+    const monthlyLimitReached = (userProfile?.aiTicketMonthlyCount ?? 0) >= 40 && (userProfile?.aiTicketCount ?? 0) === 0;
+    const nextRefillDate = format(addMonths(startOfMonth(new Date()), 1), "d MMMM", { locale: fr });
+
 
     const renderSkeleton = () => (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -699,53 +702,59 @@ export function ImageList() {
                                     <span>{userProfile?.aiTicketCount ?? 0} restants</span>
                                 </div>
                             </div>
-                            <DropdownMenu>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <DropdownMenuTrigger asChild disabled={isGeneratingDescription || isSavingDescription || !hasAiTickets}>
-                                            <Button 
-                                                variant="outline" 
-                                                className="w-full"
-                                                aria-label="Générer avec l'IA"
-                                            >
-                                                {isGeneratingDescription ? (
-                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
-                                                ) : (
-                                                    <Wand2 className="mr-2 h-4 w-4"/>
-                                                )}
-                                                {isGeneratingDescription ? 'Génération...' : 'Générer avec l\'IA pour...'}
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                    </TooltipTrigger>
-                                    {!hasAiTickets && (
-                                        <TooltipContent>
-                                            <p className="cursor-pointer font-semibold text-primary">Plus de tickets ? Rechargez ici !</p>
-                                        </TooltipContent>
-                                    )}
-                                </Tooltip>
-                                <DropdownMenuContent className="w-56">
-                                    <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}>
-                                        <Instagram className="mr-2 h-4 w-4" />
-                                        <span>Instagram</span>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleGenerateDescription('facebook')}>
-                                        <Facebook className="mr-2 h-4 w-4" />
-                                        <span>Facebook</span>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleGenerateDescription('x')}>
-                                        <MessageSquare className="mr-2 h-4 w-4" />
-                                        <span>X (Twitter)</span>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleGenerateDescription('tiktok')}>
-                                        <VenetianMask className="mr-2 h-4 w-4" />
-                                        <span>TikTok</span>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleGenerateDescription('generic')}>
-                                        <Wand2 className="mr-2 h-4 w-4" />
-                                        <span>Générique</span>
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                            {monthlyLimitReached ? (
+                                <p className="text-center text-sm text-primary font-semibold">
+                                    Limite mensuelle de tickets gratuits atteinte. Prochaine recharge le {nextRefillDate}.
+                                </p>
+                            ) : (
+                                <DropdownMenu>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <DropdownMenuTrigger asChild disabled={isGeneratingDescription || isSavingDescription || !hasAiTickets}>
+                                                <Button 
+                                                    variant="outline" 
+                                                    className="w-full"
+                                                    aria-label="Générer avec l'IA"
+                                                >
+                                                    {isGeneratingDescription ? (
+                                                        <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+                                                    ) : (
+                                                        <Wand2 className="mr-2 h-4 w-4"/>
+                                                    )}
+                                                    {isGeneratingDescription ? 'Génération...' : 'Générer avec l\'IA pour...'}
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                        </TooltipTrigger>
+                                        {!hasAiTickets && !monthlyLimitReached && (
+                                            <TooltipContent>
+                                                <p className="cursor-pointer font-semibold text-primary">Plus de tickets ? Rechargez ici !</p>
+                                            </TooltipContent>
+                                        )}
+                                    </Tooltip>
+                                    <DropdownMenuContent className="w-56">
+                                        <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}>
+                                            <Instagram className="mr-2 h-4 w-4" />
+                                            <span>Instagram</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleGenerateDescription('facebook')}>
+                                            <Facebook className="mr-2 h-4 w-4" />
+                                            <span>Facebook</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleGenerateDescription('x')}>
+                                            <MessageSquare className="mr-2 h-4 w-4" />
+                                            <span>X (Twitter)</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleGenerateDescription('tiktok')}>
+                                            <VenetianMask className="mr-2 h-4 w-4" />
+                                            <span>TikTok</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleGenerateDescription('generic')}>
+                                            <Wand2 className="mr-2 h-4 w-4" />
+                                            <span>Générique</span>
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            )}
                         </div>
                     </div>
                     <DialogFooter>
@@ -824,3 +833,4 @@ export function ImageList() {
     
 
     
+

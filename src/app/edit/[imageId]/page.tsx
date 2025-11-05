@@ -19,6 +19,8 @@ import { uploadFileAndGetMetadata } from '@/lib/storage';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { suggestionCategories } from '@/lib/ai-prompts';
+import { format, addMonths, startOfMonth } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 // --- Helper pour convertir Data URI en Blob ---
 async function dataUriToBlob(dataUri: string): Promise<Blob> {
@@ -127,6 +129,8 @@ export default function EditImagePage() {
     }
 
     const hasAiTickets = (userProfile?.aiTicketCount ?? 0) > 0;
+    const monthlyLimitReached = (userProfile?.aiTicketMonthlyCount ?? 0) >= 40 && !hasAiTickets;
+    const nextRefillDate = format(addMonths(startOfMonth(new Date()), 1), "d MMMM", { locale: fr });
 
     return (
         <div className="bg-muted/20 min-h-screen">
@@ -158,17 +162,23 @@ export default function EditImagePage() {
             <div className="container mx-auto">
                 <main className="py-6 space-y-6">
                     
-                    <div className="flex flex-col items-center gap-4">
-                        <Button 
-                            size="lg"
-                            onClick={handleGenerate}
-                            disabled={!prompt || isGenerating || isSaving || !hasAiTickets}
-                            className="w-full max-w-sm"
-                        >
-                            {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5" />}
-                            {isGenerating ? 'Génération en cours...' : 'Générer avec l\'IA'}
-                        </Button>
-                        {!hasAiTickets && !isGenerating && (
+                    <div className="flex flex-col items-center gap-2">
+                         {monthlyLimitReached ? (
+                            <p className="text-center text-sm text-primary font-semibold">
+                                Limite mensuelle de tickets gratuits atteinte. Prochaine recharge le {nextRefillDate}.
+                            </p>
+                        ) : (
+                            <Button 
+                                size="lg"
+                                onClick={handleGenerate}
+                                disabled={!prompt || isGenerating || isSaving || !hasAiTickets}
+                                className="w-full max-w-sm"
+                            >
+                                {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5" />}
+                                {isGenerating ? 'Génération en cours...' : 'Générer avec l\'IA'}
+                            </Button>
+                        )}
+                        {!hasAiTickets && !isGenerating && !monthlyLimitReached && (
                             <p className="text-center text-sm text-primary font-semibold cursor-pointer hover:underline">
                                 Plus de tickets ? Rechargez ici !
                             </p>
