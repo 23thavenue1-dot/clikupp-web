@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -8,7 +7,9 @@ import { Check, Crown, Gem, Rocket, Sparkles, Upload, Loader2 } from 'lucide-rea
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
+import { collection, addDoc, onSnapshot } from 'firebase/firestore';
+
 
 const subscriptions = [
     {
@@ -75,10 +76,11 @@ const aiPacks = [
 export default function ShopPage() {
     const { toast } = useToast();
     const { user } = useUser();
+    const firestore = useFirestore();
     const [loadingPriceId, setLoadingPriceId] = useState<string | null>(null);
 
-    const handlePurchaseClick = async (priceId: string, productName: string, mode: 'payment' | 'subscription') => {
-        if (!user) {
+    const handlePurchaseClick = async (priceId: string, mode: 'payment' | 'subscription') => {
+        if (!user || !firestore) {
             toast({
                 title: "Veuillez vous connecter",
                 description: "Vous devez être connecté pour effectuer un achat.",
@@ -90,37 +92,45 @@ export default function ShopPage() {
         setLoadingPriceId(priceId);
 
         try {
-            const response = await fetch('/api/stripe/checkout', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ 
-                    priceId, 
-                    mode, 
-                    userId: user.uid, 
-                    userEmail: user.email 
-                }),
+            // Créer un document dans la sous-collection checkout_sessions de l'utilisateur
+            const checkoutSessionRef = await addDoc(
+                collection(firestore, 'customers', user.uid, 'checkout_sessions'), 
+                {
+                    mode: mode,
+                    price: priceId,
+                    success_url: `${window.location.origin}/`,
+                    cancel_url: window.location.href,
+                }
+            );
+
+            // Écouter les changements sur ce document
+            const unsubscribe = onSnapshot(checkoutSessionRef, (snap) => {
+                const { error, url } = snap.data() || {};
+                
+                if (error) {
+                    console.error('Stripe Error:', error);
+                    toast({
+                        variant: 'destructive',
+                        title: 'Erreur de paiement',
+                        description: error.message || "La communication avec le service de paiement a échoué.",
+                    });
+                    setLoadingPriceId(null);
+                    unsubscribe(); // Arrêter l'écoute
+                }
+                
+                if (url) {
+                    // Rediriger vers la page de paiement de Stripe
+                    window.location.assign(url);
+                    // L'écouteur s'arrêtera car la page change, pas besoin de `unsubscribe()` ici.
+                }
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Une erreur est survenue.');
-            }
-
-            const { url } = await response.json();
-            if (url) {
-                window.location.assign(url);
-            } else {
-                throw new Error("Impossible d'obtenir l'URL de paiement.");
-            }
-
         } catch (error) {
-            console.error("Erreur lors de la création de la session Stripe:", error);
+            console.error("Erreur lors de la création de la session checkout dans Firestore:", error);
             toast({
                 variant: 'destructive',
-                title: 'Erreur de paiement',
-                description: (error as Error).message || "La communication avec le service de paiement a échoué. Veuillez réessayer.",
+                title: 'Erreur',
+                description: "Impossible d'initier la session de paiement. Veuillez réessayer.",
             });
             setLoadingPriceId(null);
         }
@@ -168,7 +178,7 @@ export default function ShopPage() {
                                     </ul>
                                 </CardContent>
                                 <CardFooter>
-                                    <Button className="w-full" onClick={() => handlePurchaseClick(sub.id, sub.title, sub.mode as 'subscription')} disabled={loadingPriceId === sub.id}>
+                                    <Button className="w-full" onClick={() => handlePurchaseClick(sub.id, sub.mode as 'subscription')} disabled={loadingPriceId === sub.id}>
                                         {loadingPriceId === sub.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                                         {sub.featured ? 'Choisir le plan Pro' : 'S\'abonner'}
                                     </Button>
@@ -194,7 +204,7 @@ export default function ShopPage() {
                                  </CardHeader>
                                  <CardContent className="flex-grow"/>
                                  <CardFooter>
-                                    <Button className="w-full" variant={pack.featured ? 'default' : 'outline'} onClick={() => handlePurchaseClick(pack.id, pack.title, pack.mode as 'payment')} disabled={loadingPriceId === pack.id}>
+                                    <Button className="w-full" variant={pack.featured ? 'default' : 'outline'} onClick={() => handlePurchaseClick(pack.id, pack.mode as 'payment')} disabled={loadingPriceId === pack.id}>
                                          {loadingPriceId === pack.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                                          Acheter pour {pack.price}
                                      </Button>
@@ -220,7 +230,7 @@ export default function ShopPage() {
                                  </CardHeader>
                                  <CardContent className="flex-grow"/>
                                  <CardFooter>
-                                    <Button className="w-full" variant={pack.featured ? 'default' : 'outline'} onClick={() => handlePurchaseClick(pack.id, pack.title, pack.mode as 'payment')} disabled={loadingPriceId === pack.id}>
+                                    <Button className="w-full" variant={pack.featured ? 'default' : 'outline'} onClick={() => handlePurchaseClick(pack.id, pack.mode as 'payment')} disabled={loadingPriceId === pack.id}>
                                          {loadingPriceId === pack.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                                         Acheter pour {pack.price}
                                      </Button>
@@ -232,7 +242,7 @@ export default function ShopPage() {
 
             </Tabs>
              <div className="text-center mt-12">
-                <p className="text-sm text-muted-foreground">Les paiements sont sécurisés. Les abonnements peuvent être annulés à tout moment.</p>
+                <p className="text-sm text-muted-foreground">Les paiements sont sécurisés via Stripe. Les abonnements peuvent être annulés à tout moment.</p>
                 <p className="text-sm text-muted-foreground">Les packs de tickets n'ont pas de date d'expiration.</p>
             </div>
         </div>
