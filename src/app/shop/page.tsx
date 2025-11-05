@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,9 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Check, Crown, Gem, Rocket, Sparkles, Upload } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 
 const subscriptions = [
     {
+        id: 'price_1PXXX', // Remplacer par le vrai ID de prix Stripe
         title: 'Créateur',
         price: '4,99 €',
         period: '/ mois',
@@ -22,6 +23,7 @@ const subscriptions = [
         icon: Rocket,
     },
     {
+        id: 'price_1PXXY', // Remplacer par le vrai ID de prix Stripe
         title: 'Pro',
         price: '9,99 €',
         period: '/ mois',
@@ -36,6 +38,7 @@ const subscriptions = [
         featured: true,
     },
     {
+        id: 'price_1PXXZ', // Remplacer par le vrai ID de prix Stripe
         title: 'Maître',
         price: '19,99 €',
         period: '/ mois',
@@ -51,19 +54,28 @@ const subscriptions = [
 ];
 
 const uploadPacks = [
-  { title: "Boost S", tickets: 50, price: "1,99 €", icon: Upload },
-  { title: "Boost M", tickets: 120, price: "3,99 €", icon: Upload },
-  { title: "Boost L", tickets: 300, price: "7,99 €", icon: Upload, featured: true },
+  { id: 'price_1PXYA', title: "Boost S", tickets: 50, price: "1,99 €", icon: Upload },
+  { id: 'price_1PXYB', title: "Boost M", tickets: 120, price: "3,99 €", icon: Upload },
+  { id: 'price_1PXYC', title: "Boost L", tickets: 300, price: "7,99 €", icon: Upload, featured: true },
 ];
 
 const aiPacks = [
-  { title: "Boost S", tickets: 20, price: "2,99 €", icon: Sparkles },
-  { title: "Boost M", tickets: 50, price: "5,99 €", icon: Sparkles },
-  { title: "Boost L", tickets: 150, price: "14,99 €", icon: Sparkles, featured: true },
+  { id: 'price_1PXYD', title: "Boost S", tickets: 20, price: "2,99 €", icon: Sparkles },
+  { id: 'price_1PXYE', title: "Boost M", tickets: 50, price: "5,99 €", icon: Sparkles },
+  { id: 'price_1PXYF', title: "Boost L", tickets: 150, price: "14,99 €", icon: Sparkles, featured: true },
 ];
 
 
 export default function ShopPage() {
+    const { toast } = useToast();
+
+    const handlePurchaseClick = (productName: string) => {
+        toast({
+            title: "Boutique en construction",
+            description: `Le produit "${productName}" sera bientôt disponible à l'achat.`,
+        });
+    };
+
     return (
         <div className="container mx-auto py-12 px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
@@ -106,7 +118,7 @@ export default function ShopPage() {
                                     </ul>
                                 </CardContent>
                                 <CardFooter>
-                                    <Button className="w-full" disabled>
+                                    <Button className="w-full" onClick={() => handlePurchaseClick(sub.title)}>
                                         {sub.featured ? 'Choisir le plan Pro' : 'S\'abonner'}
                                     </Button>
                                 </CardFooter>
@@ -131,7 +143,7 @@ export default function ShopPage() {
                                  </CardHeader>
                                  <CardContent className="flex-grow"/>
                                  <CardFooter>
-                                    <Button className="w-full" variant={pack.featured ? 'default' : 'outline'} disabled>
+                                    <Button className="w-full" variant={pack.featured ? 'default' : 'outline'} onClick={() => handlePurchaseClick(pack.title)}>
                                          Acheter pour {pack.price}
                                      </Button>
                                  </CardFooter>
@@ -156,7 +168,7 @@ export default function ShopPage() {
                                  </CardHeader>
                                  <CardContent className="flex-grow"/>
                                  <CardFooter>
-                                    <Button className="w-full" variant={pack.featured ? 'default' : 'outline'} disabled>
+                                    <Button className="w-full" variant={pack.featured ? 'default' : 'outline'} onClick={() => handlePurchaseClick(pack.title)}>
                                         Acheter pour {pack.price}
                                      </Button>
                                  </CardFooter>
