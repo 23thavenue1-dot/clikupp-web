@@ -27,7 +27,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import type { User } from 'firebase/auth';
 import { isBefore, startOfDay, startOfMonth } from 'date-fns';
-import { stripe } from '@/lib/stripe';
+
 
 
 // Correspond à la structure dans backend.json

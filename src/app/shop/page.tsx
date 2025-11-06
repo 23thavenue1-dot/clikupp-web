@@ -8,7 +8,8 @@ import { Check, Crown, Gem, Rocket, Sparkles, Upload, Loader2 } from 'lucide-rea
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
+import { collection, addDoc, onSnapshot } from 'firebase/firestore';
 
 
 const subscriptions = [
@@ -76,10 +77,11 @@ const aiPacks = [
 export default function ShopPage() {
     const { toast } = useToast();
     const { user } = useUser();
+    const firestore = useFirestore();
     const [loadingPriceId, setLoadingPriceId] = useState<string | null>(null);
 
     const handlePurchaseClick = async (priceId: string, mode: 'payment' | 'subscription') => {
-        if (!user) {
+        if (!user || !firestore) {
             toast({ title: "Veuillez vous connecter", description: "Vous devez être connecté pour effectuer un achat.", variant: "destructive" });
             return;
         }
@@ -87,37 +89,45 @@ export default function ShopPage() {
         setLoadingPriceId(priceId);
 
         try {
-            const response = await fetch('/api/checkout', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    priceId,
-                    mode,
-                    userId: user.uid,
-                    userEmail: user.email,
-                }),
+            // Créer un document dans la sous-collection 'checkout_sessions'
+            const checkoutSessionRef = await addDoc(collection(firestore, 'customers', user.uid, 'checkout_sessions'), {
+                price: priceId,
+                mode: mode,
+                success_url: window.location.origin,
+                cancel_url: window.location.href,
             });
-            
-            const body = await response.json();
 
-            if (!response.ok) {
-                // Si la réponse n'est pas OK, on utilise le message d'erreur du backend s'il existe
-                throw new Error(body.message || 'Une erreur est survenue lors de la création de la session de paiement.');
-            }
+            // Écouter les changements sur ce document
+            const unsubscribe = onSnapshot(checkoutSessionRef, (snap) => {
+                const data = snap.data();
+                const { error, url } = data || {};
 
-            if (body.url) {
-                // Rediriger l'utilisateur vers la page de paiement Stripe
-                window.location.href = body.url;
-            } else {
-                throw new Error("L'URL de paiement n'a pas été reçue.");
-            }
+                if (error) {
+                    // Erreur remontée par l'extension Stripe
+                    console.error('Stripe Error:', error);
+                    toast({
+                        variant: 'destructive',
+                        title: 'Erreur de paiement',
+                        description: error.message || "La communication avec le service de paiement a échoué.",
+                    });
+                    setLoadingPriceId(null);
+                    unsubscribe();
+                }
+
+                if (url) {
+                    // URL de paiement reçue, on redirige l'utilisateur
+                    window.location.assign(url);
+                    // Pas besoin de setLoadingPriceId(null) car on quitte la page
+                    unsubscribe();
+                }
+            });
 
         } catch (error: any) {
-            console.error('Stripe Error:', error);
+            console.error('Firestore Error:', error);
             toast({
                 variant: 'destructive',
-                title: 'Erreur de paiement',
-                description: error.message || "La communication avec le service de paiement a échoué.",
+                title: 'Erreur',
+                description: "Impossible de lancer le processus de paiement. Veuillez réessayer.",
             });
             setLoadingPriceId(null);
         }
