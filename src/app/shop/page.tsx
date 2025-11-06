@@ -61,13 +61,13 @@ const subscriptions = [
 ];
 
 const uploadPacks = [
-  { id: 'price_1SQ8yACL0iCpjJiiRAf3iFjZ', title: "Boost S", tickets: 50, price: "1,99 €", icon: Upload, mode: 'payment' },
+  { id: 'price_1SQImVFxufdYfSFc6oQcKZ3q', title: "Boost S", tickets: 50, price: "1,99 €", icon: Upload, mode: 'payment' },
   { id: 'price_1SQ8xyCL0iCpjJiiqW038S9Z', title: "Boost M", tickets: 120, price: "3,99 €", icon: Upload, mode: 'payment' },
   { id: 'price_1SQ8zLCL0iCpjJiiLoxKSEej', title: "Boost L", tickets: 300, price: "7,99 €", icon: Upload, featured: true, mode: 'payment' },
 ];
 
 const aiPacks = [
-  { id: 'price_1SQImVFxufdYfSFc6oQcKZ3q', title: "Boost S", tickets: 20, price: "2,99 €", icon: Sparkles, mode: 'payment' },
+  { id: 'price_1SQ91HCL0iCpjJiiUV4xjJJE', title: "Boost S", tickets: 20, price: "2,99 €", icon: Sparkles, mode: 'payment' },
   { id: 'price_1SQ92mCL0iCpjJiiK0lISxQ5', title: "Boost M", tickets: 50, price: "5,99 €", icon: Sparkles, mode: 'payment' },
   { id: 'price_1SQ944CL0iCpjJii3B2LrQnQ', title: "Boost L", tickets: 150, price: "14,99 €", icon: Sparkles, featured: true, mode: 'payment' },
 ];
