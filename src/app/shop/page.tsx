@@ -4,27 +4,13 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, Crown, Gem, Rocket, Sparkles, Upload, Loader2, Copy } from 'lucide-react';
+import { Check, Crown, Gem, Rocket, Sparkles, Upload, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, onSnapshot, doc, getDoc, setDoc } from 'firebase/firestore';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Input } from '@/components/ui/input';
-import { stripe } from '@/lib/stripe';
 import type { UserProfile } from '@/lib/firestore';
+import { doc } from 'firebase/firestore';
 
 
 const subscriptions = [
@@ -92,43 +78,7 @@ const aiPacks = [
 export default function ShopPage() {
     const { toast } = useToast();
     const { user } = useUser();
-    const firestore = useFirestore();
     const [loadingPriceId, setLoadingPriceId] = useState<string | null>(null);
-    const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
-    const [isUrlCopied, setIsUrlCopied] = useState(false);
-
-    const userDocRef = useMemoFirebase(() => {
-        if (!user || !firestore) return null;
-        return doc(firestore, `users/${user.uid}`);
-    }, [user, firestore]);
-    const { data: userProfile } = useDoc<UserProfile>(userDocRef);
-
-
-    const getOrCreateStripeCustomer = async () => {
-        if (!user || !firestore || !userDocRef || !userProfile) return null;
-
-        // Si le customer ID existe déjà, on le retourne
-        // @ts-ignore
-        if (userProfile.stripeCustomerId) {
-            // @ts-ignore
-            return userProfile.stripeCustomerId;
-        }
-
-        // Sinon, on le crée
-        const customer = await stripe.customers.create({
-            email: user.email!,
-            name: user.displayName || undefined,
-            metadata: {
-                firebaseUID: user.uid,
-            },
-        });
-
-        // On le sauvegarde dans le profil utilisateur pour les prochaines fois
-        await setDoc(userDocRef, { stripeCustomerId: customer.id }, { merge: true });
-
-        return customer.id;
-    };
-
 
     const handlePurchaseClick = async (priceId: string, mode: 'payment' | 'subscription') => {
         if (!user) {
@@ -137,33 +87,28 @@ export default function ShopPage() {
         }
 
         setLoadingPriceId(priceId);
-        setCheckoutUrl(null);
-        setIsUrlCopied(false);
 
         try {
-            const stripeCustomerId = await getOrCreateStripeCustomer();
-            if (!stripeCustomerId) {
-                throw new Error("Impossible de récupérer ou créer le client Stripe.");
-            }
-
-            const session = await stripe.checkout.sessions.create({
-                customer: stripeCustomerId,
-                payment_method_types: ['card'],
-                line_items: [{
-                    price: priceId,
-                    quantity: 1,
-                }],
-                mode: mode,
-                success_url: `${window.location.origin}/?payment=success`,
-                cancel_url: window.location.href,
-                // On passe l'UID Firebase pour le retrouver dans le webhook
-                client_reference_id: user.uid,
+            const response = await fetch('/api/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    priceId,
+                    mode,
+                    userId: user.uid,
+                    userEmail: user.email,
+                }),
             });
 
-            if (session.url) {
-                setCheckoutUrl(session.url);
-            } else {
-                throw new Error("La session de paiement n'a pas pu être créée.");
+            const { url, error } = await response.json();
+
+            if (!response.ok) {
+                throw new Error(error || 'Une erreur est survenue.');
+            }
+
+            if (url) {
+                // Rediriger l'utilisateur vers la page de paiement Stripe
+                window.location.href = url;
             }
 
         } catch (error: any) {
@@ -178,13 +123,6 @@ export default function ShopPage() {
         }
     };
     
-    const copyUrlToClipboard = () => {
-        if (!checkoutUrl) return;
-        navigator.clipboard.writeText(checkoutUrl).then(() => {
-            setIsUrlCopied(true);
-            setTimeout(() => setIsUrlCopied(false), 2000);
-        });
-    };
 
     return (
         <div className="container mx-auto py-12 px-4 sm:px-6 lg:px-8">
@@ -195,30 +133,6 @@ export default function ShopPage() {
                 </p>
             </div>
             
-            <AlertDialog open={!!checkoutUrl} onOpenChange={() => setCheckoutUrl(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Session de paiement créée !</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Pour des raisons de sécurité, la page de paiement ne peut pas s'ouvrir ici. Veuillez copier le lien ci-dessous et l'ouvrir dans un nouvel onglet de votre navigateur pour finaliser votre achat.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <div className="flex items-center space-x-2">
-                        <Input id="checkout-url" value={checkoutUrl || ''} readOnly />
-                        <Button onClick={copyUrlToClipboard} size="icon">
-                            {isUrlCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                        </Button>
-                    </div>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Fermer</AlertDialogCancel>
-                        <AlertDialogAction asChild>
-                            <Link href={checkoutUrl || ''} target="_blank">Ouvrir dans un nouvel onglet</Link>
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-
-
             <Tabs defaultValue="subscriptions" className="w-full max-w-4xl mx-auto">
                 <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="subscriptions">Abonnements</TabsTrigger>
