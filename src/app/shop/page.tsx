@@ -8,8 +8,8 @@ import { Check, Crown, Gem, Rocket, Sparkles, Upload, Loader2, Copy } from 'luci
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { useUser, useFirestore } from '@/firebase';
-import { collection, addDoc, onSnapshot } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { collection, addDoc, onSnapshot, doc, getDoc, setDoc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import {
@@ -23,6 +23,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input';
+import { stripe } from '@/lib/stripe';
+import type { UserProfile } from '@/lib/firestore';
 
 
 const subscriptions = [
@@ -95,13 +97,42 @@ export default function ShopPage() {
     const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
     const [isUrlCopied, setIsUrlCopied] = useState(false);
 
+    const userDocRef = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return doc(firestore, `users/${user.uid}`);
+    }, [user, firestore]);
+    const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+
+
+    const getOrCreateStripeCustomer = async () => {
+        if (!user || !firestore || !userDocRef || !userProfile) return null;
+
+        // Si le customer ID existe déjà, on le retourne
+        // @ts-ignore
+        if (userProfile.stripeCustomerId) {
+            // @ts-ignore
+            return userProfile.stripeCustomerId;
+        }
+
+        // Sinon, on le crée
+        const customer = await stripe.customers.create({
+            email: user.email!,
+            name: user.displayName || undefined,
+            metadata: {
+                firebaseUID: user.uid,
+            },
+        });
+
+        // On le sauvegarde dans le profil utilisateur pour les prochaines fois
+        await setDoc(userDocRef, { stripeCustomerId: customer.id }, { merge: true });
+
+        return customer.id;
+    };
+
+
     const handlePurchaseClick = async (priceId: string, mode: 'payment' | 'subscription') => {
-        if (!user || !firestore) {
-            toast({
-                title: "Veuillez vous connecter",
-                description: "Vous devez être connecté pour effectuer un achat.",
-                variant: "destructive"
-            });
+        if (!user) {
+            toast({ title: "Veuillez vous connecter", variant: "destructive" });
             return;
         }
 
@@ -109,57 +140,40 @@ export default function ShopPage() {
         setCheckoutUrl(null);
         setIsUrlCopied(false);
 
-        const sessionData = {
-            mode: mode,
-            price: priceId,
-            success_url: `${window.location.origin}/?payment=success`,
-            cancel_url: window.location.href,
-        };
-        
-        const sessionsCollectionRef = collection(firestore, 'customers', user.uid, 'checkout_sessions');
-
         try {
-            const checkoutSessionRef = await addDoc(sessionsCollectionRef, sessionData)
-                .catch(error => {
-                    const permissionError = new FirestorePermissionError({
-                        path: `${sessionsCollectionRef.path}`,
-                        operation: 'create',
-                        requestResourceData: sessionData,
-                    });
-                    errorEmitter.emit('permission-error', permissionError);
-                    throw permissionError;
-                });
+            const stripeCustomerId = await getOrCreateStripeCustomer();
+            if (!stripeCustomerId) {
+                throw new Error("Impossible de récupérer ou créer le client Stripe.");
+            }
 
-            const unsubscribe = onSnapshot(checkoutSessionRef, (snap) => {
-                const { error, url } = snap.data() || {};
-                
-                if (error) {
-                    console.error('Stripe Error:', error);
-                    toast({
-                        variant: 'destructive',
-                        title: 'Erreur de paiement',
-                        description: error.message || "La communication avec le service de paiement a échoué.",
-                    });
-                    setLoadingPriceId(null);
-                    unsubscribe();
-                }
-                
-                if (url) {
-                    setCheckoutUrl(url); // Mettre à jour l'URL pour l'afficher
-                    setLoadingPriceId(null);
-                    unsubscribe();
-                }
-            }, (error) => {
-                const permissionError = new FirestorePermissionError({
-                    path: checkoutSessionRef.path,
-                    operation: 'get',
-                });
-                errorEmitter.emit('permission-error', permissionError);
-                setLoadingPriceId(null);
-                unsubscribe();
+            const session = await stripe.checkout.sessions.create({
+                customer: stripeCustomerId,
+                payment_method_types: ['card'],
+                line_items: [{
+                    price: priceId,
+                    quantity: 1,
+                }],
+                mode: mode,
+                success_url: `${window.location.origin}/?payment=success`,
+                cancel_url: window.location.href,
+                // On passe l'UID Firebase pour le retrouver dans le webhook
+                client_reference_id: user.uid,
             });
 
-        } catch (error) {
+            if (session.url) {
+                setCheckoutUrl(session.url);
+            } else {
+                throw new Error("La session de paiement n'a pas pu être créée.");
+            }
+
+        } catch (error: any) {
+            console.error('Stripe Error:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Erreur de paiement',
+                description: error.message || "La communication avec le service de paiement a échoué.",
+            });
+        } finally {
             setLoadingPriceId(null);
         }
     };

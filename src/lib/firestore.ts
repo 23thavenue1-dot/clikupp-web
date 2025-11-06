@@ -27,6 +27,8 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import type { User } from 'firebase/auth';
 import { isBefore, startOfDay, startOfMonth } from 'date-fns';
+import { stripe } from '@/lib/stripe';
+
 
 // Correspond à la structure dans backend.json
 export interface UserProfile {
@@ -59,6 +61,8 @@ export interface UserProfile {
   subscriptionAiTickets: number;
   subscriptionTier: 'none' | 'creator' | 'pro' | 'master';
   subscriptionRenewalDate: Timestamp | null;
+  // Champ Stripe
+  stripeCustomerId?: string;
 }
 
 
@@ -499,9 +503,13 @@ export async function deleteUserAccount(firestore: Firestore, storage: Storage, 
     const avatarsStorageRef = ref(storage, `avatars/${userId}`);
 
     const deleteFolderContents = async (folderRef:any) => {
-        const listResults = await listAll(folderRef);
-        const deletePromises = listResults.items.map(itemRef => deleteObject(itemRef));
-        await Promise.all(deletePromises);
+        try {
+            const listResults = await listAll(folderRef);
+            const deletePromises = listResults.items.map(itemRef => deleteObject(itemRef));
+            await Promise.all(deletePromises);
+        } catch (error) {
+             console.warn(`Impossible de lister ou supprimer le contenu du dossier ${folderRef.fullPath}:`, error);
+        }
     };
 
     await Promise.all([

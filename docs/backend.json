@@ -110,7 +110,8 @@
         "subscriptionUploadTickets": { "type": "number", "description": "Remaining monthly upload tickets from a subscription plan." },
         "subscriptionAiTickets": { "type": "number", "description": "Remaining monthly AI tickets from a subscription plan." },
         "subscriptionTier": { "type": "string", "description": "The current active subscription tier (e.g., 'creator', 'pro', 'none')." },
-        "subscriptionRenewalDate": { "type": "string", "description": "Timestamp for the next subscription renewal and ticket refill.", "format": "date-time" }
+        "subscriptionRenewalDate": { "type": "string", "description": "Timestamp for the next subscription renewal and ticket refill.", "format": "date-time" },
+        "stripeCustomerId": { "type": "string", "description": "The user's customer ID in Stripe." }
       },
       "required": [
         "id", "email", "displayName", "creationTimestamp", "ticketCount", "lastTicketRefill", 

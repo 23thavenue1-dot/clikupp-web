@@ -76,6 +76,8 @@ export default function SignupPage() {
         emailNotifications: true,
         initialPhotoURL: user.photoURL,
         profilePictureUpdateCount: 0,
+        // Stripe
+        stripeCustomerId: null,
       });
 
 
