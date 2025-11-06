@@ -111,12 +111,21 @@ service cloud.firestore {
     }
     
     /**
-     * @description Defines access rules for Stripe customer documents.
+     * @description Defines access rules for Stripe customer documents and related subcollections.
      * @path /customers/{userId}
      */
     match /customers/{userId} {
       allow read, create, update: if isOwner(userId);
       allow list, delete: if false;
+      
+      /**
+       * @description Allows a user to create checkout sessions for themselves.
+       *              The Stripe extension will then update this document with a URL.
+       */
+      match /checkout_sessions/{sessionId} {
+        allow read, create, write: if isOwner(userId);
+        allow list, delete: if false;
+      }
     }
 
     /**
