@@ -10,6 +10,6 @@ import { Stripe } from 'stripe';
 // avec la clé PUBLIABLE, mais pour le moment il n'est plus activement utilisé pour les paiements.
 
 export const stripe = new Stripe('', {
-  apiVersion: '2024-04-10',
+  apiVersion: '2024-06-20',
   typescript: true,
 });
