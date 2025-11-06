@@ -84,33 +84,31 @@ function ShopContent() {
     useEffect(() => {
         const sessionId = searchParams.get('session_id');
         if (sessionId && user && firestore) {
-            const checkPaymentStatus = async () => {
-                try {
-                    const sessionDocRef = doc(firestore, 'customers', user.uid, 'checkout_sessions', sessionId);
-                    const docSnap = await getDoc(sessionDocRef);
-
-                    if (docSnap.exists()) {
-                        const sessionData = docSnap.data();
-                        const paymentsCollectionRef = collection(firestore, 'customers', user.uid, 'payments');
-                        const paymentQuery = query(paymentsCollectionRef, where('checkoutSessionId', '==', sessionId));
-                        const paymentDocs = await getDocs(paymentQuery);
-
-                        if (!paymentDocs.empty) {
-                             toast({
-                                title: "Paiement réussi !",
-                                description: "Votre compte a été crédité. Merci pour votre achat.",
-                            });
-                        } else {
-                           // This might be a pending state, let's not show an error yet
-                           // but we can add a timeout or a few retries if needed.
-                           console.log("Checkout session found, but no corresponding payment yet.");
-                        }
+            const sessionDocRef = doc(firestore, 'customers', user.uid, 'checkout_sessions', sessionId);
+            
+            // Mettre en place un écouteur temps réel
+            const unsubscribe = onSnapshot(sessionDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const sessionData = docSnap.data();
+                    // L'extension Stripe ajoute le champ 'payment_intent_id' ou 'subscription_id'
+                    // quand le webhook est traité et le paiement réussi.
+                    // C'est un indicateur fiable que l'achat est complété.
+                    if (sessionData && (sessionData.payment_intent_id || sessionData.subscription_id)) {
+                        toast({
+                            title: "Paiement réussi !",
+                            description: "Votre compte a été crédité. Merci pour votre achat.",
+                        });
+                        // Arrêter l'écoute une fois la confirmation reçue
+                        unsubscribe(); 
                     }
-                } catch (error) {
-                    console.error("Erreur lors de la vérification du paiement:", error);
                 }
-            };
-            checkPaymentStatus();
+            }, (error) => {
+                console.error("Erreur d'écoute de la session de paiement:", error);
+                unsubscribe();
+            });
+
+            // Arrêter l'écoute si le composant est démonté
+            return () => unsubscribe();
         }
     }, [searchParams, user, firestore, toast]);
 
