@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, Crown, Gem, Rocket, Sparkles, Upload, Loader2 } from 'lucide-react';
+import { Check, Crown, Gem, Rocket, Sparkles, Upload, Loader2, Copy } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -12,6 +12,17 @@ import { useUser, useFirestore } from '@/firebase';
 import { collection, addDoc, onSnapshot } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Input } from '@/components/ui/input';
 
 
 const subscriptions = [
@@ -81,6 +92,8 @@ export default function ShopPage() {
     const { user } = useUser();
     const firestore = useFirestore();
     const [loadingPriceId, setLoadingPriceId] = useState<string | null>(null);
+    const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
+    const [isUrlCopied, setIsUrlCopied] = useState(false);
 
     const handlePurchaseClick = async (priceId: string, mode: 'payment' | 'subscription') => {
         if (!user || !firestore) {
@@ -93,11 +106,13 @@ export default function ShopPage() {
         }
 
         setLoadingPriceId(priceId);
+        setCheckoutUrl(null);
+        setIsUrlCopied(false);
 
         const sessionData = {
             mode: mode,
             price: priceId,
-            success_url: `${window.location.origin}/`,
+            success_url: `${window.location.origin}/?payment=success`,
             cancel_url: window.location.href,
         };
         
@@ -112,7 +127,6 @@ export default function ShopPage() {
                         requestResourceData: sessionData,
                     });
                     errorEmitter.emit('permission-error', permissionError);
-                    // Re-throw to stop execution
                     throw permissionError;
                 });
 
@@ -131,9 +145,11 @@ export default function ShopPage() {
                 }
                 
                 if (url) {
-                    window.location.assign(url);
+                    setCheckoutUrl(url); // Mettre à jour l'URL pour l'afficher
+                    setLoadingPriceId(null);
+                    unsubscribe();
                 }
-            }, (error) => { // onSnapshot error callback
+            }, (error) => {
                 const permissionError = new FirestorePermissionError({
                     path: checkoutSessionRef.path,
                     operation: 'get',
@@ -144,10 +160,16 @@ export default function ShopPage() {
             });
 
         } catch (error) {
-            // Errors from addDoc (like permission denied) are caught here
             setLoadingPriceId(null);
-            // No need for a toast here, the error emitter will handle it.
         }
+    };
+    
+    const copyUrlToClipboard = () => {
+        if (!checkoutUrl) return;
+        navigator.clipboard.writeText(checkoutUrl).then(() => {
+            setIsUrlCopied(true);
+            setTimeout(() => setIsUrlCopied(false), 2000);
+        });
     };
 
     return (
@@ -158,6 +180,30 @@ export default function ShopPage() {
                     Choisissez la formule qui correspond à vos ambitions. Passez au niveau supérieur ou rechargez simplement vos tickets pour ne jamais être à court de créativité.
                 </p>
             </div>
+            
+            <AlertDialog open={!!checkoutUrl} onOpenChange={() => setCheckoutUrl(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Session de paiement créée !</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Pour des raisons de sécurité, la page de paiement ne peut pas s'ouvrir ici. Veuillez copier le lien ci-dessous et l'ouvrir dans un nouvel onglet de votre navigateur pour finaliser votre achat.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="flex items-center space-x-2">
+                        <Input id="checkout-url" value={checkoutUrl || ''} readOnly />
+                        <Button onClick={copyUrlToClipboard} size="icon">
+                            {isUrlCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        </Button>
+                    </div>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Fermer</AlertDialogCancel>
+                        <AlertDialogAction asChild>
+                            <Link href={checkoutUrl || ''} target="_blank">Ouvrir dans un nouvel onglet</Link>
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
 
             <Tabs defaultValue="subscriptions" className="w-full max-w-4xl mx-auto">
                 <TabsList className="grid w-full grid-cols-3">
