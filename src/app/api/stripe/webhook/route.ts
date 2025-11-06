@@ -9,7 +9,7 @@ import { initializeApp, getApps, cert, getApp, App } from 'firebase-admin/app';
 // --- Définition des correspondances entre Price ID et tickets ---
 const priceIdToTickets: { [key: string]: { upload?: number; ai?: number } } = {
     // Packs Upload
-    'price_1SQ8wYCL0iCpjJiiuJUOTncv': { upload: 50 },
+    'price_1SQImVFxufdYfSFc6oQcKZ3q': { upload: 50 }, // Correct ID for "Boost S"
     'price_1SQ8xyCL0iCpjJiiqW038S9Z': { upload: 120 },
     'price_1SQ8zLCL0iCpjJiiLoxKSEej': { upload: 300 },
     // Packs IA
