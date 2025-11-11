@@ -9,26 +9,11 @@ import { Check, Crown, Gem, Rocket, Sparkles, Upload, Loader2 } from 'lucide-rea
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { useUser, useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, addDoc, onSnapshot, doc } from 'firebase/firestore';
+import { useUser, useFirestore } from '@/firebase';
+import { collection, addDoc, onSnapshot, doc, getDoc } from 'firebase/firestore';
 
 
 const subscriptions = [
-    {
-        id: 'price_1SQ8qMCL0iCpjJiiuReYJAG8',
-        title: 'Créateur',
-        price: '4,99 €',
-        period: '/ mois',
-        description: 'L\'idéal pour l\'amateur éclairé qui a besoin de plus de flexibilité.',
-        features: [
-            '500 tickets d\'upload par mois',
-            '50 tickets IA par mois',
-            '20 Go de stockage',
-            'Badge "Créateur" sur le profil',
-        ],
-        icon: Rocket,
-        mode: 'subscription',
-    },
     {
         id: 'price_1SSLhUFxufdYfSFcWj79b8rt',
         title: 'Pro',
@@ -43,6 +28,21 @@ const subscriptions = [
         ],
         icon: Gem,
         featured: true,
+        mode: 'subscription',
+    },
+     {
+        id: 'price_1SQ8qMCL0iCpjJiiuReYJAG8',
+        title: 'Créateur',
+        price: '4,99 €',
+        period: '/ mois',
+        description: 'L\'idéal pour l\'amateur éclairé qui a besoin de plus de flexibilité.',
+        features: [
+            '500 tickets d\'upload par mois',
+            '50 tickets IA par mois',
+            '20 Go de stockage',
+            'Badge "Créateur" sur le profil',
+        ],
+        icon: Rocket,
         mode: 'subscription',
     },
     {
@@ -118,71 +118,52 @@ function ShopContent() {
             toast({ title: "Veuillez vous connecter", description: "Vous devez être connecté pour effectuer un achat.", variant: "destructive" });
             return;
         }
-
+    
         setLoadingPriceId(priceId);
-
-        const successUrl = `${window.location.origin}${window.location.pathname}?session_id={CHECKOUT_SESSION_ID}`;
-        const cancelUrl = `${window.location.origin}${window.location.pathname}`;
-
-        const checkoutSessionData = {
-            price: priceId,
-            mode: mode,
-            success_url: successUrl,
-            cancel_url: cancelUrl,
-            customer_creation: 'always', 
-        };
-
-        const checkoutSessionsCollectionRef = collection(firestore, 'customers', user.uid, 'checkout_sessions');
-
+    
         try {
-            const docRef = await addDoc(checkoutSessionsCollectionRef, checkoutSessionData);
-
-            const unsubscribe = onSnapshot(docRef, (snap) => {
-                const data = snap.data();
-                if (!data) return; // Le document est peut-être en cours de création
-
-                const { error, url } = data;
-
-                if (error) {
-                    toast({
-                        variant: 'destructive',
-                        title: 'Erreur de paiement',
-                        description: error.message || "Une erreur est survenue. Vérifiez la console Firebase pour les logs de l'extension Stripe.",
-                    });
-                    setLoadingPriceId(null);
-                    unsubscribe();
-                }
-
-                if (url) {
-                    window.location.assign(url);
-                    // Pas besoin de setLoadingPriceId(null) car la page redirige
-                }
-            }, (err) => { // Gérer l'erreur de onSnapshot lui-même
-                const permissionError = new FirestorePermissionError({
-                    path: docRef.path,
-                    operation: 'get',
-                });
-                errorEmitter.emit('permission-error', permissionError);
-                toast({
-                    variant: 'destructive',
-                    title: 'Erreur de Permission',
-                    description: "Impossible de lire la session de paiement. Vérifiez vos règles de sécurité.",
-                });
-                setLoadingPriceId(null);
+            // Étape 1 : Créer le document de session de paiement dans Firestore
+            const checkoutSessionRef = await addDoc(collection(firestore, 'customers', user.uid, 'checkout_sessions'), {
+                price: priceId,
+                mode: mode,
+                success_url: `${window.location.origin}${window.location.pathname}?session_id={CHECKOUT_SESSION_ID}`,
+                cancel_url: `${window.location.origin}${window.location.pathname}`,
+                allow_promotion_codes: true,
+                customer_update: {
+                    address: 'auto',
+                    name: 'auto',
+                },
             });
-
-        } catch (error) {
-            const permissionError = new FirestorePermissionError({
-                path: checkoutSessionsCollectionRef.path,
-                operation: 'create',
-                requestResourceData: checkoutSessionData
-            });
-            errorEmitter.emit('permission-error', permissionError);
-
+    
+            // Étape 2 : Attendre que l'extension Stripe remplisse l'URL
+            // Nous utilisons une méthode de "polling" au lieu d'un snapshot pour plus de robustesse.
+            const pollForUrl = async (retries = 10, delay = 500): Promise<string> => {
+                for (let i = 0; i < retries; i++) {
+                    const sessionSnap = await getDoc(checkoutSessionRef);
+                    const sessionData = sessionSnap.data();
+                    
+                    if (sessionData?.url) {
+                        return sessionData.url;
+                    }
+                    if (sessionData?.error) {
+                        throw new Error(sessionData.error.message || "Une erreur Stripe est survenue.");
+                    }
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+                throw new Error("La session de paiement a expiré ou n'a pas pu être créée.");
+            };
+    
+            const url = await pollForUrl();
+    
+            // Étape 3 : Rediriger l'utilisateur vers la page de paiement
+            window.location.assign(url);
+    
+        } catch (error: any) {
+            console.error('Stripe Error:', error);
             toast({
                 variant: 'destructive',
-                title: 'Erreur Initiale',
-                description: "Impossible d'initier le paiement. Vos règles de sécurité Firestore bloquent peut-être l'action.",
+                title: 'Erreur de paiement',
+                description: error.message || "Une erreur est survenue lors de l'initiation du paiement. Veuillez réessayer.",
             });
             setLoadingPriceId(null);
         }
