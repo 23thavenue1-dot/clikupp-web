@@ -129,6 +129,7 @@ function ShopContent() {
             mode: mode,
             success_url: successUrl,
             cancel_url: cancelUrl,
+            // Forcer la création d'un client Stripe si aucun n'est trouvé
             customer_creation: 'always', 
         };
 
@@ -153,9 +154,8 @@ function ShopContent() {
                 }
 
                 if (url) {
+                    // La redirection se déclenchera dès que l'URL sera disponible.
                     window.location.assign(url);
-                    // La redirection a lieu, donc plus besoin de faire quoi que ce soit ici.
-                    // setLoadingPriceId(null) et unsubscribe() seront gérés par le re-rendu de la page.
                 }
             });
 
@@ -167,6 +167,7 @@ function ShopContent() {
             });
             errorEmitter.emit('permission-error', permissionError);
 
+            // Ce toast est une sécurité si onSnapshot n'est pas déclenché à cause d'une erreur de permission initiale
             toast({
                 variant: 'destructive',
                 title: 'Erreur de permission',
@@ -263,6 +264,7 @@ function ShopContent() {
                                          <pack.icon className="h-7 w-7" />
                                      </div>
                                      <CardTitle className="text-2xl">{pack.title}</CardTitle>
+
                                      <div className="my-2">
                                          <span className="text-5xl font-bold">{pack.tickets}</span>
                                          <p className="text-muted-foreground">tickets IA</p>
