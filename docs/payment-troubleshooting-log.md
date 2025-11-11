@@ -68,7 +68,7 @@ Ce document sert de journal de bord pour l'intégration de la fonctionnalité de
     2.  **Erreur `File .../functions/lib/index.js does not exist` :** Le code de la fonction était en TypeScript (`.ts`) mais n'avait pas été compilé en JavaScript (`.js`) avant le déploiement.
         *   **Solution :** Création d'un fichier `tsconfig.json` et ajout d'un script `build` dans `functions/package.json` pour gérer la compilation de `ts` vers `js`.
     3.  **Erreur `eslint: command not found` :** Le script de build essayait de lancer une vérification de code (`lint`) mais les dépendances (`devDependencies`) n'étaient pas installées dans le sous-dossier `functions`.
-        *   **Solution :** Ajout des `devDependencies` nécessaires dans `functions/package.json` et mise à jour du processus pour inclure `npm install` dans le dossier `functions`.
+        *   **Solution :** Simplification du script de build pour ne garder que la compilation (`tsc`) et ajout des `devDependencies` nécessaires dans `functions/package.json`, suivi d'un `npm install` dans le dossier `functions`.
 *   **Résultat :** **Déploiement Réussi.** La commande `firebase deploy --only functions` s'est terminée avec succès, rendant la fonction de crédit de tickets active et opérationnelle.
 
 ---
