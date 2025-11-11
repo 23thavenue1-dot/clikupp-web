@@ -77,7 +77,7 @@ Ce document sert de journal de bord pour l'intégration de la fonctionnalité de
 
 *   **Objectif :** Diagnostiquer pourquoi, malgré un déploiement réussi, les tickets ne sont toujours pas crédités.
 *   **Problème Rencontré :** Les journaux de la Cloud Function dans Google Cloud montrent une erreur `[Error]: Webhook signature verification failed.`.
-*   **Diagnostic :** L'extension reçoit bien la notification de Stripe, mais ne peut pas en vérifier l'authenticité. La clé secrète du webhook (`whsec_...`) est manquante dans la configuration de la fonction, bien que la clé d'API (`sk_...`) soit présente.
+*   **Diagnostic :** L'extension reçoit bien la notification de Stripe, mais ne peut pas en vérifier l'authenticité. La clé secrète du webhook (`whsec_...`) est manquante ou incorrecte dans la configuration de la fonction, bien que la clé d'API (`sk_...`) soit présente.
 *   **Solution Apportée :**
     1.  L'utilisateur récupère la **clé secrète du webhook** depuis le tableau de bord Stripe (section Développeurs > Webhooks).
     2.  L'utilisateur ajoute cette clé à la configuration des fonctions via la commande : `firebase functions:config:set stripe.webhook_secret="VOTRE_CLÉ_WHSEC_ICI"`.
@@ -88,4 +88,4 @@ Ce document sert de journal de bord pour l'intégration de la fonctionnalité de
 
 ### **Conclusion du Débogage**
 
-Ce processus a mis en lumière des points cruciaux souvent sous-estimés : l'importance de l'environnement d'exécution, la nécessité de configurer les permissions et les métadonnées, et la double-vérification de toutes les clés secrètes requises (API **et** webhook).
+Ce processus a mis en lumière des points cruciaux souvent sous-estimés : l'importance de l'environnement d'exécution, la nécessité de configurer les permissions, les métadonnées sur les produits Stripe, et la double-vérification de toutes les clés secrètes requises (API **et** webhook).
