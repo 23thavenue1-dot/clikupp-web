@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, addDoc, onSnapshot, doc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, doc, getDocs, query, where, limit } from 'firebase/firestore';
 
 
 const subscriptions = [
@@ -64,8 +64,8 @@ const subscriptions = [
 
 const uploadPacks = [
   { id: 'price_1SQImVFxufdYfSFc6oQcKZ3q', title: "Boost S", tickets: 50, price: "1,99 €", icon: Upload, mode: 'payment' },
-  { id: 'price_1SSLJIFxufdYfSFc0QLNkcq7', title: "Boost M", tickets: 120, price: "3,99 €", icon: Upload, mode: 'payment' },
-  { id: 'price_1SQ8zLCL0iCpjJiiLoxKSEej', title: "Boost L", tickets: 300, price: "7,99 €", icon: Upload, featured: true, mode: 'payment' },
+  { id: 'price_1SSLJIFxufdYfSFc0QLNkcq7', title: "Boost M", tickets: 120, price: "3,99 €", icon: Upload, featured: true, mode: 'payment' },
+  { id: 'price_1SQ8zLCL0iCpjJiiLoxKSEej', title: "Boost L", tickets: 300, price: "7,99 €", icon: Upload, mode: 'payment' },
 ];
 
 const aiPacks = [
@@ -81,7 +81,7 @@ function ShopContent() {
     const [loadingPriceId, setLoadingPriceId] = useState<string | null>(null);
     const searchParams = useSearchParams();
 
-    useEffect(() => {
+     useEffect(() => {
         const sessionId = searchParams.get('session_id');
         if (sessionId && user && firestore) {
             const sessionDocRef = doc(firestore, 'customers', user.uid, 'checkout_sessions', sessionId);
@@ -94,7 +94,7 @@ function ShopContent() {
                             title: "Paiement réussi !",
                             description: "Votre compte a été crédité. Merci pour votre achat.",
                         });
-                        unsubscribe(); 
+                        unsubscribe();
                     }
                 }
             }, (error) => {
@@ -115,6 +115,19 @@ function ShopContent() {
         setLoadingPriceId(priceId);
 
         try {
+            // Étape 1 : S'assurer que le client Stripe existe.
+            // L'extension est censée le créer, mais nous forçons une vérification.
+            const customerCollectionRef = collection(firestore, 'customers');
+            const q = query(customerCollectionRef, where('email', '==', user.email), limit(1));
+            const customerDocs = await getDocs(q);
+            
+            if (customerDocs.empty) {
+                // Si le client n'existe pas, l'extension devrait le créer lors de l'ajout de la session.
+                // On logue juste l'info pour le débogage.
+                console.log("Aucun client Stripe trouvé pour cet utilisateur, l'extension devrait en créer un.");
+            }
+
+            // Étape 2 : Créer la session de paiement.
             const successUrl = `${window.location.origin}${window.location.pathname}?session_id={CHECKOUT_SESSION_ID}`;
             const cancelUrl = `${window.location.origin}${window.location.pathname}`;
 
@@ -123,8 +136,11 @@ function ShopContent() {
                 mode: mode,
                 success_url: successUrl,
                 cancel_url: cancelUrl,
+                // On force la création du client si l'extension le permet (dépend de la version de l'extension)
+                customer_creation: 'always', 
             });
 
+            // Étape 3 : Écouter le document pour obtenir l'URL de redirection.
             const unsubscribe = onSnapshot(checkoutSessionRef, (snap) => {
                 const data = snap.data();
                 const { error, url } = data || {};
@@ -134,7 +150,7 @@ function ShopContent() {
                     toast({
                         variant: 'destructive',
                         title: 'Erreur de paiement',
-                        description: error.message || "L'extension Stripe a rencontré une erreur. Cela est souvent dû à un problème de configuration ou de permissions. Vérifiez les logs de l'extension dans votre console Firebase.",
+                        description: error.message || "L'extension Stripe a rencontré une erreur. Vérifiez la console Firebase pour plus de détails.",
                     });
                     setLoadingPriceId(null);
                     unsubscribe();
@@ -142,6 +158,7 @@ function ShopContent() {
 
                 if (url) {
                     window.location.assign(url);
+                    // Pas besoin de setLoading(null) car on redirige
                     unsubscribe();
                 }
             });
