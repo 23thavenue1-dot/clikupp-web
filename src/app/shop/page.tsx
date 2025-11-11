@@ -9,8 +9,8 @@ import { Check, Crown, Gem, Rocket, Sparkles, Upload, Loader2 } from 'lucide-rea
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { useUser, useFirestore } from '@/firebase';
-import { collection, addDoc, onSnapshot, doc, getDocs, query, where, limit } from 'firebase/firestore';
+import { useUser, useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { collection, addDoc, onSnapshot, doc } from 'firebase/firestore';
 
 
 const subscriptions = [
@@ -89,6 +89,8 @@ function ShopContent() {
             const unsubscribe = onSnapshot(sessionDocRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const sessionData = docSnap.data();
+                    // Correction: Vérifier si le paiement est confirmé, même si le webhook a échoué.
+                    // L'extension met souvent à jour le document de session avant l'échec du webhook.
                     if (sessionData && (sessionData.payment_intent_id || sessionData.subscription_id)) {
                         toast({
                             title: "Paiement réussi !",
@@ -114,64 +116,61 @@ function ShopContent() {
 
         setLoadingPriceId(priceId);
 
-        try {
-            // Étape 1 : S'assurer que le client Stripe existe.
-            // L'extension est censée le créer, mais nous forçons une vérification.
-            const customerCollectionRef = collection(firestore, 'customers');
-            const q = query(customerCollectionRef, where('email', '==', user.email), limit(1));
-            const customerDocs = await getDocs(q);
-            
-            if (customerDocs.empty) {
-                // Si le client n'existe pas, l'extension devrait le créer lors de l'ajout de la session.
-                // On logue juste l'info pour le débogage.
-                console.log("Aucun client Stripe trouvé pour cet utilisateur, l'extension devrait en créer un.");
-            }
+        const successUrl = `${window.location.origin}${window.location.pathname}?session_id={CHECKOUT_SESSION_ID}`;
+        const cancelUrl = `${window.location.origin}${window.location.pathname}`;
 
-            // Étape 2 : Créer la session de paiement.
-            const successUrl = `${window.location.origin}${window.location.pathname}?session_id={CHECKOUT_SESSION_ID}`;
-            const cancelUrl = `${window.location.origin}${window.location.pathname}`;
+        const checkoutSessionData = {
+            price: priceId,
+            mode: mode,
+            success_url: successUrl,
+            cancel_url: cancelUrl,
+            // Cette option force la création du client s'il n'existe pas
+            customer_creation: 'always', 
+        };
 
-            const checkoutSessionRef = await addDoc(collection(firestore, 'customers', user.uid, 'checkout_sessions'), {
-                price: priceId,
-                mode: mode,
-                success_url: successUrl,
-                cancel_url: cancelUrl,
-                // On force la création du client si l'extension le permet (dépend de la version de l'extension)
-                customer_creation: 'always', 
+        const checkoutSessionsCollectionRef = collection(firestore, 'customers', user.uid, 'checkout_sessions');
+
+        addDoc(checkoutSessionsCollectionRef, checkoutSessionData)
+            .then(docRef => {
+                // Écouter les changements sur ce document spécifique
+                const unsubscribe = onSnapshot(docRef, (snap) => {
+                    const data = snap.data();
+                    const { error, url } = data || {};
+
+                    if (error) {
+                        console.error('Stripe Error:', error);
+                        toast({
+                            variant: 'destructive',
+                            title: 'Erreur de paiement',
+                            description: error.message || "L'extension Stripe a rencontré une erreur. Vérifiez la console Firebase pour plus de détails.",
+                        });
+                        setLoadingPriceId(null);
+                        unsubscribe();
+                    }
+
+                    if (url) {
+                        window.location.assign(url);
+                        unsubscribe();
+                    }
+                });
+            })
+            .catch(error => {
+                // Intercepter l'erreur de permissions ici
+                const permissionError = new FirestorePermissionError({
+                    path: checkoutSessionsCollectionRef.path,
+                    operation: 'create',
+                    requestResourceData: checkoutSessionData
+                });
+                errorEmitter.emit('permission-error', permissionError);
+
+                // Afficher un toast générique à l'utilisateur
+                toast({
+                    variant: 'destructive',
+                    title: 'Erreur de permission',
+                    description: "Impossible d'initier le paiement. Vérification des permissions en cours.",
+                });
+                setLoadingPriceId(null);
             });
-
-            // Étape 3 : Écouter le document pour obtenir l'URL de redirection.
-            const unsubscribe = onSnapshot(checkoutSessionRef, (snap) => {
-                const data = snap.data();
-                const { error, url } = data || {};
-
-                if (error) {
-                    console.error('Stripe Error:', error);
-                    toast({
-                        variant: 'destructive',
-                        title: 'Erreur de paiement',
-                        description: error.message || "L'extension Stripe a rencontré une erreur. Vérifiez la console Firebase pour plus de détails.",
-                    });
-                    setLoadingPriceId(null);
-                    unsubscribe();
-                }
-
-                if (url) {
-                    window.location.assign(url);
-                    // Pas besoin de setLoading(null) car on redirige
-                    unsubscribe();
-                }
-            });
-
-        } catch (error: any) {
-            console.error('Firestore Error:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Erreur',
-                description: "Impossible de lancer le processus de paiement. Veuillez réessayer.",
-            });
-            setLoadingPriceId(null);
-        }
     };
     
     return (
