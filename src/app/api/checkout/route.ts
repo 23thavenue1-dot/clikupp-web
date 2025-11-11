@@ -1,4 +1,3 @@
-
 // Ce fichier est maintenant obsolète car nous utilisons l'extension Firebase/Stripe.
 // La logique de création de session de paiement est désormais gérée côté client
 // en créant un document dans `customers/{userId}/checkout_sessions`.

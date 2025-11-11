@@ -49,7 +49,13 @@ Ce document sert de journal de bord pour l'intégration de la fonctionnalité de
 *   **Objectif :** S'assurer que les tickets achetés sont bien ajoutés au compte de l'utilisateur après un paiement réussi.
 *   **Problème Rencontré :** Après un paiement validé sur Stripe, le solde de tickets de l'utilisateur (par ex. `packUploadTickets`) n'est pas mis à jour dans l'application. Le paiement est accepté, mais le produit n'est pas "livré".
 *   **Diagnostic :** L'extension Stripe, par défaut, ne sait pas quel champ de la base de données mettre à jour pour un produit donné. Elle reçoit bien la confirmation de paiement de Stripe, mais elle ne sait pas que le produit avec l'ID `price_...` correspond à l'ajout de 120 tickets dans le champ `packUploadTickets`.
-*   **Solution à Apporter :**
+*   **Solution Explorée (et Échouée) :**
+    1.  **Hypothèse :** Gérer la livraison via un webhook personnalisé (`/api/stripe/webhook`).
+    2.  **Mise en place :** Création du webhook qui écoute les événements de Stripe, lit les métadonnées du produit et tente de mettre à jour Firestore.
+    3.  **Résultat :** **Échec.** Le webhook n'est jamais déclenché ou entre en conflit avec le fonctionnement interne de l'extension. L'ajout des tickets ne se fait pas.
+    4.  **Conclusion :** Cette approche est abandonnée au profit de la méthode native de l'extension.
+
+*   **Solution à Apporter (Méthode Native) :**
     1.  **Utiliser les Métadonnées Stripe :** La solution professionnelle consiste à ajouter des "métadonnées" directement sur le produit dans le tableau de bord Stripe. On va y ajouter des paires clé-valeur que l'extension pourra lire, par exemple : `firebaseRole: 'boost_upload_120'`.
     2.  **Configurer l'Extension Firebase :** Dans la configuration de l'extension Stripe, il y a un champ pour "synchroniser les rôles". On y indiquera que lorsqu'un utilisateur achète un produit avec le rôle `boost_upload_120`, l'extension doit lui ajouter ce rôle.
     3.  **Créer une Cloud Function (ou utiliser un webhook personnalisé) :** Créer une petite fonction serveur qui se déclenche quand un utilisateur reçoit un nouveau rôle. Cette fonction lira le rôle (`boost_upload_120`) et effectuera la mise à jour correspondante dans la base de données (ex: `updateDoc(userRef, { packUploadTickets: increment(120) })`).
@@ -64,4 +70,3 @@ Ce processus de débogage a mis en lumière des points cruciaux souvent sous-est
 3.  Le besoin de **configurer la logique métier post-paiement** (la "livraison") via les métadonnées Stripe et les fonctions serveur, car l'extension ne peut pas le deviner seule.
 
 La résolution de ces problèmes est une victoire majeure et valide toute l'architecture de paiement mise en place.
-
