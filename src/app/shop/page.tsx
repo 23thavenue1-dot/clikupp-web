@@ -30,7 +30,7 @@ const subscriptions = [
         mode: 'subscription',
     },
     {
-        id: 'price_1SQ8sXCL0iCpjJiibM2zG3iO',
+        id: 'price_1SSLhUFxufdYfSFcWj79b8rt',
         title: 'Pro',
         price: '9,99 €',
         period: '/ mois',
@@ -129,7 +129,6 @@ function ShopContent() {
             mode: mode,
             success_url: successUrl,
             cancel_url: cancelUrl,
-            // Forcer la création d'un client Stripe si aucun n'est trouvé
             customer_creation: 'always', 
         };
 
@@ -140,23 +139,36 @@ function ShopContent() {
 
             const unsubscribe = onSnapshot(docRef, (snap) => {
                 const data = snap.data();
-                const { error, url } = data || {};
+                if (!data) return; // Le document est peut-être en cours de création
+
+                const { error, url } = data;
 
                 if (error) {
-                    console.error('Stripe Error:', error);
                     toast({
                         variant: 'destructive',
                         title: 'Erreur de paiement',
-                        description: error.message || "L'extension Stripe a rencontré une erreur. Vérifiez la console Firebase pour plus de détails.",
+                        description: error.message || "Une erreur est survenue. Vérifiez la console Firebase pour les logs de l'extension Stripe.",
                     });
                     setLoadingPriceId(null);
                     unsubscribe();
                 }
 
                 if (url) {
-                    // La redirection se déclenchera dès que l'URL sera disponible.
                     window.location.assign(url);
+                    // Pas besoin de setLoadingPriceId(null) car la page redirige
                 }
+            }, (err) => { // Gérer l'erreur de onSnapshot lui-même
+                const permissionError = new FirestorePermissionError({
+                    path: docRef.path,
+                    operation: 'get',
+                });
+                errorEmitter.emit('permission-error', permissionError);
+                toast({
+                    variant: 'destructive',
+                    title: 'Erreur de Permission',
+                    description: "Impossible de lire la session de paiement. Vérifiez vos règles de sécurité.",
+                });
+                setLoadingPriceId(null);
             });
 
         } catch (error) {
@@ -167,10 +179,9 @@ function ShopContent() {
             });
             errorEmitter.emit('permission-error', permissionError);
 
-            // Ce toast est une sécurité si onSnapshot n'est pas déclenché à cause d'une erreur de permission initiale
             toast({
                 variant: 'destructive',
-                title: 'Erreur de permission',
+                title: 'Erreur Initiale',
                 description: "Impossible d'initier le paiement. Vos règles de sécurité Firestore bloquent peut-être l'action.",
             });
             setLoadingPriceId(null);
