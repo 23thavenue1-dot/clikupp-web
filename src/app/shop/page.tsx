@@ -134,7 +134,7 @@ function ShopContent() {
                     toast({
                         variant: 'destructive',
                         title: 'Erreur de paiement',
-                        description: error.message || "La communication avec le service de paiement a échoué.",
+                        description: error.message || "L'extension Stripe a rencontré une erreur. Cela est souvent dû à un problème de configuration ou de permissions. Vérifiez les logs de l'extension dans votre console Firebase.",
                     });
                     setLoadingPriceId(null);
                     unsubscribe();
