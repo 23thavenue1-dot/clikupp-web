@@ -89,10 +89,15 @@ function ShopContent() {
             const unsubscribe = onSnapshot(sessionDocRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const sessionData = docSnap.data();
-                    // Correction: Vérifier si le paiement est confirmé, même si le webhook a échoué.
-                    // L'extension met souvent à jour le document de session avant l'échec du webhook.
-                    if (sessionData && (sessionData.payment_intent_id || sessionData.subscription_id)) {
+                    if (sessionData.error) {
                         toast({
+                            title: "Erreur de paiement",
+                            description: sessionData.error.message || "Une erreur est survenue lors de la finalisation du paiement.",
+                            variant: "destructive"
+                        });
+                        unsubscribe();
+                    } else if (sessionData.payment_intent_id || sessionData.subscription_id) {
+                         toast({
                             title: "Paiement réussi !",
                             description: "Votre compte a été crédité. Merci pour votre achat.",
                         });
@@ -124,53 +129,51 @@ function ShopContent() {
             mode: mode,
             success_url: successUrl,
             cancel_url: cancelUrl,
-            // Cette option force la création du client s'il n'existe pas
             customer_creation: 'always', 
         };
 
         const checkoutSessionsCollectionRef = collection(firestore, 'customers', user.uid, 'checkout_sessions');
 
-        addDoc(checkoutSessionsCollectionRef, checkoutSessionData)
-            .then(docRef => {
-                // Écouter les changements sur ce document spécifique
-                const unsubscribe = onSnapshot(docRef, (snap) => {
-                    const data = snap.data();
-                    const { error, url } = data || {};
+        try {
+            const docRef = await addDoc(checkoutSessionsCollectionRef, checkoutSessionData);
 
-                    if (error) {
-                        console.error('Stripe Error:', error);
-                        toast({
-                            variant: 'destructive',
-                            title: 'Erreur de paiement',
-                            description: error.message || "L'extension Stripe a rencontré une erreur. Vérifiez la console Firebase pour plus de détails.",
-                        });
-                        setLoadingPriceId(null);
-                        unsubscribe();
-                    }
+            const unsubscribe = onSnapshot(docRef, (snap) => {
+                const data = snap.data();
+                const { error, url } = data || {};
 
-                    if (url) {
-                        window.location.assign(url);
-                        unsubscribe();
-                    }
-                });
-            })
-            .catch(error => {
-                // Intercepter l'erreur de permissions ici
-                const permissionError = new FirestorePermissionError({
-                    path: checkoutSessionsCollectionRef.path,
-                    operation: 'create',
-                    requestResourceData: checkoutSessionData
-                });
-                errorEmitter.emit('permission-error', permissionError);
+                if (error) {
+                    console.error('Stripe Error:', error);
+                    toast({
+                        variant: 'destructive',
+                        title: 'Erreur de paiement',
+                        description: error.message || "L'extension Stripe a rencontré une erreur. Vérifiez la console Firebase pour plus de détails.",
+                    });
+                    setLoadingPriceId(null);
+                    unsubscribe();
+                }
 
-                // Afficher un toast générique à l'utilisateur
-                toast({
-                    variant: 'destructive',
-                    title: 'Erreur de permission',
-                    description: "Impossible d'initier le paiement. Vérification des permissions en cours.",
-                });
-                setLoadingPriceId(null);
+                if (url) {
+                    window.location.assign(url);
+                    // La redirection a lieu, donc plus besoin de faire quoi que ce soit ici.
+                    // setLoadingPriceId(null) et unsubscribe() seront gérés par le re-rendu de la page.
+                }
             });
+
+        } catch (error) {
+            const permissionError = new FirestorePermissionError({
+                path: checkoutSessionsCollectionRef.path,
+                operation: 'create',
+                requestResourceData: checkoutSessionData
+            });
+            errorEmitter.emit('permission-error', permissionError);
+
+            toast({
+                variant: 'destructive',
+                title: 'Erreur de permission',
+                description: "Impossible d'initier le paiement. Vos règles de sécurité Firestore bloquent peut-être l'action.",
+            });
+            setLoadingPriceId(null);
+        }
     };
     
     return (
