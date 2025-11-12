@@ -89,14 +89,17 @@ Ce document sert de journal de bord pour l'intégration de la fonctionnalité de
 
 ---
 
-### **Étape 7 : Fiabilisation Finale - La Liaison Utilisateur-Client**
+### **Étape 7 : Changement de Stratégie - Le Webhook Unique**
 
-*   **Objectif :** Résoudre le problème de manière préventive si le crédit de tickets échoue encore, en s'assurant que le lien utilisateur-client est infaillible.
-*   **Problème Potentiel :** Le lien entre l'utilisateur Firebase et le client Stripe peut échouer si la fonction `syncStripeCustomerId` s'exécute trop tôt, avant que l'extension Stripe n'ait eu le temps d'écrire l'ID client dans le document `checkout_sessions`.
-*   **Solution Apportée (Préventive) :**
-    1.  **Fiabiliser la liaison :** Modification de la Cloud Function `syncStripeCustomerId` dans `functions/src/index.ts`. La nouvelle version utilise une méthode de "polling" : elle réessaie plusieurs fois (toutes les 2 secondes pendant 10 secondes) de lire le document de session jusqu'à ce que l'ID client (`customer`) soit disponible.
-    2.  **Améliorer le débogage :** Ajout de messages de logs (journaux) beaucoup plus détaillés dans les deux fonctions (`syncStripeCustomerId` et `stripeWebhook`) pour pouvoir suivre précisément chaque étape du processus dans la console Firebase en cas de nouvel échec.
-*   **Résultat Attendu :** Cette nouvelle logique garantit que le `stripeCustomerId` est bien enregistré sur le profil de l'utilisateur, ce qui est indispensable pour que le `stripeWebhook` puisse ensuite créditer les tickets au bon compte.
+*   **Objectif :** Résoudre le conflit entre le webhook de l'extension et notre fonction personnalisée.
+*   **Problème Rencontré :** Malgré toutes les configurations, les tickets ne sont pas crédités. Le webhook de l'extension et notre fonction déclenchée sur Firestore semblent entrer en conflit ou ne pas communiquer.
+*   **Diagnostic :** L'approche de déclencher une fonction sur une écriture Firestore (`onPaymentCreated`) est trop complexe et fragile. Le webhook de l'extension n'est pas conçu pour déclencher ce genre de logique personnalisée directement. La méthode la plus propre est de centraliser toute la logique dans un seul webhook qui gère tout de A à Z.
+*   **Solution Apportée (Stratégie Finale) :**
+    1.  **Abandon des fonctions multiples :** Le code dans `functions/src/index.ts` est entièrement remplacé. Les fonctions `syncStripeCustomerId` et `creditTicketsOnPayment` sont supprimées.
+    2.  **Création d'un Webhook Unique et Robuste :** Une seule fonction `stripeWebhook` est créée.
+    3.  **Logique Centralisée :** Cette unique fonction écoute l'événement `checkout.session.completed` de Stripe. Quand elle le reçoit, elle valide la signature, récupère l'ID utilisateur, lit les métadonnées du produit acheté sur Stripe, et crédite directement le bon nombre de tickets au bon utilisateur.
+    4.  **Déploiement :** La nouvelle fonction est déployée pour remplacer l'ancienne logique.
+*   **Résultat Attendu :** Une architecture beaucoup plus simple, plus directe et plus facile à déboguer, qui devrait enfin résoudre le problème de crédit de tickets.
 
 ---
 
@@ -122,10 +125,9 @@ Cette liste répertorie tous les points de contrôle critiques à vérifier pour
 -   [ ] **Déploiement des Fonctions Réussi :** La commande `firebase deploy --only functions` s'est terminée avec `✔ Deploy complete!`.
 
 #### **✅ 3. Logique Applicative (Code)**
--   [ ] **Logique Côté Client (`shop/page.tsx`) :** Le clic sur un bouton d'achat crée bien un document dans `customers/{userId}/checkout_sessions` dans Firestore.
+-   [ ] **Logique Côté Client (`shop/page.tsx`) :** Le clic sur un bouton d'achat crée bien un document dans `customers/{userId}/checkout_sessions` dans Firestore, en passant bien le `client_reference_id: user.uid`.
 -   [ ] **Logique Serveur (`functions/src/index.ts`) :**
-    *   La fonction `syncStripeCustomerId` est bien présente, fiabilisée avec une boucle de polling, et déployée.
-    *   La fonction `stripeWebhook` est bien présente, sécurisée, et contient la logique pour lire les métadonnées du produit et créditer le bon champ (`packUploadTickets` ou `packAiTickets`).
+    *   La fonction unique `stripeWebhook` est bien présente, sécurisée, et contient la logique pour lire les métadonnées du produit et créditer le bon champ (`packUploadTickets` ou `packAiTickets`).
 
 #### **✅ 4. Environnement et Processus de Test**
 -   [ ] **URL Publique :** Le test est effectué sur l'URL publique de l'application (`...hosted.app` ou `...firebase.studio`), **JAMAIS** sur `localhost`.
@@ -135,3 +137,4 @@ Cette liste répertorie tous les points de contrôle critiques à vérifier pour
     2.  Le champ `stripeCustomerId` doit contenir un ID commençant par `cus_...`.
     3.  Le champ correspondant au pack acheté (ex: `packUploadTickets`) doit avoir été incrémenté.
 -   [ ] **Vérification Interface :** Le compteur de tickets dans l'application reflète le nouveau solde.
+
