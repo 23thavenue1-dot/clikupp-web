@@ -82,36 +82,24 @@ function ShopContent() {
     const searchParams = useSearchParams();
 
      useEffect(() => {
-        const sessionId = searchParams.get('session_id');
-        if (sessionId && user && firestore) {
-            const sessionDocRef = doc(firestore, 'customers', user.uid, 'checkout_sessions', sessionId);
-            
-            const unsubscribe = onSnapshot(sessionDocRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    const sessionData = docSnap.data();
-                    if (sessionData.error) {
-                        toast({
-                            title: "Erreur de paiement",
-                            description: sessionData.error.message || "Une erreur est survenue lors de la finalisation du paiement.",
-                            variant: "destructive"
-                        });
-                        unsubscribe();
-                    } else if (sessionData.payment_intent_id || sessionData.subscription_id) {
-                         toast({
-                            title: "Paiement réussi !",
-                            description: "Votre compte a été crédité. Merci pour votre achat.",
-                        });
-                        unsubscribe();
-                    }
-                }
-            }, (error) => {
-                console.error("Erreur d'écoute de la session de paiement:", error);
-                unsubscribe();
+        const success = searchParams.get('success');
+        const cancelled = searchParams.get('cancelled');
+    
+        if (success) {
+            toast({
+                title: "Paiement réussi !",
+                description: "Votre compte sera crédité dans quelques instants. Merci pour votre achat.",
             });
-
-            return () => unsubscribe();
         }
-    }, [searchParams, user, firestore, toast]);
+    
+        if (cancelled) {
+            toast({
+                title: "Paiement annulé",
+                description: "Votre session de paiement a été annulée. Vous n'avez pas été débité.",
+                variant: "destructive"
+            });
+        }
+    }, [searchParams, toast]);
 
     const handlePurchaseClick = async (priceId: string, mode: 'payment' | 'subscription') => {
         if (!user || !firestore) {
@@ -122,45 +110,47 @@ function ShopContent() {
         setLoadingPriceId(priceId);
     
         try {
-            // Étape 1 : Créer le document de session de paiement dans Firestore
+            // L'ID de l'utilisateur est maintenant passé dans `client_reference_id`
             const checkoutSessionRef = await addDoc(collection(firestore, 'customers', user.uid, 'checkout_sessions'), {
                 price: priceId,
                 mode: mode,
-                success_url: `${window.location.origin}${window.location.pathname}?session_id={CHECKOUT_SESSION_ID}`,
-                cancel_url: `${window.location.origin}${window.location.pathname}`,
+                success_url: `${window.location.origin}${window.location.pathname}?success=true`,
+                cancel_url: `${window.location.origin}${window.location.pathname}?cancelled=true`,
                 allow_promotion_codes: true,
-                customer_email: user.email,
-                customer_creation: 'always', // Forcer la création du client
+                client_reference_id: user.uid, // C'est le chaînon manquant crucial
             });
     
-            // Étape 2 : Attendre que l'extension Stripe remplisse l'URL via polling
-            const pollForUrl = async (retries = 20, delay = 500): Promise<string> => {
-                for (let i = 0; i < retries; i++) {
-                    const sessionSnap = await getDoc(checkoutSessionRef);
-                    const sessionData = sessionSnap.data();
-                    
-                    if (sessionData?.url) {
-                        return sessionData.url;
-                    }
-                    if (sessionData?.error) {
-                         throw new Error(sessionData.error.message || "Une erreur Stripe est survenue lors de la création de la session.");
-                    }
-                    await new Promise(resolve => setTimeout(resolve, delay));
+            const unsubscribe = onSnapshot(checkoutSessionRef, (sessionSnap) => {
+                const sessionData = sessionSnap.data();
+                if (sessionData?.url) {
+                    unsubscribe(); // Arrêter d'écouter une fois l'URL obtenue
+                    window.location.assign(sessionData.url);
+                } else if (sessionData?.error) {
+                    unsubscribe(); // Arrêter d'écouter en cas d'erreur
+                    toast({
+                        variant: 'destructive',
+                        title: 'Erreur de paiement',
+                        description: sessionData.error.message || "Une erreur Stripe est survenue.",
+                    });
+                    setLoadingPriceId(null);
                 }
-                throw new Error("La session de paiement a expiré ou n'a pas pu être créée.");
-            };
-    
-            const url = await pollForUrl();
-    
-            // Étape 3 : Rediriger l'utilisateur vers la page de paiement
-            window.location.assign(url);
+            }, (error) => {
+                console.error("Erreur d'écoute de la session:", error);
+                unsubscribe();
+                toast({
+                    variant: 'destructive',
+                    title: 'Erreur',
+                    description: "Impossible de créer la session de paiement.",
+                });
+                setLoadingPriceId(null);
+            });
     
         } catch (error: any) {
-            console.error('Stripe Error:', error);
+            console.error('Erreur Firestore:', error);
             toast({
                 variant: 'destructive',
-                title: 'Erreur de paiement',
-                description: error.message || "Une erreur est survenue. Veuillez réessayer.",
+                title: 'Erreur',
+                description: "Une erreur est survenue avant de contacter Stripe.",
             });
             setLoadingPriceId(null);
         }

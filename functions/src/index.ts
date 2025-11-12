@@ -4,16 +4,20 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import Stripe from "stripe";
+import { buffer } from "micro";
 
 // Initialiser Firebase Admin SDK une seule fois
 if (admin.apps.length === 0) {
   admin.initializeApp();
 }
 
-// Pas besoin des clés ici car nous ne vérifions plus le webhook nous-mêmes.
+// Récupérer les clés depuis la configuration des fonctions
+// C'est ici que les clés que nous avons définies via la CLI sont utilisées
 const stripeSecretKey = functions.config().stripe.secret_key;
-if (!stripeSecretKey) {
-  console.error("Erreur critique : La clé secrète Stripe (secret_key) n'est pas configurée.");
+const webhookSecret = functions.config().stripe.webhook_secret;
+
+if (!stripeSecretKey || !webhookSecret) {
+  console.error("Erreur critique : Les clés secrètes Stripe (secret_key et webhook_secret) ne sont pas configurées.");
 }
 
 const stripe = new Stripe(stripeSecretKey, {
@@ -21,96 +25,78 @@ const stripe = new Stripe(stripeSecretKey, {
 });
 
 /**
- * Fonction qui se déclenche lorsqu'un document de paiement est créé par l'extension Stripe.
- * C'est le NOUVEAU mécanisme pour créditer les tickets.
+ * Webhook unique et robuste qui écoute les événements de Stripe.
+ * C'est le point d'entrée pour toutes les confirmations de paiement.
  */
-exports.creditTicketsOnPayment = functions.firestore
-  .document("customers/{userId}/payments/{paymentId}")
-  .onCreate(async (snapshot, context) => {
-    const paymentData = snapshot.data();
-    const userId = context.params.userId;
+export const stripeWebhook = functions.https.onRequest(async (req, res) => {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).send('Method Not Allowed');
+  }
 
-    functions.logger.log(`Déclenchement de creditTicketsOnPayment pour l'utilisateur ${userId}`, { paymentId: context.params.paymentId });
+  const sig = req.headers['stripe-signature'];
+  if (!sig) {
+    functions.logger.error("Aucune signature Stripe trouvée dans l'en-tête.");
+    return res.status(400).send('Webhook Error: No signature provided.');
+  }
 
-    if (!paymentData || !paymentData.items || paymentData.items.length === 0) {
-      functions.logger.warn("Document de paiement sans items, arrêt du traitement.");
-      return;
-    }
+  const reqBuffer = await buffer(req);
+  let event: Stripe.Event;
 
-    try {
-      const userDocRef = admin.firestore().doc(`users/${userId}`);
-      const product = await stripe.products.retrieve(paymentData.items[0].price.product);
-      const metadata = product.metadata;
+  try {
+    // Vérifier la signature du webhook est l'étape de sécurité la plus importante.
+    event = stripe.webhooks.constructEvent(reqBuffer, sig, webhookSecret);
+    functions.logger.log(`Événement Stripe reçu et validé : ${event.type}`);
+  } catch (err: any) {
+    functions.logger.error("Erreur de vérification de la signature du webhook:", err);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
 
-      functions.logger.log(`Traitement de la commande pour le produit ${product.id}`, { metadata });
+  // Gérer l'événement 'checkout.session.completed'
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session;
+    
+    // Vérifier si la session est bien un paiement réussi
+    if (session.payment_status === 'paid') {
+      try {
+        const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 1 });
+        const product = await stripe.products.retrieve(lineItems.data[0].price!.product as string);
+        const metadata = product.metadata;
+        const userId = session.client_reference_id; // L'ID utilisateur doit être passé lors de la création de la session
 
-      const updates: { [key: string]: admin.firestore.FieldValue } = {};
-
-      if (metadata.packUploadTickets) {
-        updates.packUploadTickets = admin.firestore.FieldValue.increment(parseInt(metadata.packUploadTickets, 10));
-      }
-      if (metadata.packAiTickets) {
-        updates.packAiTickets = admin.firestore.FieldValue.increment(parseInt(metadata.packAiTickets, 10));
-      }
-
-      if (Object.keys(updates).length > 0) {
-        await userDocRef.update(updates);
-        functions.logger.log(`SUCCÈS : Utilisateur ${userId} crédité avec succès.`, { updates });
-      } else {
-        functions.logger.log("Aucune métadonnée de crédit de ticket trouvée sur ce produit.", { productId: product.id });
-      }
-    } catch (error) {
-      functions.logger.error(`Erreur lors du crédit des tickets pour l'utilisateur ${userId}:`, error);
-      // Ne rien retourner pour éviter que la fonction ne soit réessayée indéfiniment pour une erreur logique.
-    }
-  });
-
-
-/**
- * Cloud Function (déclenchée par Firestore) qui synchronise le stripeCustomerId.
- * Se déclenche quand un checkout_session est créé.
- */
-exports.syncStripeCustomerId = functions.firestore
-  .document("customers/{userId}/checkout_sessions/{sessionId}")
-  .onCreate(async (snapshot, context) => {
-    const userId = context.params.userId;
-    functions.logger.log(`Déclenchement de syncStripeCustomerId pour l'utilisateur ${userId}`);
-
-    for (let i = 0; i < 5; i++) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        try {
-            const sessionDoc = await snapshot.ref.get();
-            const sessionData = sessionDoc.data();
-
-            if (sessionData?.customer) {
-                const userDocRef = admin.firestore().doc(`users/${userId}`);
-                // Vérifier si l'ID client a déjà été défini pour éviter les écritures inutiles
-                const userSnap = await userDocRef.get();
-                if (userSnap.exists() && userSnap.data()?.stripeCustomerId !== sessionData.customer) {
-                    await userDocRef.update({ stripeCustomerId: sessionData.customer });
-                    functions.logger.log(`SUCCÈS : Stripe Customer ID ${sessionData.customer} synchronisé pour l'utilisateur ${userId}.`);
-                } else {
-                    functions.logger.log(`Info : Stripe Customer ID déjà synchronisé pour l'utilisateur ${userId}.`);
-                }
-                return;
-            }
-            
-            if (sessionData?.error) {
-                functions.logger.error(`ERREUR : La création de la session Stripe a échoué pour l'utilisateur ${userId}.`, sessionData.error);
-                return;
-            }
-
-            functions.logger.warn(`Essai ${i + 1}/5 : Customer ID non trouvé pour l'utilisateur ${userId}. Nouvel essai...`);
-
-        } catch (error) {
-            functions.logger.error(`ERREUR lors de la tentative de synchronisation pour l'utilisateur ${userId}:`, error);
-            return;
+        if (!userId) {
+          functions.logger.error("Aucun client_reference_id (userId) trouvé dans la session Stripe.", { session_id: session.id });
+          return res.status(400).send("User ID manquant dans la session.");
         }
+
+        const userDocRef = admin.firestore().doc(`users/${userId}`);
+        const updates: { [key: string]: any } = { stripeCustomerId: session.customer };
+
+        if (metadata.packUploadTickets) {
+          updates.packUploadTickets = admin.firestore.FieldValue.increment(parseInt(metadata.packUploadTickets, 10));
+        }
+        if (metadata.packAiTickets) {
+          updates.packAiTickets = admin.firestore.FieldValue.increment(parseInt(metadata.packAiTickets, 10));
+        }
+
+        if (Object.keys(updates).length > 1) {
+          await userDocRef.update(updates);
+          functions.logger.log(`SUCCÈS : Utilisateur ${userId} crédité avec succès.`, { updates });
+        } else {
+          functions.logger.log("Aucune métadonnée de crédit de ticket trouvée pour ce produit.", { productId: product.id });
+        }
+
+      } catch (error) {
+        functions.logger.error(`Erreur lors du traitement de la session ${session.id}:`, error);
+        return res.status(500).send("Erreur interne lors du traitement du paiement.");
+      }
     }
+  }
 
-    functions.logger.error(`ÉCHEC FINAL : Customer ID non trouvé après 5 essais pour l'utilisateur ${userId}.`);
-  });
+  // Confirmer la bonne réception de l'événement à Stripe
+  return res.status(200).send({ received: true });
+});
 
-// L'ancien webhook est maintenant obsolète et a été supprimé.
-// La logique est gérée par la nouvelle fonction creditTicketsOnPayment.
+// Les anciennes fonctions sont maintenant obsolètes et supprimées.
+// La logique est centralisée dans le webhook ci-dessus.
+    
