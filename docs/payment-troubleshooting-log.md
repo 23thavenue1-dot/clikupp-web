@@ -67,9 +67,9 @@ Ce document sert de journal de bord pour l'intégration de la fonctionnalité de
         *   **Solution :** Utilisation de la commande `firebase use --add` pour sélectionner le projet et lui assigner un alias (`default`).
     2.  **Erreur `File .../functions/lib/index.js does not exist` :** Le code de la fonction était en TypeScript (`.ts`) mais n'avait pas été compilé en JavaScript (`.js`) avant le déploiement.
         *   **Solution :** Création d'un fichier `tsconfig.json` et ajout d'un script `build` dans `functions/package.json` pour gérer la compilation de `ts` vers `js`.
-    3.  **Erreur `eslint: command not found` :** Le script de build essayait de lancer une vérification de code (`lint`) mais les dépendances (`devDependencies`) n'étaient pas installées dans le sous-dossier `functions`.
-        *   **Solution :** Simplification du script de build pour ne garder que la compilation (`tsc`) et ajout des `devDependencies` nécessaires dans `functions/package.json`, suivi d'un `npm install` dans le dossier `functions`.
-*   **Résultat :** **Déploiement Réussi.** La commande `firebase deploy --only functions` s'est terminée avec succès.
+    3.  **Erreur `eslint: command not found` & `No matching version found` :** Le script de build et l'installation des dépendances (`npm install`) échouaient à cause de dépendances de développement manquantes ou de versions de paquets incorrectes (`@types/micro`).
+        *   **Solution :** Simplification du script de build pour ne garder que la compilation (`tsc`), correction et nettoyage du fichier `functions/package.json` pour y inclure les bonnes dépendances et retirer celles qui sont superflues.
+*   **Résultat :** **Déploiement Réussi.** La commande `firebase deploy --only functions` s'est terminée avec succès après plusieurs itérations.
 
 ---
 
@@ -82,10 +82,22 @@ Ce document sert de journal de bord pour l'intégration de la fonctionnalité de
     1.  L'utilisateur récupère la **clé secrète du webhook** depuis le tableau de bord Stripe (section Développeurs > Webhooks).
     2.  L'utilisateur ajoute cette clé à la configuration des fonctions via la commande : `firebase functions:config:set stripe.webhook_secret="VOTRE_CLÉ_WHSEC_ICI"`.
     3.  Redéploiement de la fonction avec `firebase deploy --only functions` pour que la nouvelle configuration soit prise en compte.
-*   **Résultat :** La chaîne de communication est maintenant entièrement sécurisée et fonctionnelle.
+*   **Résultat :** La chaîne de communication est maintenant entièrement sécurisée. Le déploiement est un succès complet.
+
+---
+
+### **Étape 7 : Débogage Final - La Liaison Utilisateur-Client**
+
+*   **Objectif :** Résoudre le problème final où les tickets ne sont toujours pas crédités malgré un déploiement réussi et une configuration correcte.
+*   **Problème Rencontré :** Après un paiement test sur l'URL publique, les tickets ne sont pas ajoutés au compte.
+*   **Diagnostic :** L'hypothèse principale est que le lien entre l'utilisateur Firebase et le client Stripe n'est pas établi de manière fiable. La fonction `syncStripeCustomerId` peut échouer si elle s'exécute trop tôt, avant que l'extension Stripe ait eu le temps d'écrire l'ID client dans le document `checkout_sessions`.
+*   **Solution Apportée :**
+    1.  **Fiabiliser la liaison :** Modification de la Cloud Function `syncStripeCustomerId` dans `functions/src/index.ts`. La nouvelle version utilise une méthode de "polling" : elle réessaie plusieurs fois (toutes les 2 secondes) de lire le document de session jusqu'à ce que l'ID client soit disponible.
+    2.  **Améliorer le débogage :** Ajout de messages de logs (journaux) beaucoup plus détaillés dans les deux fonctions (`syncStripeCustomerId` et `stripeWebhook`) pour pouvoir suivre précisément chaque étape du processus dans la console Firebase en cas de nouvel échec.
+*   **Résultat Attendu :** Cette nouvelle logique devrait garantir que le `stripeCustomerId` est bien enregistré sur le profil de l'utilisateur. Après redéploiement de cette fonction, le prochain achat test devrait enfin créditer les tickets.
 
 ---
 
 ### **Conclusion du Débogage**
 
-Ce processus a mis en lumière des points cruciaux souvent sous-estimés : l'importance de l'environnement d'exécution, la nécessité de configurer les permissions, les métadonnées sur les produits Stripe, et la double-vérification de toutes les clés secrètes requises (API **et** webhook).
+Ce processus a mis en lumière des points cruciaux souvent sous-estimés : l'importance de l'environnement d'exécution (URL publique vs. localhost), la nécessité de configurer les permissions, les métadonnées sur les produits Stripe, et la double-vérification de toutes les clés secrètes requises (API **et** webhook).
