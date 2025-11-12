@@ -10,129 +10,160 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import Stripe from "stripe";
+import { buffer } from "micro";
 
 // Initialiser Firebase Admin SDK
-admin.initializeApp();
+if (admin.apps.length === 0) {
+  admin.initializeApp();
+}
 
-// Initialiser le client Stripe avec la clé secrète.
-// ASSUREZ-VOUS de configurer cette clé dans votre environnement de fonctions:
-// firebase functions:config:set stripe.secret_key="votre_sk_test_..."
-const stripe = new Stripe(functions.config().stripe.secret_key, {
+// Récupérer les clés depuis la configuration des fonctions
+const stripeSecretKey = functions.config().stripe.secret_key;
+const webhookSecret = functions.config().stripe.webhook_secret;
+
+if (!stripeSecretKey || !webhookSecret) {
+  console.error("Erreur critique : Les clés Stripe (secret_key ou webhook_secret) ne sont pas configurées.");
+}
+
+const stripe = new Stripe(stripeSecretKey, {
   apiVersion: "2024-06-20",
 });
 
-/**
- * Cloud Function qui se déclenche à la création d'un document de paiement
- * dans Firestore, vérifie la session de paiement avec Stripe, et crédite
- * les tickets à l'utilisateur en fonction des métadonnées du produit.
- */
-exports.fulfillOrder = functions.firestore
-  .document("customers/{userId}/payments/{paymentId}")
-  .onCreate(async (snapshot, context) => {
-    const payment = snapshot.data();
-    const userId = context.params.userId;
 
-    if (!payment) {
-      functions.logger.error("Le document de paiement est vide.");
-      return;
+/**
+ * Webhook qui écoute les événements de Stripe, principalement 'checkout.session.completed'.
+ * Il vérifie la signature de la requête, puis appelle la logique pour créditer les tickets.
+ */
+exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
+    if (req.method !== 'POST') {
+        res.setHeader('Allow', 'POST');
+        res.status(405).send('Method Not Allowed');
+        return;
     }
 
-    // Un paiement peut provenir soit d'un achat unique (payment_intent)
-    // soit d'un abonnement (subscription). On vérifie les deux.
-    let checkoutSessionId;
-    if (payment.checkout_session_id) {
-        checkoutSessionId = payment.checkout_session_id;
-    } else if (payment.invoice) {
-        // Pour les paiements récurrents d'abonnements, on récupère la session depuis la facture
+    const sig = req.headers['stripe-signature'];
+    if (!sig) {
+        functions.logger.error("Aucune signature Stripe dans les en-têtes.");
+        res.status(400).send("Webhook Error: No signature");
+        return;
+    }
+
+    let event: Stripe.Event;
+    try {
+        const rawBody = await buffer(req);
+        event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
+    } catch (err: any) {
+        functions.logger.error("Erreur de vérification de la signature du webhook:", err);
+        res.status(400).send(`Webhook Error: ${err.message}`);
+        return;
+    }
+
+    // Gérer l'événement
+    if (event.type === 'checkout.session.completed') {
+        const session = event.data.object as Stripe.Checkout.Session;
         try {
-            const invoice = await stripe.invoices.retrieve(payment.invoice);
-            if (typeof invoice.subscription !== "string") {
-                functions.logger.error("L'ID de l'abonnement n'est pas une chaîne valide.", {invoice});
-                return;
-            }
-            const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
-             if (subscription.metadata.checkout_session_id) {
-                checkoutSessionId = subscription.metadata.checkout_session_id;
-            }
+            await fulfillOrderLogic(session);
         } catch (error) {
-             functions.logger.error("Erreur lors de la récupération de la facture ou de l'abonnement.", {error});
-             return;
+            functions.logger.error("Erreur lors du traitement de fulfillOrderLogic:", error);
+            // On ne renvoie pas d'erreur 500 à Stripe pour éviter qu'il ne réessaie sans fin si l'erreur est logique.
         }
     }
 
+    res.status(200).json({ received: true });
+});
 
-    if (!checkoutSessionId) {
-      functions.logger.warn("Aucun checkout_session_id trouvé dans le document de paiement.", {paymentId: snapshot.id});
-      // Essayer de récupérer la session depuis l'intention de paiement si disponible
-      if (payment.payment_intent) {
-          try {
-              const pi = await stripe.paymentIntents.retrieve(payment.payment_intent, {expand: ["invoice"]});
-              // @ts-ignore
-              if (pi.invoice && pi.invoice.subscription && typeof pi.invoice.subscription === 'string') {
-                  // @ts-ignore
-                  const sub = await stripe.subscriptions.retrieve(pi.invoice.subscription);
-                  if (sub.metadata.checkout_session_id) {
-                      checkoutSessionId = sub.metadata.checkout_session_id;
-                  }
-              }
-          } catch(e) {
-              functions.logger.error("Erreur en essayant de trouver la session via PI", e);
-          }
-      }
-      if (!checkoutSessionId) {
-        functions.logger.error("ID de session de paiement introuvable, impossible de traiter la commande.");
+
+/**
+ * Logique métier pour créditer un utilisateur après un paiement réussi.
+ * Cette fonction est maintenant appelée par le webhook.
+ * @param session La session de paiement Stripe.
+ */
+async function fulfillOrderLogic(session: Stripe.Checkout.Session) {
+    if (!session.customer || typeof session.customer !== 'string') {
+        functions.logger.error("ID client manquant ou invalide dans la session de paiement.", { sessionId: session.id });
         return;
-      }
     }
 
+    // Retrouver l'utilisateur Firebase via son ID client Stripe
+    const usersRef = admin.firestore().collection('users');
+    const userQuery = await usersRef.where('stripeCustomerId', '==', session.customer).limit(1).get();
+
+    if (userQuery.empty) {
+        functions.logger.error(`Aucun utilisateur trouvé avec le Stripe Customer ID: ${session.customer}`);
+        return;
+    }
+
+    const userDoc = userQuery.docs[0];
+    const userId = userDoc.id;
 
     try {
-      // Récupérer les détails de la session de paiement depuis Stripe
-      const session = await stripe.checkout.sessions.listLineItems(checkoutSessionId);
-      const lineItem = session.data[0]; // On suppose un seul article par achat
+        const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
+        const lineItem = lineItems.data[0];
 
-      if (!lineItem || !lineItem.price || !lineItem.price.product) {
-        functions.logger.error("Données de la session de paiement incomplètes.", {session});
-        return;
-      }
+        if (!lineItem || !lineItem.price || !lineItem.price.product) {
+            functions.logger.error("Données de la session de paiement incomplètes.", { session });
+            return;
+        }
 
-      // Récupérer le produit Stripe pour lire ses métadonnées
-      const product = await stripe.products.retrieve(
-        lineItem.price.product as string
-      );
-      const metadata = product.metadata;
+        const product = await stripe.products.retrieve(lineItem.price.product as string);
+        const metadata = product.metadata;
 
-      functions.logger.log(`Traitement de la commande pour l'utilisateur ${userId}`, {metadata});
+        functions.logger.log(`Traitement de la commande pour l'utilisateur ${userId}`, { metadata });
 
-      const userRef = admin.firestore().doc(`users/${userId}`);
-      const updates: {[key: string]: admin.firestore.FieldValue} = {};
+        const updates: { [key: string]: admin.firestore.FieldValue } = {};
 
-      // Vérifier les métadonnées pour créditer les tickets
-      if (metadata.packUploadTickets) {
-        updates.packUploadTickets = admin.firestore.FieldValue.increment(
-          parseInt(metadata.packUploadTickets, 10)
-        );
-      }
+        if (metadata.packUploadTickets) {
+            updates.packUploadTickets = admin.firestore.FieldValue.increment(parseInt(metadata.packUploadTickets, 10));
+        }
+        if (metadata.packAiTickets) {
+            updates.packAiTickets = admin.firestore.FieldValue.increment(parseInt(metadata.packAiTickets, 10));
+        }
 
-      if (metadata.packAiTickets) {
-        updates.packAiTickets = admin.firestore.FieldValue.increment(
-          parseInt(metadata.packAiTickets, 10)
-        );
-      }
-      
-      // Ici, on pourrait aussi gérer l'activation des abonnements, etc.
-      // if (metadata.subscriptionTier) { ... }
+        if (Object.keys(updates).length > 0) {
+            await userDoc.ref.update(updates);
+            functions.logger.log(`Utilisateur ${userId} crédité avec succès.`, { updates });
+        } else {
+            functions.logger.log("Aucune action de crédit de ticket pour ce produit.", { metadata });
+        }
 
-      if (Object.keys(updates).length > 0) {
-        await userRef.update(updates);
-        functions.logger.log(`Utilisateur ${userId} crédité avec succès.`, {updates});
-      } else {
-        functions.logger.log("Aucune action à effectuer pour ce produit (pas de métadonnées de tickets).", {metadata});
-      }
     } catch (error) {
-      functions.logger.error(
-        "Erreur lors du traitement de la commande:",
-        error
-      );
+        functions.logger.error(`Erreur lors du traitement de la commande pour l'utilisateur ${userId}:`, error);
+        // Rethrow pour que le webhook sache qu'il y a eu un problème
+        throw error;
+    }
+}
+
+
+/**
+ * Cloud Function (déclenchée par Firestore) qui synchronise le stripeCustomerId.
+ * Se déclenche quand un checkout_session est créé.
+ */
+exports.syncStripeCustomerId = functions.firestore
+  .document("customers/{userId}/checkout_sessions/{sessionId}")
+  .onCreate(async (snapshot, context) => {
+    const session = snapshot.data();
+    const userId = context.params.userId;
+    
+    // Attendre que la session Stripe soit créée et ait un customer ID
+    // C'est une approche simplifiée. Une version plus robuste pourrait utiliser un polling.
+    await new Promise(resolve => setTimeout(resolve, 5000)); // Attendre 5s
+
+    try {
+      const sessionDoc = await snapshot.ref.get();
+      const updatedSession = sessionDoc.data();
+
+      if (updatedSession?.customer) {
+        const userDocRef = admin.firestore().doc(`users/${userId}`);
+        await userDocRef.update({ stripeCustomerId: updatedSession.customer });
+        functions.logger.log(`Stripe Customer ID ${updatedSession.customer} synchronisé pour l'utilisateur ${userId}.`);
+      } else if (updatedSession?.error) {
+         functions.logger.warn(`La création de la session a échoué pour l'utilisateur ${userId}. Pas de synchronisation.`, updatedSession.error);
+      }
+      else {
+          functions.logger.warn(`Customer ID non trouvé dans la session après 5s pour l'utilisateur ${userId}.`);
+      }
+
+    } catch (error) {
+      functions.logger.error(`Erreur lors de la synchronisation du Stripe Customer ID pour l'utilisateur ${userId}:`, error);
     }
   });
