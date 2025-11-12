@@ -70,7 +70,7 @@ const uploadPacks = [
 
 const aiPacks = [
   { id: 'price_1SQ91HCL0iCpjJiiUV4xjJJE', title: "Boost S", description: "20 tickets IA", price: "2,99 €", icon: Sparkles, mode: 'payment' },
-  { id: 'price_1SQ92mCL0iCpjJiiK0lISxQ5', title: "Boost M", description: "50 tickets IA", price: "5,99 €", icon: Sparkles, mode: 'payment' },
+  { id: 'price_1SSnrpFxufdYfSFcIDrnAdEi', title: "Boost M", description: "50 tickets IA", price: "5,99 €", icon: Sparkles, mode: 'payment' },
   { id: 'price_1SQ944CL0iCpjJii3B2LrQnQ', title: "Boost L", description: "150 tickets IA", price: "14,99 €", icon: Sparkles, featured: true, mode: 'payment' },
 ];
 
