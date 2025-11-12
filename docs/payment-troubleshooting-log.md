@@ -39,7 +39,7 @@ Ce document sert de journal de bord pour l'intégration de la fonctionnalité de
 *   **Diagnostic Final et Solution :**
     *   **La découverte clé (faite par l'utilisateur) :** L'accès à l'application ne se faisait pas via l'URL fournie par le terminal de Firebase Studio (`https://<port>-<...>.cloudworkstations.dev`), mais probablement via une autre URL (comme `localhost:port`).
     *   **L'explication :** L'environnement de Firebase Studio est conteneurisé. Les redirections complexes (comme celles de Stripe) et les communications entre services (comme l'extension Firebase qui notifie l'application) ne peuvent fonctionner correctement que si l'on utilise **l'URL d'accès officielle et sécurisée** fournie par la commande `npm run dev`.
-    *   **Solution Apportée :** L'utilisateur a accédé à l'application via la bonne URL.
+    *   **Solution Apportée :** L'utilisateur a accédé à l'application via la bonne URL publique.
 *   **Résultat :** **Succès complet.** La page de paiement Stripe s'est affichée et le cycle de paiement est devenu 100% fonctionnel en mode test.
 
 ---
@@ -73,28 +73,30 @@ Ce document sert de journal de bord pour l'intégration de la fonctionnalité de
 
 ---
 
-### **Étape 6 : Débogage Post-Déploiement - Le Webhook Secret**
+### **Étape 6 : La Percée - La Clé Secrète du Webhook**
 
 *   **Objectif :** Diagnostiquer pourquoi, malgré un déploiement réussi, les tickets ne sont toujours pas crédités.
-*   **Problème Rencontré :** Les journaux de la Cloud Function dans Google Cloud montrent une erreur `[Error]: Webhook signature verification failed.`.
-*   **Diagnostic :** L'extension reçoit bien la notification de Stripe, mais ne peut pas en vérifier l'authenticité. La clé secrète du webhook (`whsec_...`) est manquante ou incorrecte dans la configuration de la fonction, bien que la clé d'API (`sk_...`) soit présente.
-*   **Solution Apportée :**
-    1.  L'utilisateur récupère la **clé secrète du webhook** depuis le tableau de bord Stripe (section Développeurs > Webhooks).
-    2.  L'utilisateur ajoute cette clé à la configuration des fonctions via la commande : `firebase functions:config:set stripe.webhook_secret="VOTRE_CLÉ_WHSEC_ICI"`.
-    3.  Redéploiement de la fonction avec `firebase deploy --only functions` pour que la nouvelle configuration soit prise en compte.
-*   **Résultat :** La chaîne de communication est maintenant entièrement sécurisée. Le déploiement est un succès complet.
+*   **Problème Rencontré :** Après un test de paiement, les tickets ne sont toujours pas ajoutés. Le problème persiste.
+*   **Diagnostic (la découverte cruciale de l'utilisateur) :**
+    *   L'utilisateur a partagé une capture d'écran de la configuration de l'**extension Stripe** dans la console Firebase.
+    *   Cette capture a révélé que le champ **"Stripe webhook secret" était vide**.
+    *   **Conclusion :** L'extension Stripe est un module isolé qui ne lit pas la configuration générale des fonctions que nous avions mise en place (`functions:config:set`). Elle ne lit que **sa propre configuration**. Le webhook recevait les appels, mais les rejetait car il n'avait pas la clé `whsec_...` pour les valider.
+*   **Solution Apportée (LA BONNE) :**
+    1.  L'utilisateur a récupéré la clé secrète du webhook (`whsec_...`) depuis le tableau de bord Stripe (section Développeurs > Webhooks).
+    2.  L'utilisateur a **collé cette clé directement dans le champ de configuration de l'extension Stripe** dans la console Firebase.
+    3.  L'utilisateur a cliqué sur "Terminer la mise à jour" pour que l'extension soit redéployée avec la bonne clé.
+*   **Résultat :** La chaîne de communication est maintenant entièrement sécurisée et correctement configurée. C'est l'avancée majeure qui devrait tout débloquer.
 
 ---
 
-### **Étape 7 : Débogage Final - La Liaison Utilisateur-Client**
+### **Étape 7 : Fiabilisation Finale - La Liaison Utilisateur-Client**
 
-*   **Objectif :** Résoudre le problème final où les tickets ne sont toujours pas crédités malgré un déploiement réussi et une configuration correcte.
-*   **Problème Rencontré :** Après un paiement test sur l'URL publique, les tickets ne sont pas ajoutés au compte.
-*   **Diagnostic :** L'hypothèse principale est que le lien entre l'utilisateur Firebase et le client Stripe n'est pas établi de manière fiable. La fonction `syncStripeCustomerId` peut échouer si elle s'exécute trop tôt, avant que l'extension Stripe ait eu le temps d'écrire l'ID client dans le document `checkout_sessions`.
-*   **Solution Apportée :**
-    1.  **Fiabiliser la liaison :** Modification de la Cloud Function `syncStripeCustomerId` dans `functions/src/index.ts`. La nouvelle version utilise une méthode de "polling" : elle réessaie plusieurs fois (toutes les 2 secondes) de lire le document de session jusqu'à ce que l'ID client soit disponible.
+*   **Objectif :** Résoudre le problème de manière préventive si le crédit de tickets échoue encore, en s'assurant que le lien utilisateur-client est infaillible.
+*   **Problème Potentiel :** Le lien entre l'utilisateur Firebase et le client Stripe peut échouer si la fonction `syncStripeCustomerId` s'exécute trop tôt, avant que l'extension Stripe n'ait eu le temps d'écrire l'ID client dans le document `checkout_sessions`.
+*   **Solution Apportée (Préventive) :**
+    1.  **Fiabiliser la liaison :** Modification de la Cloud Function `syncStripeCustomerId` dans `functions/src/index.ts`. La nouvelle version utilise une méthode de "polling" : elle réessaie plusieurs fois (toutes les 2 secondes pendant 10 secondes) de lire le document de session jusqu'à ce que l'ID client (`customer`) soit disponible.
     2.  **Améliorer le débogage :** Ajout de messages de logs (journaux) beaucoup plus détaillés dans les deux fonctions (`syncStripeCustomerId` et `stripeWebhook`) pour pouvoir suivre précisément chaque étape du processus dans la console Firebase en cas de nouvel échec.
-*   **Résultat Attendu :** Cette nouvelle logique devrait garantir que le `stripeCustomerId` est bien enregistré sur le profil de l'utilisateur. Après redéploiement de cette fonction, le prochain achat test devrait enfin créditer les tickets.
+*   **Résultat Attendu :** Cette nouvelle logique garantit que le `stripeCustomerId` est bien enregistré sur le profil de l'utilisateur, ce qui est indispensable pour que le `stripeWebhook` puisse ensuite créditer les tickets au bon compte.
 
 ---
 
@@ -108,24 +110,22 @@ Cette liste répertorie tous les points de contrôle critiques à vérifier pour
 -   [ ] **Métadonnées des Produits :** **C'est crucial.** Chaque **Produit** (pas le prix) doit avoir une "Métadonnée" qui correspond exactement au champ à incrémenter dans Firestore.
     *   Exemple pour le pack "Boost Upload M" : Clé = `packUploadTickets`, Valeur = `120`.
     *   Exemple pour le pack "Boost IA L" : Clé = `packAiTickets`, Valeur = `150`.
--   [ ] **Clés d'API :** Les clés secrète (`sk_test_...`) et publiable (`pk_test_...`) sont disponibles.
+-   [ ] **Clés d'API :** La clé secrète (`sk_test_...`) est disponible.
 -   [ ] **Webhook Endpoint :** L'extension Firebase a automatiquement créé un endpoint dans la section "Développeurs > Webhooks". Il doit être activé et écouter l'événement `checkout.session.completed`.
--   [ ] **Webhook Secret :** La "clé secrète de signature" (`whsec_...`) de cet endpoint est disponible.
+-   [ ] **Webhook Secret :** La "clé secrète de signature" (`whsec_...`) de cet endpoint est disponible et a été copiée.
 
 #### **✅ 2. Configuration du Projet Firebase**
 -   [ ] **Extension Stripe Installée :** L'extension "Run payments with Stripe" est bien installée sur le projet Firebase.
 -   [ ] **Configuration de l'Extension :**
     *   La clé secrète de Stripe (`sk_test_...`) est bien renseignée dans les paramètres de l'extension.
--   [ ] **Configuration des Cloud Functions :** Les clés secrètes ont été ajoutées via les commandes dans le terminal :
-    *   `firebase functions:config:set stripe.secret_key="sk_test_..."`
-    *   `firebase functions:config:set stripe.webhook_secret="whsec_..."`
--   [ ] **Déploiement Réussi :** La commande `firebase deploy --only functions` s'est terminée avec `✔ Deploy complete!`.
+    *   La **clé secrète du webhook** (`whsec_...`) est maintenant bien renseignée dans le champ "Stripe webhook secret" de l'extension.
+-   [ ] **Déploiement des Fonctions Réussi :** La commande `firebase deploy --only functions` s'est terminée avec `✔ Deploy complete!`.
 
 #### **✅ 3. Logique Applicative (Code)**
 -   [ ] **Logique Côté Client (`shop/page.tsx`) :** Le clic sur un bouton d'achat crée bien un document dans `customers/{userId}/checkout_sessions` dans Firestore.
 -   [ ] **Logique Serveur (`functions/src/index.ts`) :**
-    *   La fonction `syncStripeCustomerId` est bien présente et déployée pour lier le client Stripe à l'utilisateur Firebase.
-    *   La fonction `stripeWebhook` est bien présente, sécurisée par le "webhook secret", et contient la logique pour lire les métadonnées du produit et créditer le bon champ (`packUploadTickets` ou `packAiTickets`) dans le document utilisateur.
+    *   La fonction `syncStripeCustomerId` est bien présente, fiabilisée avec une boucle de polling, et déployée.
+    *   La fonction `stripeWebhook` est bien présente, sécurisée, et contient la logique pour lire les métadonnées du produit et créditer le bon champ (`packUploadTickets` ou `packAiTickets`).
 
 #### **✅ 4. Environnement et Processus de Test**
 -   [ ] **URL Publique :** Le test est effectué sur l'URL publique de l'application (`...hosted.app` ou `...firebase.studio`), **JAMAIS** sur `localhost`.
