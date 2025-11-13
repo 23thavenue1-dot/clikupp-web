@@ -158,7 +158,6 @@ export async function checkAndRefillTickets(firestore: Firestore, userDocRef: Do
     // Appliquer les mises à jour si nécessaire
     if (Object.keys(updates).length > 0) {
         updateDoc(userDocRef, updates).catch(error => {
-            console.error('Erreur lors de la recharge des tickets:', error);
             const permissionError = new FirestorePermissionError({
                 path: userDocRef.path,
                 operation: 'update',
@@ -189,10 +188,16 @@ export function saveImageMetadata(firestore: Firestore, user: User, metadata: Om
     addDoc(imagesCollectionRef, dataToSave)
       .then(docRef => {
         // On met ensuite à jour ce même document pour y ajouter son propre ID
-        return updateDoc(docRef, { id: docRef.id });
+        updateDoc(docRef, { id: docRef.id }).catch(error => {
+          const permissionError = new FirestorePermissionError({
+            path: docRef.path,
+            operation: 'update',
+            requestResourceData: { id: docRef.id },
+          });
+          errorEmitter.emit('permission-error', permissionError);
+        });
       })
       .catch(error => {
-        console.error("Erreur lors de la sauvegarde des métadonnées de l'image :", error);
         const permissionError = new FirestorePermissionError({
             path: imagesCollectionRef.path,
             operation: 'create',
@@ -229,7 +234,6 @@ export function decrementTicketCount(firestore: Firestore, userId: string, profi
   }
 
   updateDoc(userDocRef, updates).catch(error => {
-    console.error("Erreur lors du décompte du ticket:", error);
     const permissionError = new FirestorePermissionError({
         path: userDocRef.path,
         operation: 'update',
@@ -262,7 +266,6 @@ export function decrementAiTicketCount(firestore: Firestore, userId: string, pro
   }
 
   updateDoc(userDocRef, updates).catch(error => {
-    console.error("Erreur lors du décompte du ticket IA:", error);
     const permissionError = new FirestorePermissionError({
         path: userDocRef.path,
         operation: 'update',
@@ -292,10 +295,16 @@ export function saveImageFromUrl(firestore: Firestore, user: User, metadata: Omi
 
     addDoc(imagesCollectionRef, dataToSave)
       .then(docRef => {
-        return updateDoc(docRef, { id: docRef.id });
+        updateDoc(docRef, { id: docRef.id }).catch(error => {
+          const permissionError = new FirestorePermissionError({
+            path: docRef.path,
+            operation: 'update',
+            requestResourceData: { id: docRef.id },
+          });
+          errorEmitter.emit('permission-error', permissionError);
+        });
       })
       .catch(error => {
-        console.error("Erreur lors de la sauvegarde depuis URL :", error);
         const permissionError = new FirestorePermissionError({
             path: imagesCollectionRef.path,
             operation: 'create',
@@ -315,7 +324,6 @@ export function saveImageFromUrl(firestore: Firestore, user: User, metadata: Omi
 export function deleteImageMetadata(firestore: Firestore, userId: string, imageId: string): void {
   const imageDocRef = doc(firestore, 'users', userId, 'images', imageId);
   deleteDoc(imageDocRef).catch(error => {
-    console.error("Erreur lors de la suppression des métadonnées Firestore:", error);
     const permissionError = new FirestorePermissionError({
         path: imageDocRef.path,
         operation: 'delete',
@@ -407,10 +415,16 @@ export function saveNote(firestore: Firestore, user: User, text: string): void {
 
   addDoc(notesCollectionRef, dataToSave)
     .then(docRef => {
-      updateDoc(docRef, { id: docRef.id });
+      updateDoc(docRef, { id: docRef.id }).catch(error => {
+        const permissionError = new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'update',
+          requestResourceData: { id: docRef.id },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
     })
     .catch(error => {
-      console.error("Erreur lors de la sauvegarde de la note :", error);
       const permissionError = new FirestorePermissionError({
         path: notesCollectionRef.path,
         operation: 'create',
@@ -431,7 +445,6 @@ export function updateNote(firestore: Firestore, userId: string, noteId: string,
     const noteDocRef = doc(firestore, 'users', userId, 'notes', noteId);
     const dataToUpdate = { text: newText };
     updateDoc(noteDocRef, dataToUpdate).catch(error => {
-        console.error("Erreur lors de la mise à jour de la note :", error);
         const permissionError = new FirestorePermissionError({
             path: noteDocRef.path,
             operation: 'update',
@@ -450,7 +463,6 @@ export function updateNote(firestore: Firestore, userId: string, noteId: string,
 export function deleteNote(firestore: Firestore, userId: string, noteId: string): void {
     const noteDocRef = doc(firestore, 'users', userId, 'notes', noteId);
     deleteDoc(noteDocRef).catch(error => {
-        console.error("Erreur lors de la suppression de la note :", error);
         const permissionError = new FirestorePermissionError({
             path: noteDocRef.path,
             operation: 'delete',
@@ -470,7 +482,6 @@ export function toggleNoteCompletion(firestore: Firestore, userId: string, noteI
     const noteDocRef = doc(firestore, 'users', userId, 'notes', noteId);
     const dataToUpdate = { completed };
     updateDoc(noteDocRef, dataToUpdate).catch(error => {
-        console.error("Erreur lors de la mise à jour du statut de la note :", error);
         const permissionError = new FirestorePermissionError({
             path: noteDocRef.path,
             operation: 'update',
@@ -552,7 +563,6 @@ export function updateImageDescription(
     }
 
     updateDoc(imageDocRef, dataToUpdate).catch(error => {
-        console.error("Erreur lors de la mise à jour de la description :", error);
         const permissionError = new FirestorePermissionError({
             path: imageDocRef.path,
             operation: 'update',
@@ -589,7 +599,6 @@ export function createGallery(firestore: Firestore, userId: string, name: string
                     .catch(reject);
             })
             .catch(error => {
-                console.error("Erreur lors de la création de la galerie :", error);
                 const permissionError = new FirestorePermissionError({
                     path: galleriesCollectionRef.path,
                     operation: 'create',
@@ -610,7 +619,6 @@ export function createGallery(firestore: Firestore, userId: string, name: string
 export function deleteGallery(firestore: Firestore, userId: string, galleryId: string): void {
     const galleryDocRef = doc(firestore, 'users', userId, 'galleries', galleryId);
     deleteDoc(galleryDocRef).catch(error => {
-        console.error("Erreur lors de la suppression de la galerie :", error);
         const permissionError = new FirestorePermissionError({
             path: galleryDocRef.path,
             operation: 'delete',
@@ -629,7 +637,6 @@ export function deleteGallery(firestore: Firestore, userId: string, galleryId: s
 export function addImageToGallery(firestore: Firestore, userId: string, imageId: string, galleryId: string): void {
     const galleryDocRef = doc(firestore, 'users', userId, 'galleries', galleryId);
     updateDoc(galleryDocRef, { imageIds: arrayUnion(imageId) }).catch(error => {
-        console.error("Erreur lors de l'ajout de l'image à la galerie:", error);
         const permissionError = new FirestorePermissionError({
             path: galleryDocRef.path,
             operation: 'update',
@@ -653,7 +660,6 @@ export function toggleImagePinInGallery(firestore: Firestore, userId: string, ga
         pinnedImageIds: pin ? arrayUnion(imageId) : arrayRemove(imageId)
     };
     updateDoc(galleryDocRef, updateData).catch(error => {
-        console.error(`Erreur lors de ${pin ? "l'épinglage" : "du désépinglage"} de l'image:`, error);
         const permissionError = new FirestorePermissionError({
             path: galleryDocRef.path,
             operation: 'update',
@@ -676,7 +682,6 @@ export function toggleGlobalImagePin(firestore: Firestore, userId: string, image
         pinnedImageIds: pin ? arrayUnion(imageId) : arrayRemove(imageId)
     };
     updateDoc(userDocRef, updateData).catch(error => {
-        console.error(`Erreur lors de ${pin ? "l'épinglage" : "du désépinglage"} de l'image globale:`, error);
         const permissionError = new FirestorePermissionError({
             path: userDocRef.path,
             operation: 'update',
@@ -728,7 +733,6 @@ export function removeImagesFromGallery(firestore: Firestore, userId: string, ga
         pinnedImageIds: arrayRemove(...imageIds) // Also remove from pinned
     };
     updateDoc(galleryDocRef, updateData).catch(error => {
-        console.error("Erreur lors du retrait des images de la galerie :", error);
         const permissionError = new FirestorePermissionError({
             path: galleryDocRef.path,
             operation: 'update',
