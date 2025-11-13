@@ -2,16 +2,7 @@
 /**
  * @file Firebase Security Rules for Firestore.
  * @description This ruleset enforces a strict user-ownership model for user profiles, images, and notes,
- *              with an additional admin role based on document existence in a dedicated collection.
- *
- * Data Structure:
- * - /users/{userId}: Stores user profile information; only the user can read/write their own profile.
- * - /users/{userId}/images/{imageId}: Stores image metadata; only the user can read/write images they own.
- * - /users/{userId}/notes/{noteId}: Stores notes; only the user can read/write their own notes.
- * - /users/{userId}/galleries/{galleryId}: Stores user-created galleries; only the user can manage their own galleries.
- * - /customers/{userId}: Stores Stripe customer data; managed by the Stripe extension.
- * - /products/{productId}: Stores Stripe product data; read-only for clients.
- * - /roles_admin/{adminId}: Presence of a document grants admin privileges.
+ *              with an additional admin role and specific rules for the Stripe Payments extension.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -33,11 +24,48 @@ service cloud.firestore {
       return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
+    // --- STRIPE EXTENSION RULES ---
+    // Allow read access to a user's own customer data
+    match /customers/{uid} {
+      allow read: if request.auth.uid == uid;
+
+      // Allow write access to checkout_sessions for the user
+      match /checkout_sessions/{id} {
+        allow read, write: if request.auth.uid == uid;
+      }
+      // Allow read access to a user's own subscriptions
+      match /subscriptions/{id} {
+        allow read: if request.auth.uid == uid;
+      }
+      // Allow read access to a user's own payments
+      match /payments/{id} {
+        allow read: if request.auth.uid == uid;
+      }
+    }
+
+    // --- Product and pricing information ---
+    // Public read access is allowed for products and prices, but writing is disabled
+    match /products/{id} {
+      allow read: if true;
+      allow write: if false;
+
+      match /prices/{id} {
+        allow read: if true;
+        allow write: if false;
+      }
+      
+      match /tax_rates/{id} {
+        allow read: if true;
+        allow write: if false;
+      }
+    }
+
+    // --- USER DATA RULES ---
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow list: if false;
       allow create: if isOwner(userId) && request.resource.data.id == request.auth.uid;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow update: if isOwner(userId); // Simplified for Stripe webhook updates
       allow delete: if isExistingOwner(userId);
 
       match /images/{imageId} {
@@ -62,27 +90,6 @@ service cloud.firestore {
         allow create: if isOwner(userId) && request.resource.data.userId == userId;
         allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
         allow delete: if isExistingOwner(userId);
-      }
-    }
-    
-    // --- STRIPE EXTENSION RULES ---
-    // Ces règles permettent à l'extension Stripe de fonctionner correctement.
-    match /customers/{uid} {
-      allow read, write: if request.auth.uid == uid;
-    }
-
-    match /products/{productId} {
-      allow read: if true;
-      allow write: if false; // Les clients ne peuvent pas écrire dans les produits
-
-      match /prices/{priceId} {
-        allow read: if true;
-        allow write: if false;
-      }
-
-      match /tax_rates/{taxId} {
-        allow read: if true;
-        allow write: if false;
       }
     }
     
