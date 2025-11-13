@@ -9,7 +9,8 @@
  * - /users/{userId}/images/{imageId}: Stores image metadata; only the user can read/write images they own.
  * - /users/{userId}/notes/{noteId}: Stores notes; only the user can read/write their own notes.
  * - /users/{userId}/galleries/{galleryId}: Stores user-created galleries; only the user can manage their own galleries.
- * - /customers/{userId}: Stores Stripe customer data; only the user can manage their own payment info.
+ * - /customers/{userId}: Stores Stripe customer data; managed by the Stripe extension.
+ * - /products/{productId}: Stores Stripe product data; read-only for clients.
  * - /roles_admin/{adminId}: Presence of a document grants admin privileges.
  */
 rules_version = '2';
@@ -64,36 +65,34 @@ service cloud.firestore {
       }
     }
     
-    /**
-     * @description Defines access rules for Stripe customer documents and related subcollections.
-     *              This allows the Stripe Firebase Extension to work correctly.
-     *              The service role (used by the extension) bypasses these client-side rules,
-     *              but we are making them explicit for clarity and to solve potential permission issues.
-     */
-    match /customers/{userId} {
-      // The user can read and write their own customer data.
-      // The extension will also write to this document.
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      
-      /**
-       * @description Allows a user to create and read checkout sessions for themselves.
-       *              The Stripe extension will then update this document with an `url` or an `error`.
-       *              Reading is important for the client to get the redirection URL.
-       */
-      match /checkout_sessions/{sessionId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
+    // --- STRIPE EXTENSION RULES ---
+    match /customers/{uid} {
+      allow read: if request.auth.uid == uid;
 
-       /**
-       * @description Allows a user to read their own payment history.
-       *              The extension writes to this collection after a successful payment.
-       */
-      match /payments/{paymentId} {
-        allow read: if request.auth != null && request.auth.uid == userId;
-        allow write: if false; // IMPORTANT: Only the extension can write payment info.
+      match /checkout_sessions/{id} {
+        allow read, write: if request.auth.uid == uid;
+      }
+      match /subscriptions/{id} {
+        allow read: if request.auth.uid == uid;
+      }
+      match /payments/{id} {
+        allow read: if request.auth.uid == uid;
       }
     }
 
+    match /products/{id} {
+      allow read: if true;
+
+      match /prices/{id} {
+        allow read: if true;
+      }
+
+      match /tax_rates/{id} {
+        allow read: if true;
+      }
+    }
+
+    // --- ADMIN ROLE ---
     match /roles_admin/{adminId} {
       allow get: if isSignedIn();
       allow list: if false;
