@@ -114,16 +114,16 @@ function ShopContent() {
             const docRef = await addDoc(checkoutSessionRef, {
                 price: priceId,
                 mode: mode,
-                success_url: `${window.location.origin}${window.location.pathname}?success=true`,
-                cancel_url: `${window.location.origin}${window.location.pathname}?cancelled=true`,
-                // Le client_reference_id n'est plus nécessaire car l'extension
-                // connaît le contexte utilisateur via le chemin du document.
+                success_url: `${window.location.origin}/shop?success=true`,
+                cancel_url: `${window.location.origin}/shop?cancelled=true`,
                 allow_promotion_codes: true,
+                client_reference_id: user.uid, // Ajout crucial
             });
 
             onSnapshot(docRef, (snap) => {
                 const { error, url } = snap.data() || {};
                 if (error) {
+                    console.error('Erreur retournée par l\'extension Stripe:', error);
                     toast({
                         variant: 'destructive',
                         title: 'Erreur de paiement',
@@ -134,10 +134,19 @@ function ShopContent() {
                 if (url) {
                     window.location.assign(url);
                 }
+            }, (err) => {
+                // Gestion des erreurs de l'écouteur onSnapshot lui-même
+                console.error('Erreur de l\'écouteur Firestore:', err);
+                toast({
+                    variant: 'destructive',
+                    title: 'Erreur de connexion',
+                    description: "Impossible d'écouter la réponse de la session de paiement.",
+                });
+                setLoadingPriceId(null);
             });
     
         } catch (error: any) {
-            console.error('Erreur de création de session Stripe:', error);
+            console.error('Erreur de création de document checkout_sessions:', error);
             toast({
                 variant: 'destructive',
                 title: 'Erreur',
@@ -263,7 +272,7 @@ function ShopContent() {
 
 export default function ShopPage() {
     return (
-        <Suspense fallback={<Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />}>
+        <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
             <ShopContent />
         </Suspense>
     );
