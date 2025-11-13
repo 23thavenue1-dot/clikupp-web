@@ -66,32 +66,26 @@ service cloud.firestore {
     }
     
     // --- STRIPE EXTENSION RULES ---
+    // Ces règles permettent à l'extension Stripe de fonctionner correctement.
     match /customers/{uid} {
-      allow read: if request.auth.uid == uid;
-
-      match /checkout_sessions/{id} {
-        allow read, write: if request.auth.uid == uid;
-      }
-      match /subscriptions/{id} {
-        allow read: if request.auth.uid == uid;
-      }
-      match /payments/{id} {
-        allow read: if request.auth.uid == uid;
-      }
+      allow read, write: if request.auth.uid == uid;
     }
 
-    match /products/{id} {
+    match /products/{productId} {
       allow read: if true;
+      allow write: if false; // Les clients ne peuvent pas écrire dans les produits
 
-      match /prices/{id} {
+      match /prices/{priceId} {
         allow read: if true;
+        allow write: if false;
       }
 
-      match /tax_rates/{id} {
+      match /tax_rates/{taxId} {
         allow read: if true;
+        allow write: if false;
       }
     }
-
+    
     // --- ADMIN ROLE ---
     match /roles_admin/{adminId} {
       allow get: if isSignedIn();
