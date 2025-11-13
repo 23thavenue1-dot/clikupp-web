@@ -9,8 +9,8 @@ import { Check, Crown, Gem, Rocket, Sparkles, Upload, Loader2 } from 'lucide-rea
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { useUser, useFirestore } from '@/firebase';
-import { collection, addDoc, onSnapshot, doc, getDoc } from 'firebase/firestore';
+import { useUser, useFirebase } from '@/firebase';
+import { getStripePayments, createCheckoutSession } from '@invertase/firestore-stripe-payments';
 
 
 const subscriptions = [
@@ -76,8 +76,7 @@ const aiPacks = [
 
 function ShopContent() {
     const { toast } = useToast();
-    const { user } = useUser();
-    const firestore = useFirestore();
+    const { user, firebaseApp } = useFirebase();
     const [loadingPriceId, setLoadingPriceId] = useState<string | null>(null);
     const searchParams = useSearchParams();
 
@@ -102,7 +101,7 @@ function ShopContent() {
     }, [searchParams, toast]);
 
     const handlePurchaseClick = async (priceId: string, mode: 'payment' | 'subscription') => {
-        if (!user || !firestore) {
+        if (!user || !firebaseApp) {
             toast({ title: "Veuillez vous connecter", description: "Vous devez être connecté pour effectuer un achat.", variant: "destructive" });
             return;
         }
@@ -110,47 +109,27 @@ function ShopContent() {
         setLoadingPriceId(priceId);
     
         try {
-            // L'ID de l'utilisateur est maintenant passé dans `client_reference_id`
-            const checkoutSessionRef = await addDoc(collection(firestore, 'customers', user.uid, 'checkout_sessions'), {
+            const payments = getStripePayments(firebaseApp, {
+              productsCollection: 'products',
+              customersCollection: 'customers',
+            });
+
+            const session = await createCheckoutSession(payments, {
                 price: priceId,
-                mode: mode,
                 success_url: `${window.location.origin}${window.location.pathname}?success=true`,
                 cancel_url: `${window.location.origin}${window.location.pathname}?cancelled=true`,
                 allow_promotion_codes: true,
-                client_reference_id: user.uid, // C'est le chaînon manquant crucial
+                // Le mode est automatiquement géré par l'extension en fonction du type de prix sur Stripe
             });
-    
-            const unsubscribe = onSnapshot(checkoutSessionRef, (sessionSnap) => {
-                const sessionData = sessionSnap.data();
-                if (sessionData?.url) {
-                    unsubscribe(); // Arrêter d'écouter une fois l'URL obtenue
-                    window.location.assign(sessionData.url);
-                } else if (sessionData?.error) {
-                    unsubscribe(); // Arrêter d'écouter en cas d'erreur
-                    toast({
-                        variant: 'destructive',
-                        title: 'Erreur de paiement',
-                        description: sessionData.error.message || "Une erreur Stripe est survenue.",
-                    });
-                    setLoadingPriceId(null);
-                }
-            }, (error) => {
-                console.error("Erreur d'écoute de la session:", error);
-                unsubscribe();
-                toast({
-                    variant: 'destructive',
-                    title: 'Erreur',
-                    description: "Impossible de créer la session de paiement.",
-                });
-                setLoadingPriceId(null);
-            });
+
+            window.location.assign(session.url);
     
         } catch (error: any) {
-            console.error('Erreur Firestore:', error);
+            console.error('Erreur de création de session Stripe:', error);
             toast({
                 variant: 'destructive',
                 title: 'Erreur',
-                description: "Une erreur est survenue avant de contacter Stripe.",
+                description: error.message || "Une erreur est survenue lors de la création de la session de paiement.",
             });
             setLoadingPriceId(null);
         }
