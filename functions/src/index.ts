@@ -4,7 +4,6 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import Stripe from "stripe";
-import { buffer } from "micro";
 
 // Initialiser Firebase Admin SDK une seule fois
 if (admin.apps.length === 0) {
@@ -12,18 +11,17 @@ if (admin.apps.length === 0) {
 }
 
 // Tenter de récupérer les clés et préparer un indicateur d'erreur
-let stripeSecretKey, webhookSecret;
+let stripeSecretKey;
 let configError = false;
 
 try {
   stripeSecretKey = functions.config().stripe.secret_key;
-  webhookSecret = functions.config().stripe.webhook_secret;
-  if (!stripeSecretKey || !webhookSecret) {
-    functions.logger.error("Erreur critique de configuration : Les variables 'stripe.secret_key' ou 'stripe.webhook_secret' sont manquantes dans la configuration des fonctions Firebase.");
+  if (!stripeSecretKey) {
+    functions.logger.error("Erreur critique de configuration : La variable 'stripe.secret_key' est manquante.");
     configError = true;
   }
 } catch (e) {
-  functions.logger.error("Erreur critique : Le groupe de configuration 'stripe' est manquant. Exécutez 'firebase functions:config:set stripe.secret_key=...' et 'stripe.webhook_secret=...'.", e);
+  functions.logger.error("Erreur critique : Le groupe de configuration 'stripe' est manquant. Exécutez 'firebase functions:config:set stripe.secret_key=...'.", e);
   configError = true;
 }
 
@@ -33,85 +31,74 @@ const stripe = new Stripe(stripeSecretKey || '', {
 });
 
 /**
- * Webhook unique et robuste qui écoute les événements de Stripe.
- * C'est le point d'entrée pour toutes les confirmations de paiement.
+ * Déclencheur Firestore qui crédite les tickets à un utilisateur
+ * après un paiement unique réussi via l'extension Stripe.
  */
-export const stripeWebhook = functions.https.onRequest(async (req, res) => {
-  // Si les clés ne sont pas configurées, on arrête tout de suite.
-  if (configError) {
-    return res.status(500).send("Erreur de configuration du serveur. Les clés Stripe ne sont pas définies.");
-  }
-
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-    return res.status(405).send('Method Not Allowed');
-  }
-
-  const sig = req.headers['stripe-signature'];
-  if (!sig) {
-    functions.logger.error("Aucune signature Stripe trouvée dans l'en-tête.");
-    return res.status(400).send('Webhook Error: No signature provided.');
-  }
-
-  const reqBuffer = await buffer(req);
-  let event: Stripe.Event;
-
-  try {
-    event = stripe.webhooks.constructEvent(reqBuffer, sig, webhookSecret);
-    functions.logger.log(`Événement Stripe reçu et validé : ${event.type}`);
-  } catch (err: any) {
-    functions.logger.error("Erreur de vérification de la signature du webhook:", err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object as Stripe.Checkout.Session;
+export const creditTicketsOnSuccessfulPayment = functions.firestore
+  .document("customers/{userId}/payments/{paymentId}")
+  .onCreate(async (snap, context) => {
     
-    if (session.payment_status === 'paid') {
-      try {
-        const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 5 });
-        if (!lineItems.data.length || !lineItems.data[0].price || !lineItems.data[0].price.product) {
-            functions.logger.error("Impossible de récupérer les 'line items' ou le produit de la session.", { session_id: session.id });
-            return res.status(400).send("Données de la commande invalides.");
+    // Si les clés ne sont pas configurées, on arrête tout.
+    if (configError) {
+        functions.logger.error("La fonction ne peut pas s'exécuter car les clés Stripe ne sont pas configurées.");
+        return;
+    }
+    
+    const paymentData = snap.data();
+    const { userId } = context.params;
+
+    functions.logger.log(`Nouveau paiement détecté pour l'utilisateur ${userId}. Document: ${snap.id}`, { paymentData });
+
+    // Ne traiter que les paiements uniques réussis
+    if (paymentData.status !== 'succeeded' || paymentData.mode !== 'payment') {
+        functions.logger.log("Le paiement n'est pas un achat unique réussi. Fin du traitement.");
+        return;
+    }
+
+    try {
+        if (!paymentData.items || paymentData.items.length === 0) {
+            functions.logger.error("Aucun 'item' trouvé dans les données du paiement.", { paymentId: snap.id });
+            return;
         }
 
-        const product = await stripe.products.retrieve(lineItems.data[0].price.product as string);
+        // Récupérer le produit depuis Stripe pour lire ses métadonnées
+        const price = paymentData.items[0].price;
+        if (!price || !price.product) {
+            functions.logger.error("ID de produit manquant dans les données du paiement.", { paymentId: snap.id });
+            return;
+        }
+        
+        const product = await stripe.products.retrieve(price.product);
         const metadata = product.metadata;
-        const userId = session.client_reference_id;
-
-        if (!userId) {
-          functions.logger.error("Aucun client_reference_id (userId) trouvé dans la session Stripe.", { session_id: session.id });
-          return res.status(400).send("User ID manquant dans la session.");
-        }
+        functions.logger.log(`Produit récupéré sur Stripe: ${product.id}`, { metadata });
 
         const userDocRef = admin.firestore().doc(`users/${userId}`);
         const updates: { [key: string]: any } = {};
 
-        // S'assurer que le customer ID est bien enregistré
-        if (session.customer) {
-            updates.stripeCustomerId = session.customer;
-        }
-
+        // Déterminer quel type de pack a été acheté et préparer la mise à jour
         if (metadata.packUploadTickets) {
-          updates.packUploadTickets = admin.firestore.FieldValue.increment(parseInt(metadata.packUploadTickets, 10));
-        }
-        if (metadata.packAiTickets) {
-          updates.packAiTickets = admin.firestore.FieldValue.increment(parseInt(metadata.packAiTickets, 10));
-        }
-
-        if (Object.keys(updates).length > 1 || (Object.keys(updates).length === 1 && updates.stripeCustomerId)) {
-          await userDocRef.update(updates);
-          functions.logger.log(`SUCCÈS : Utilisateur ${userId} crédité avec succès.`, { updates });
+            const amount = parseInt(metadata.packUploadTickets, 10);
+            if (!isNaN(amount)) {
+                updates.packUploadTickets = admin.firestore.FieldValue.increment(amount);
+                functions.logger.log(`Crédit de ${amount} tickets d'upload pour l'utilisateur ${userId}.`);
+            }
+        } else if (metadata.packAiTickets) {
+            const amount = parseInt(metadata.packAiTickets, 10);
+            if (!isNaN(amount)) {
+                updates.packAiTickets = admin.firestore.FieldValue.increment(amount);
+                functions.logger.log(`Crédit de ${amount} tickets IA pour l'utilisateur ${userId}.`);
+            }
         } else {
-          functions.logger.warn("Aucune métadonnée de crédit de ticket trouvée pour ce produit, ou aucun customerId à mettre à jour.", { productId: product.id });
+            functions.logger.warn("Aucune métadonnée de crédit de ticket trouvée pour ce produit.", { productId: product.id });
+            return;
         }
 
-      } catch (error: any) {
-        functions.logger.error(`Erreur lors du traitement de la session ${session.id}:`, error);
-        return res.status(500).send(`Internal Server Error: ${error.message}`);
-      }
-    }
-  }
+        // Appliquer la mise à jour sur le document utilisateur
+        await userDocRef.update(updates);
+        functions.logger.log(`SUCCÈS : Le compte de l'utilisateur ${userId} a été crédité.`, { updates });
 
-  return res.status(200).send({ received: true });
+    } catch (error: any) {
+        functions.logger.error(`Erreur lors du traitement du paiement ${snap.id} pour l'utilisateur ${userId}:`, error);
+        // Optionnel : enregistrer l'erreur dans un document Firestore pour un suivi
+    }
 });
