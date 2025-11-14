@@ -6,7 +6,7 @@ import type { User } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Award, Camera, Heart, Medal, Star, UserCheck, GalleryVertical, CalendarClock, Trophy, Crown, Gem, Shield, Rocket, Sparkles, Sun, Upload, Share2, ThumbsUp, Pencil, ClipboardList, Library, Image as ImageIcon, Sparkle, Mail, FileText, Wand2, MailOpen, KeyRound, Loader2 } from 'lucide-react';
+import { Award, Camera, Heart, Medal, Star, UserCheck, GalleryVertical, CalendarClock, Trophy, Crown, Gem, Shield, Rocket, Sparkles, Sun, Upload, Share2, ThumbsUp, Pencil, ClipboardList, Library, Image as ImageIcon, Sparkle, Mail, FileText, Wand2, MailOpen, KeyRound, Loader2, Package, ShoppingCart } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Check } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -167,6 +167,21 @@ export default function DashboardPage() {
       description: 'Le nombre total de "likes" que vos images ont reçus.',
     },
   ];
+  
+  const purchasedTicketsStats = [
+      {
+          title: 'Tickets d\'upload (Packs)',
+          value: isProfileLoading ? <Skeleton className="h-6 w-10"/> : (userProfile?.packUploadTickets ?? 0).toString(),
+          icon: Upload,
+          description: 'Tickets achetés via les packs "Boost Upload".'
+      },
+      {
+          title: 'Tickets IA (Packs)',
+          value: isProfileLoading ? <Skeleton className="h-6 w-10"/> : (userProfile?.packAiTickets ?? 0).toString(),
+          icon: Sparkles,
+          description: 'Tickets achetés via les packs "Boost IA".'
+      }
+  ]
 
   const badges = [
     { level: 1, title: 'Niv. 1 : Novice', icon: Medal, motivation: 'Félicitations ! C\'est le début d\'une grande aventure créative.' },
@@ -221,6 +236,29 @@ export default function DashboardPage() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {stats.map((stat) => (
+                  <div key={stat.title} className="p-4 border rounded-lg flex items-start gap-4 bg-muted/20">
+                    <div className="bg-primary/10 text-primary p-3 rounded-md">
+                      <stat.icon className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">{stat.title}</p>
+                      <div className="text-2xl font-bold">{stat.value}</div>
+                      <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Tickets Achetés</CardTitle>
+              <CardDescription>Le solde de vos tickets achetés via des packs dans la boutique.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {purchasedTicketsStats.map((stat) => (
                   <div key={stat.title} className="p-4 border rounded-lg flex items-start gap-4 bg-muted/20">
                     <div className="bg-primary/10 text-primary p-3 rounded-md">
                       <stat.icon className="h-6 w-6" />

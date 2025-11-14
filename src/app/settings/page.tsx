@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useFirebase, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, increment } from 'firebase/firestore';
+import { useFirebase, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { doc, updateDoc, increment, collection, query, orderBy } from 'firebase/firestore';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, deleteUser, updateProfile } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { type UserProfile, deleteUserAccount } from '@/lib/firestore';
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Receipt } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -28,6 +28,26 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+
+// Type for a payment document from Stripe extension
+type Payment = {
+    id: string;
+    created: number;
+    amount: number;
+    currency: string;
+    status: string;
+    items: {
+        price: {
+            product: {
+                name: string;
+            }
+        }
+    }[];
+};
 
 const passwordFormSchema = z.object({
     currentPassword: z.string().min(1, { message: 'Le mot de passe actuel est requis.' }),
@@ -265,6 +285,13 @@ function AccountTab() {
 
   const userDocRef = useMemoFirebase(() => user && firestore ? doc(firestore, `users/${user.uid}`) : null, [user, firestore]);
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+  
+  const paymentsQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    // According to Stripe extension docs, payments are in customers/{uid}/payments
+    return query(collection(firestore, 'customers', user.uid, 'payments'), orderBy('created', 'desc'));
+  }, [user, firestore]);
+  const { data: payments, isLoading: arePaymentsLoading } = useCollection<Payment>(paymentsQuery);
 
   const passwordForm = useForm<z.infer<typeof passwordFormSchema>>({
     resolver: zodResolver(passwordFormSchema),
@@ -409,6 +436,51 @@ function AccountTab() {
             </div>
             <Switch id="email-notifications" checked={emailNotifications} onCheckedChange={handleNotificationChange} />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Historique des Achats</CardTitle>
+          <CardDescription>Retrouvez ici la liste de vos achats de packs de tickets.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {arePaymentsLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : payments && payments.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Produit</TableHead>
+                  <TableHead>Montant</TableHead>
+                  <TableHead className="text-right">Statut</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {payments.map((payment) => (
+                  <TableRow key={payment.id}>
+                    <TableCell>{format(new Date(payment.created * 1000), 'd MMMM yyyy', { locale: fr })}</TableCell>
+                    <TableCell className="font-medium">{payment.items?.[0]?.price?.product?.name || 'Produit inconnu'}</TableCell>
+                    <TableCell>{(payment.amount / 100).toFixed(2)} {payment.currency.toUpperCase()}</TableCell>
+                    <TableCell className="text-right">
+                       <Badge variant={payment.status === 'succeeded' ? 'default' : 'destructive'} className={payment.status === 'succeeded' ? 'bg-green-100 text-green-800' : ''}>
+                          {payment.status}
+                       </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
+                <Receipt className="mx-auto h-10 w-10" />
+                <p className="mt-4 font-medium">Aucun achat pour le moment.</p>
+                <p className="text-sm">Votre historique d'achats apparaîtra ici.</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
