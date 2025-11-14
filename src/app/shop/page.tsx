@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,13 +8,36 @@ import { Check, Crown, Gem, Rocket, Sparkles, Upload, Loader2 } from 'lucide-rea
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { useUser, useFirebase, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, onSnapshot, doc } from 'firebase/firestore';
+import { useFirebase, useUser } from '@/firebase';
+import {
+  StripePayments,
+  getProducts,
+  createCheckoutSession
+} from '@invertase/firestore-stripe-payments';
+import type { Product, Price } from '@invertase/firestore-stripe-payments';
+
+
+// Mettre les ID de prix ici pour la configuration.
+// Ces ID doivent correspondre à ceux de votre tableau de bord Stripe.
+const SUBSCRIPTION_IDS = {
+    creator: 'price_1SQ8qMCL0iCpjJiiuReYJAG8', // Remplacez par votre ID de prix réel
+    pro: 'price_1SQ8qMCL0iCpjJiiuReYJAG8', // Remplacez par votre ID de prix réel
+    master: 'price_1SQ8uUCL0iCpjJii5P1ZiYMa' // Remplacez par votre ID de prix réel
+};
+
+const PACK_IDS = {
+    upload_s: 'price_1SQ8wUCL0iCpjJiiQh9rA9gY', // Remplacez par votre ID de prix réel
+    upload_m: 'price_1SSLJIFxufdYfSFc0QLNkcq7',
+    upload_l: 'price_1SQ8yUCL0iCpjJiiGz00J0f4', // Remplacez par votre ID de prix réel
+    ai_s: 'price_1SQ8zUCL0iCpjJiiR9a1j2T5', // Remplacez par votre ID de prix réel
+    ai_m: 'price_1SQ90UCL0iCpjJiiS9b2k3U6', // Remplacez par votre ID de prix réel
+    ai_l: 'price_1SQ91UCL0iCpjJiiT0c3l4V7', // Remplacez par votre ID de prix réel
+};
 
 
 const subscriptions = [
     {
-        id: 'price_1SQ8qMCL0iCpjJiiuReYJAG8',
+        id: SUBSCRIPTION_IDS.pro,
         title: 'Pro',
         price: '9,99 €',
         period: '/ mois',
@@ -30,7 +53,7 @@ const subscriptions = [
         mode: 'subscription',
     },
      {
-        id: 'price_1SQ8qMCL0iCpjJiiuReYJAG8',
+        id: SUBSCRIPTION_IDS.creator,
         title: 'Créateur',
         price: '4,99 €',
         period: '/ mois',
@@ -45,7 +68,7 @@ const subscriptions = [
         mode: 'subscription',
     },
     {
-        id: 'price_1SQ8uUCL0iCpjJii5P1ZiYMa',
+        id: SUBSCRIPTION_IDS.master,
         title: 'Maître',
         price: '19,99 €',
         period: '/ mois',
@@ -62,72 +85,64 @@ const subscriptions = [
 ];
 
 const uploadPacks = [
-    { id: 'price_1SQ8wUCL0iCpjJiiQh9rA9gY', title: 'Boost S', price: '1,99 €', tickets: 50, icon: Upload, mode: 'payment' },
-    { id: 'price_1SSLJIFxufdYfSFc0QLNkcq7', title: 'Boost M', price: '3,99 €', tickets: 120, icon: Upload, mode: 'payment', featured: true },
-    { id: 'price_1SQ8yUCL0iCpjJiiGz00J0f4', title: 'Boost L', price: '7,99 €', tickets: 300, icon: Upload, mode: 'payment' }
+    { id: PACK_IDS.upload_s, title: 'Boost S', price: '1,99 €', tickets: 50, icon: Upload, mode: 'payment' },
+    { id: PACK_IDS.upload_m, title: 'Boost M', price: '3,99 €', tickets: 120, icon: Upload, mode: 'payment', featured: true },
+    { id: PACK_IDS.upload_l, title: 'Boost L', price: '7,99 €', tickets: 300, icon: Upload, mode: 'payment' }
 ];
 
 const aiPacks = [
-    { id: 'price_1SQ8zUCL0iCpjJiiR9a1j2T5', title: 'IA S', price: '2,99 €', tickets: 20, icon: Sparkles, mode: 'payment' },
-    { id: 'price_1SQ90UCL0iCpjJiiS9b2k3U6', title: 'IA M', price: '5,99 €', tickets: 50, icon: Sparkles, mode: 'payment', featured: true },
-    { id: 'price_1SQ91UCL0iCpjJiiT0c3l4V7', title: 'IA L', price: '14,99 €', tickets: 150, icon: Sparkles, mode: 'payment' }
+    { id: PACK_IDS.ai_s, title: 'IA S', price: '2,99 €', tickets: 20, icon: Sparkles, mode: 'payment' },
+    { id: PACK_IDS.ai_m, title: 'IA M', price: '5,99 €', tickets: 50, icon: Sparkles, mode: 'payment', featured: true },
+    { id: PACK_IDS.ai_l, title: 'IA L', price: '14,99 €', tickets: 150, icon: Sparkles, mode: 'payment' }
 ];
 
+
 function CheckoutButton({ item, disabled }: { item: any, disabled: boolean }) {
+    const { firebaseApp } = useFirebase();
     const { user } = useUser();
-    const firestore = useFirestore();
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
 
-    const createCheckoutSession = async () => {
-        if (!user || !firestore) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Vous devez être connecté.' });
+    const payments = useMemo(() => {
+        if (!firebaseApp) return null;
+        return new StripePayments(firebaseApp);
+    }, [firebaseApp]);
+
+    const handleCheckout = async () => {
+        if (!user || !payments) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Vous devez être connecté pour effectuer un achat.' });
             return;
         }
 
         setIsLoading(true);
 
-        const checkoutSessionRef = collection(firestore, `customers/${user.uid}/checkout_sessions`);
-        
         try {
-            const docRef = await addDoc(checkoutSessionRef, {
-                client_reference_id: user.uid,
+            const sessionPayload: any = {
                 price: item.id,
-                success_url: `${window.location.origin}${window.location.pathname}?success=true`,
-                cancel_url: `${window.location.origin}${window.location.pathname}?canceled=true`,
-                mode: item.mode,
-                allow_promotion_codes: true,
-            });
+                success_url: `${window.location.origin}/shop?success=true`,
+                cancel_url: `${window.location.origin}/shop?canceled=true`,
+            };
 
-            onSnapshot(docRef, (snap) => {
-                const { error, url } = snap.data() || {};
-                if (error) {
-                    console.error('Erreur retournée par l\'extension Stripe:', error);
-                    toast({
-                        variant: 'destructive',
-                        title: 'Erreur de paiement',
-                        description: `Une erreur est survenue: ${error.message}. Veuillez réessayer.`
-                    });
-                    setIsLoading(false);
-                }
-                if (url) {
-                    window.location.assign(url);
-                }
-            });
+            // Ajout crucial du mode pour les paiements uniques
+            if (item.mode === 'payment') {
+                sessionPayload.mode = 'payment';
+            }
 
-        } catch (error) {
+            const session = await createCheckoutSession(payments, sessionPayload);
+            window.location.assign(session.url);
+        } catch (error: any) {
             console.error('Erreur lors de la création de la session de paiement:', error);
             toast({
                 variant: 'destructive',
-                title: 'Erreur inattendue',
-                description: "Impossible d'initier le paiement. Veuillez contacter le support."
+                title: 'Erreur de paiement',
+                description: error.message || "Impossible d'initier le paiement. Veuillez réessayer."
             });
             setIsLoading(false);
         }
     };
 
     return (
-        <Button onClick={createCheckoutSession} disabled={disabled || isLoading} className="w-full">
+        <Button onClick={handleCheckout} disabled={disabled || isLoading} className="w-full">
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             {item.mode === 'subscription' ? 'S\'abonner' : 'Acheter'}
         </Button>
@@ -146,7 +161,7 @@ function ShopContent() {
         if (success) {
             toast({
                 title: 'Paiement réussi ! 🎉',
-                description: 'Merci pour votre achat. Vos tickets ont été ajoutés à votre compte.',
+                description: 'Merci pour votre achat. Vos tickets seront crédités dans quelques instants.',
             });
         }
         if (canceled) {
@@ -274,3 +289,5 @@ export default function ShopPage() {
         </Suspense>
     )
 }
+
+    
