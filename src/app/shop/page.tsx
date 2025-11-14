@@ -91,10 +91,10 @@ function CheckoutButton({ item, disabled }: { item: any, disabled: boolean }) {
         
         try {
             const docRef = await addDoc(checkoutSessionRef, {
-                client_reference_id: user.uid, // Ajout crucial de l'ID utilisateur
+                client_reference_id: user.uid,
                 price: item.id,
-                success_url: window.location.href,
-                cancel_url: window.location.href,
+                success_url: `${window.location.origin}${window.location.pathname}?success=true`,
+                cancel_url: `${window.location.origin}${window.location.pathname}?canceled=true`,
                 mode: item.mode,
                 allow_promotion_codes: true,
             });
