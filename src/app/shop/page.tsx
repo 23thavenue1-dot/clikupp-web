@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
@@ -92,13 +91,12 @@ function CheckoutButton({ item, disabled }: { item: any, disabled: boolean }) {
         
         try {
             const docRef = await addDoc(checkoutSessionRef, {
+                client_reference_id: user.uid, // Ajout crucial de l'ID utilisateur
                 price: item.id,
                 success_url: window.location.href,
                 cancel_url: window.location.href,
                 mode: item.mode,
                 allow_promotion_codes: true,
-                // On passe l'ID utilisateur pour pouvoir le récupérer dans le webhook
-                client_reference_id: user.uid,
             });
 
             onSnapshot(docRef, (snap) => {
