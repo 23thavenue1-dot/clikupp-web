@@ -84,6 +84,7 @@ Cette liste répertorie tous les points de contrôle critiques à vérifier pour
 #### **✅ 1. Configuration du Tableau de Bord Stripe**
 -   [x] **Produits Créés :** Chaque pack de tickets existe en tant que "Produit".
 -   [x] **Prix Créés :** Chaque produit a un "Prix" et son ID (`price_...`) est correct dans `src/app/shop/page.tsx`.
+-   [x] **Métadonnées Ajoutées :** Chaque produit contient les métadonnées nécessaires (ex: `packUploadTickets` avec la valeur correspondante).
 
 #### **✅ 2. Configuration du Projet Firebase**
 -   [x] **Extension Stripe Installée (`invertase/firestore-stripe-payments`).**
