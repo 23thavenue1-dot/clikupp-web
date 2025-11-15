@@ -80,15 +80,15 @@ const subscriptions = [
 ];
 
 const uploadPacks = [
-    { id: PACK_IDS.upload_s, title: 'Boost S', price: '1,99 €', tickets: 50, icon: Upload, mode: 'payment' },
-    { id: PACK_IDS.upload_m, title: 'Boost M', price: '3,99 €', tickets: 120, icon: Upload, mode: 'payment', featured: true },
-    { id: PACK_IDS.upload_l, title: 'Boost L', price: '7,99 €', tickets: 300, icon: Upload, mode: 'payment' }
+    { id: PACK_IDS.upload_s, title: 'Boost S', price: '1,99 €', tickets: 50, icon: Upload, mode: 'payment', metadata: { packUploadTickets: 50, packAiTickets: 0 } },
+    { id: PACK_IDS.upload_m, title: 'Boost M', price: '3,99 €', tickets: 120, icon: Upload, mode: 'payment', featured: true, metadata: { packUploadTickets: 120, packAiTickets: 0 } },
+    { id: PACK_IDS.upload_l, title: 'Boost L', price: '7,99 €', tickets: 300, icon: Upload, mode: 'payment', metadata: { packUploadTickets: 300, packAiTickets: 0 } }
 ];
 
 const aiPacks = [
-    { id: PACK_IDS.ai_s, title: 'IA S', price: '2,99 €', tickets: 20, icon: Sparkles, mode: 'payment' },
-    { id: PACK_IDS.ai_m, title: 'IA M', price: '5,99 €', tickets: 50, icon: Sparkles, mode: 'payment', featured: true },
-    { id: PACK_IDS.ai_l, title: 'IA L', price: '14,99 €', tickets: 150, icon: Sparkles, mode: 'payment' }
+    { id: PACK_IDS.ai_s, title: 'IA S', price: '2,99 €', tickets: 20, icon: Sparkles, mode: 'payment', metadata: { packUploadTickets: 0, packAiTickets: 20 } },
+    { id: PACK_IDS.ai_m, title: 'IA M', price: '5,99 €', tickets: 50, icon: Sparkles, mode: 'payment', featured: true, metadata: { packUploadTickets: 0, packAiTickets: 50 } },
+    { id: PACK_IDS.ai_l, title: 'IA L', price: '14,99 €', tickets: 150, icon: Sparkles, mode: 'payment', metadata: { packUploadTickets: 0, packAiTickets: 150 } }
 ];
 
 
@@ -107,14 +107,14 @@ function CheckoutButton({ item, disabled }: { item: any, disabled: boolean }) {
         setIsLoading(true);
 
         try {
-            // La charge utile est maintenant plus explicite et complète.
             const sessionPayload: any = {
-                // L'ID client est essentiel pour savoir QUI paie.
                 client_reference_id: user.uid,
                 line_items: [{ price: item.id, quantity: 1 }],
                 success_url: `${window.location.origin}/shop?success=true`,
                 cancel_url: `${window.location.origin}/shop?canceled=true`,
-                mode: item.mode, // Utiliser le mode 'payment' ou 'subscription' du produit
+                mode: item.mode,
+                // Ajout des métadonnées ici
+                metadata: item.metadata || {}
             };
 
             const checkoutSessionRef = collection(firestore, 'customers', user.uid, 'checkout_sessions');
