@@ -1,11 +1,9 @@
 
-// This file is kept for reference but is no longer used for deployment.
-// The active logic is now in index.js.
 'use strict';
 
-import * as functions from 'firebase-functions';
-import * as admin from 'firebase-admin';
-import Stripe from 'stripe';
+const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+const Stripe = require('stripe');
 
 // Initialiser l'admin Firebase et Stripe
 if (admin.apps.length === 0) {
@@ -24,7 +22,7 @@ const stripe = new Stripe(stripeSecret || '', {
  * Fonction qui se déclenche à la création d'un document de paiement par l'extension Stripe.
  * Elle récupère les métadonnées du produit acheté directement depuis l'API Stripe et crédite les tickets à l'utilisateur.
  */
-export const onPaymentSuccess = functions.firestore
+exports.onPaymentSuccess = functions.firestore
   .document('/customers/{userId}/payments/{paymentId}')
   .onCreate(async (snap, context) => {
     const paymentData = snap.data();
@@ -53,9 +51,9 @@ export const onPaymentSuccess = functions.firestore
             return null;
         }
 
-        const updates: { [key: string]: admin.firestore.FieldValue } = {};
+        const updates = {};
         for (const item of session.line_items.data) {
-            const product = item.price?.product as Stripe.Product;
+            const product = item.price?.product;
             if (product && product.metadata) {
                 functions.logger.info(`Traitement du produit : ${product.name}`, { metadata: product.metadata });
                 
