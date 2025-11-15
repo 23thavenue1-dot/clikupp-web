@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFirebase, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
@@ -47,6 +46,9 @@ type Payment = {
             }
         }
     }[];
+    metadata: {
+        productName?: string;
+    }
 };
 
 const passwordFormSchema = z.object({
@@ -463,7 +465,7 @@ function AccountTab() {
                 {payments.map((payment) => (
                   <TableRow key={payment.id}>
                     <TableCell>{format(new Date(payment.created * 1000), 'd MMMM yyyy', { locale: fr })}</TableCell>
-                    <TableCell className="font-medium">{payment.items?.[0]?.price?.product?.name || 'Produit inconnu'}</TableCell>
+                    <TableCell className="font-medium">{payment.metadata?.productName || payment.items?.[0]?.price?.product?.name || 'Produit inconnu'}</TableCell>
                     <TableCell>{(payment.amount / 100).toFixed(2)} {payment.currency.toUpperCase()}</TableCell>
                     <TableCell className="text-right">
                        <Badge variant={payment.status === 'succeeded' ? 'default' : 'destructive'} className={payment.status === 'succeeded' ? 'bg-green-100 text-green-800' : ''}>

@@ -46,6 +46,7 @@ const subscriptions = [
         icon: Gem,
         featured: true,
         mode: 'subscription',
+        metadata: { productName: 'Abonnement Pro' }
     },
      {
         id: SUBSCRIPTION_IDS.creator,
@@ -61,6 +62,7 @@ const subscriptions = [
         ],
         icon: Rocket,
         mode: 'subscription',
+        metadata: { productName: 'Abonnement Créateur' }
     },
     {
         id: SUBSCRIPTION_IDS.master,
@@ -76,19 +78,20 @@ const subscriptions = [
         ],
         icon: Crown,
         mode: 'subscription',
+        metadata: { productName: 'Abonnement Maître' }
     }
 ];
 
 const uploadPacks = [
-    { id: PACK_IDS.upload_s, title: 'Boost S', price: '1,99 €', tickets: 50, icon: Upload, mode: 'payment', metadata: { packUploadTickets: 50, packAiTickets: 0 } },
-    { id: PACK_IDS.upload_m, title: 'Boost M', price: '3,99 €', tickets: 120, icon: Upload, mode: 'payment', featured: true, metadata: { packUploadTickets: 120, packAiTickets: 0 } },
-    { id: PACK_IDS.upload_l, title: 'Boost L', price: '7,99 €', tickets: 300, icon: Upload, mode: 'payment', metadata: { packUploadTickets: 300, packAiTickets: 0 } }
+    { id: PACK_IDS.upload_s, title: 'Boost S', price: '1,99 €', tickets: 50, icon: Upload, mode: 'payment', metadata: { packUploadTickets: 50, packAiTickets: 0, productName: 'Pack Upload - Boost S' } },
+    { id: PACK_IDS.upload_m, title: 'Boost M', price: '3,99 €', tickets: 120, icon: Upload, mode: 'payment', featured: true, metadata: { packUploadTickets: 120, packAiTickets: 0, productName: 'Pack Upload - Boost M' } },
+    { id: PACK_IDS.upload_l, title: 'Boost L', price: '7,99 €', tickets: 300, icon: Upload, mode: 'payment', metadata: { packUploadTickets: 300, packAiTickets: 0, productName: 'Pack Upload - Boost L' } }
 ];
 
 const aiPacks = [
-    { id: PACK_IDS.ai_s, title: 'IA S', price: '2,99 €', tickets: 20, icon: Sparkles, mode: 'payment', metadata: { packUploadTickets: 0, packAiTickets: 20 } },
-    { id: PACK_IDS.ai_m, title: 'IA M', price: '5,99 €', tickets: 50, icon: Sparkles, mode: 'payment', featured: true, metadata: { packUploadTickets: 0, packAiTickets: 50 } },
-    { id: PACK_IDS.ai_l, title: 'IA L', price: '14,99 €', tickets: 150, icon: Sparkles, mode: 'payment', metadata: { packUploadTickets: 0, packAiTickets: 150 } }
+    { id: PACK_IDS.ai_s, title: 'IA S', price: '2,99 €', tickets: 20, icon: Sparkles, mode: 'payment', metadata: { packUploadTickets: 0, packAiTickets: 20, productName: 'Pack IA - S' } },
+    { id: PACK_IDS.ai_m, title: 'IA M', price: '5,99 €', tickets: 50, icon: Sparkles, mode: 'payment', featured: true, metadata: { packUploadTickets: 0, packAiTickets: 50, productName: 'Pack IA - M' } },
+    { id: PACK_IDS.ai_l, title: 'IA L', price: '14,99 €', tickets: 150, icon: Sparkles, mode: 'payment', metadata: { packUploadTickets: 0, packAiTickets: 150, productName: 'Pack IA - L' } }
 ];
 
 
