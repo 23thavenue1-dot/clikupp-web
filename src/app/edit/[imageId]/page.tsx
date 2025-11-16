@@ -240,7 +240,7 @@ export default function EditImagePage() {
                             <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
                         </div>
                         
-                        <div className="rounded-lg border bg-card p-4 flex flex-col space-y-4">
+                        <div className="rounded-lg border bg-card p-4 flex flex-col space-y-4 flex-grow">
                             <div className="flex-grow">
                                 <h2 className="text-base font-semibold mb-2">1. Donnez votre instruction</h2>
                                 <Textarea
@@ -310,34 +310,33 @@ export default function EditImagePage() {
                             {!isGenerating && !generatedImageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
                         </div>
                         <div className="rounded-lg border bg-card p-4 flex flex-col flex-grow">
-                             <h2 className="text-base font-semibold mb-2">2. Affinez ou finalisez</h2>
-                             <div className="flex-grow flex flex-col items-center justify-center gap-4">
-                                {generatedImageUrl && (
-                                    <div className="w-full space-y-2">
-                                        <Textarea
-                                            placeholder="Ex: C'est bien, mais rends-le plus lumineux..."
-                                            value={refinePrompt}
-                                            onChange={(e) => setRefinePrompt(e.target.value)}
-                                            rows={2}
-                                            disabled={isGenerating || isSaving}
-                                        />
-                                        <Button 
-                                            variant="secondary" 
-                                            className="w-full"
-                                            onClick={() => handleGenerateImage(true)}
-                                            disabled={!refinePrompt || isGenerating || isSaving || !hasAiTickets}
-                                        >
-                                            {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />}
-                                            Affiner la génération
-                                        </Button>
-                                    </div>
-                                )}
-                                
-                                <Separator className={generatedImageUrl ? "my-4" : "hidden"} />
-
+                             <div className="flex-grow space-y-4">
+                                <h2 className="text-base font-semibold">2. Affinez ou finalisez</h2>
+                                <div className="w-full space-y-2">
+                                    <Textarea
+                                        placeholder="Ex: C'est bien, mais rends-le plus lumineux..."
+                                        value={refinePrompt}
+                                        onChange={(e) => setRefinePrompt(e.target.value)}
+                                        rows={2}
+                                        disabled={isGenerating || isSaving || !generatedImageUrl}
+                                    />
+                                    <Button 
+                                        variant="secondary" 
+                                        className="w-full"
+                                        onClick={() => handleGenerateImage(true)}
+                                        disabled={!refinePrompt || isGenerating || isSaving || !hasAiTickets || !generatedImageUrl}
+                                    >
+                                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />}
+                                        Affiner la génération
+                                    </Button>
+                                </div>
+                            </div>
+                            
+                            <div className="mt-auto pt-4 space-y-2">
+                                <Separator />
                                 <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
                                     <DialogTrigger asChild>
-                                        <Button variant="outline" className="w-full max-w-xs" disabled={!generatedImageUrl || isGenerating || isSaving}>
+                                        <Button variant="outline" className="w-full" disabled={!generatedImageUrl || isGenerating || isSaving}>
                                             <Text className="mr-2 h-4 w-4"/> Générer une description
                                         </Button>
                                     </DialogTrigger>
@@ -394,7 +393,7 @@ export default function EditImagePage() {
                                     </DialogContent>
                                 </Dialog>
 
-                                <Button onClick={handleSaveAiCreation} disabled={!generatedImageUrl || isSaving || isGenerating} size="lg" className="w-full max-w-xs">
+                                <Button onClick={handleSaveAiCreation} disabled={!generatedImageUrl || isSaving || isGenerating} size="lg" className="w-full">
                                     {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Save className="mr-2 h-5 w-5" />}
                                     Enregistrer la création
                                 </Button>
@@ -406,6 +405,3 @@ export default function EditImagePage() {
         </div>
     );
 }
-
-
-    
