@@ -111,8 +111,8 @@ export default function EditImagePage() {
             setGeneratedTitle(currentHistoryItem.title);
             setGeneratedDescription(currentHistoryItem.description);
             setGeneratedHashtags(currentHistoryItem.hashtags);
-            // On ne met PAS à jour refinePrompt ici pour ne pas écraser une saisie en cours.
-            // On pourrait envisager de l'afficher ailleurs.
+            // Afficher le prompt qui a généré l'image courante
+            setRefinePrompt(currentHistoryItem.prompt);
         }
     }, [currentHistoryItem]);
 
@@ -145,11 +145,14 @@ export default function EditImagePage() {
                 hashtags: ''
             };
 
+            // **MODIFICATION CLÉ : Ne pas tronquer l'historique**
+            // On ajoute simplement la nouvelle image à la fin.
             setGeneratedImageHistory(prev => {
-                const newHistory = prev.slice(0, historyIndex + 1);
-                return [...newHistory, newHistoryItem];
+                const newHistory = [...prev, newHistoryItem];
+                return newHistory;
             });
-            setHistoryIndex(prev => prev + 1);
+            // On se place directement sur le nouvel élément ajouté.
+            setHistoryIndex(prev => generatedImageHistory.length);
 
             await decrementAiTicketCount(firestore, user.uid, userProfile);
             toast({ title: isRefinement ? 'Image affinée !' : 'Image générée !', description: 'Un ticket IA a été utilisé.' });
