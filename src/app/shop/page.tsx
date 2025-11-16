@@ -16,7 +16,7 @@ import { collection, addDoc, onSnapshot } from 'firebase/firestore';
 // Mettre les ID de prix ici pour la configuration.
 // Ces ID doivent correspondre à ceux de votre tableau de bord Stripe.
 const SUBSCRIPTION_IDS = {
-    creator: 'remplacez_par_id_abonnement_createur',
+    creator: 'price_1SU6fmFxufdYfSFcC7INtknf',
     pro: 'remplacez_par_id_abonnement_pro',
     master: 'remplacez_par_id_abonnement_maitre'
 };
@@ -47,7 +47,7 @@ const subscriptions = [
         icon: Gem,
         featured: true,
         mode: 'subscription',
-        metadata: { productName: 'Abonnement Pro' }
+        metadata: { productName: 'Abonnement Pro', subscriptionTier: 'pro' }
     },
      {
         id: SUBSCRIPTION_IDS.creator,
@@ -63,7 +63,7 @@ const subscriptions = [
         ],
         icon: Rocket,
         mode: 'subscription',
-        metadata: { productName: 'Abonnement Créateur' }
+        metadata: { productName: 'Abonnement Créateur', subscriptionTier: 'creator' }
     },
     {
         id: SUBSCRIPTION_IDS.master,
@@ -79,7 +79,7 @@ const subscriptions = [
         ],
         icon: Crown,
         mode: 'subscription',
-        metadata: { productName: 'Abonnement Maître' }
+        metadata: { productName: 'Abonnement Maître', subscriptionTier: 'master' }
     }
 ];
 
