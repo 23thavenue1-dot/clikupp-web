@@ -7,7 +7,7 @@ import { doc } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile } from '@/lib/firestore';
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -49,6 +49,7 @@ export default function EditImagePage() {
 
     // State pour l'édition d'image
     const [prompt, setPrompt] = useState('');
+    const [refinePrompt, setRefinePrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
 
@@ -85,8 +86,12 @@ export default function EditImagePage() {
         }
     }, [isUserLoading, user, router]);
 
-    const handleGenerateImage = async () => {
-        if (!prompt || !originalImage || !user || !firestore || !userProfile) return;
+    const handleGenerateImage = async (isRefinement = false) => {
+        const currentPrompt = isRefinement ? refinePrompt : prompt;
+        const baseImageUrl = isRefinement ? generatedImageUrl : originalImage?.directUrl;
+
+        if (!currentPrompt || !baseImageUrl || !user || !firestore || !userProfile) return;
+
         if (totalAiTickets <= 0) {
             toast({
                 variant: 'destructive',
@@ -95,13 +100,19 @@ export default function EditImagePage() {
             });
             return;
         }
+
         setIsGenerating(true);
-        setGeneratedImageUrl(null);
+        if (!isRefinement) {
+            setGeneratedImageUrl(null);
+        }
+
         try {
-            const result = await editImage({ imageUrl: originalImage.directUrl, prompt });
+            const result = await editImage({ imageUrl: baseImageUrl, prompt: currentPrompt });
             setGeneratedImageUrl(result.newImageUrl);
             await decrementAiTicketCount(firestore, user.uid, userProfile);
-            toast({ title: 'Image générée !', description: 'Un ticket IA a été utilisé. Vous pouvez maintenant générer une description ou enregistrer votre création.' });
+            toast({ title: isRefinement ? 'Image affinée !' : 'Image générée !', description: 'Un ticket IA a été utilisé.' });
+            if (isRefinement) setRefinePrompt('');
+
         } catch (error) {
             console.error(error);
             toast({ 
@@ -270,7 +281,7 @@ export default function EditImagePage() {
                                 ) : (
                                     <Button 
                                         size="lg"
-                                        onClick={handleGenerateImage}
+                                        onClick={() => handleGenerateImage(false)}
                                         disabled={!prompt || isGenerating || isSaving || !hasAiTickets}
                                         className="w-full"
                                     >
@@ -299,8 +310,31 @@ export default function EditImagePage() {
                             {!isGenerating && !generatedImageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
                         </div>
                         <div className="rounded-lg border bg-card p-4 flex flex-col flex-grow">
-                            <h2 className="text-base font-semibold mb-2">2. Créez la publication</h2>
-                            <div className="flex-grow flex flex-col items-center justify-center gap-4">
+                             <h2 className="text-base font-semibold mb-2">2. Affinez ou finalisez</h2>
+                             <div className="flex-grow flex flex-col items-center justify-center gap-4">
+                                {generatedImageUrl && (
+                                    <div className="w-full space-y-2">
+                                        <Textarea
+                                            placeholder="Ex: C'est bien, mais rends-le plus lumineux..."
+                                            value={refinePrompt}
+                                            onChange={(e) => setRefinePrompt(e.target.value)}
+                                            rows={2}
+                                            disabled={isGenerating || isSaving}
+                                        />
+                                        <Button 
+                                            variant="secondary" 
+                                            className="w-full"
+                                            onClick={() => handleGenerateImage(true)}
+                                            disabled={!refinePrompt || isGenerating || isSaving || !hasAiTickets}
+                                        >
+                                            {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />}
+                                            Affiner la génération
+                                        </Button>
+                                    </div>
+                                )}
+                                
+                                <Separator className={generatedImageUrl ? "my-4" : "hidden"} />
+
                                 <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
                                     <DialogTrigger asChild>
                                         <Button variant="outline" className="w-full max-w-xs" disabled={!generatedImageUrl || isGenerating || isSaving}>
@@ -372,3 +406,6 @@ export default function EditImagePage() {
         </div>
     );
 }
+
+
+    
