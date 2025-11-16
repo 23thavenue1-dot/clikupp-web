@@ -97,6 +97,7 @@ Cette liste répertorie tous les points de contrôle critiques à vérifier pour
 
 #### **✅ 4. Environnement et Processus de Test**
 -   [x] **URL Publique :** Le test est effectué sur l'URL publique de l'application.
+-   [x] **Commande de Déploiement :** La commande `firebase deploy --only functions` a été exécutée pour mettre à jour les fonctions Cloud.
 -   [x] **Test de Paiement Final :** Le processus de paiement est complété avec succès.
 -   [x] **Vérification Firestore :** Après un paiement test réussi, le champ correspondant au pack acheté (ex: `packUploadTickets`) a bien été incrémenté.
 -   [x] **Vérification Interface :** Le compteur de tickets dans l'application reflète le nouveau solde.
