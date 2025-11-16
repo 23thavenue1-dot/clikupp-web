@@ -241,8 +241,8 @@ export default function EditImagePage() {
                         </div>
                         
                         <div className="rounded-lg border bg-card p-4 flex flex-col space-y-4 flex-grow">
-                            <div className="flex-grow">
-                                <h2 className="text-base font-semibold mb-2">1. Donnez votre instruction</h2>
+                            <div className="flex-grow space-y-2">
+                                <h2 className="text-base font-semibold">1. Donnez votre instruction</h2>
                                 <Textarea
                                     placeholder="Ex: Rends le ciel plus dramatique et ajoute des éclairs..."
                                     value={prompt}
@@ -250,28 +250,28 @@ export default function EditImagePage() {
                                     rows={3}
                                     disabled={isGenerating || isSaving}
                                 />
-                            </div>
-                            <div className="flex-grow w-full rounded-md border p-2 bg-muted/40 overflow-y-auto max-h-48">
-                                <Accordion type="single" collapsible className="w-full">
-                                    {suggestionCategories.map(category => (
-                                        <AccordionItem value={category.name} key={category.name}>
-                                            <AccordionTrigger className="text-sm py-2 hover:no-underline">
-                                                <div className="flex flex-col text-left">
-                                                    <span className="font-semibold">{category.name}</span>
-                                                </div>
-                                            </AccordionTrigger>
-                                            <AccordionContent>
-                                                <div className="flex flex-wrap gap-2 pt-2">
-                                                    {category.prompts.map(p => (
-                                                        <Button key={p.title} variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.prompt)} disabled={isGenerating || isSaving}>
-                                                            {p.title}
-                                                        </Button>
-                                                    ))}
-                                                </div>
-                                            </AccordionContent>
-                                        </AccordionItem>
-                                    ))}
-                                </Accordion>
+                                <div className="w-full rounded-md border p-2 bg-muted/40 overflow-y-auto max-h-48">
+                                    <Accordion type="single" collapsible className="w-full">
+                                        {suggestionCategories.map(category => (
+                                            <AccordionItem value={category.name} key={category.name}>
+                                                <AccordionTrigger className="text-sm py-2 hover:no-underline">
+                                                    <div className="flex flex-col text-left">
+                                                        <span className="font-semibold">{category.name}</span>
+                                                    </div>
+                                                </AccordionTrigger>
+                                                <AccordionContent>
+                                                    <div className="flex flex-wrap gap-2 pt-2">
+                                                        {category.prompts.map(p => (
+                                                            <Button key={p.title} variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.prompt)} disabled={isGenerating || isSaving}>
+                                                                {p.title}
+                                                            </Button>
+                                                        ))}
+                                                    </div>
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        ))}
+                                    </Accordion>
+                                </div>
                             </div>
                             <div className="mt-auto">
                                  {monthlyLimitReached ? (
@@ -310,7 +310,7 @@ export default function EditImagePage() {
                             {!isGenerating && !generatedImageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
                         </div>
                         <div className="rounded-lg border bg-card p-4 flex flex-col flex-grow">
-                             <div className="flex-grow space-y-4">
+                             <div className="flex-grow space-y-2">
                                 <h2 className="text-base font-semibold">2. Affinez ou finalisez</h2>
                                 <div className="w-full space-y-2">
                                     <Textarea
