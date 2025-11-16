@@ -22,7 +22,7 @@ const SUBSCRIPTION_IDS = {
 };
 
 const PACK_IDS = {
-    upload_s: 'price_1STtprFxufdYfSFcBU7c0LSm',
+    upload_s: 'price_1SQImVFxufdYfSFc6oQcKZ3q',
     upload_m: 'price_1SSLJIFxufdYfSFc0QLNkcq7',
     upload_l: 'price_1STtvVFxufdYfSFc2QskMy8j',
     ai_s: 'price_1STu0qFxufdYfSFc7SVth0M6',
@@ -84,15 +84,15 @@ const subscriptions = [
 ];
 
 const uploadPacks = [
-    { id: PACK_IDS.upload_s, title: 'Boost S', price: '1,99 €', tickets: 50, description: 'Crédite votre compte de 50 tickets de téléversement supplémentaires.', icon: Upload, mode: 'payment', metadata: { packUploadTickets: '50', packAiTickets: '0', productName: 'Pack Upload - Boost S' } },
+    { id: PACK_IDS.upload_s, title: 'Boost S', price: '1,99 €', tickets: 50, description: 'Crédite votre compte de 50 tickets de téléversement supplémentaires.', icon: Upload, mode: 'payment', featured: false, metadata: { packUploadTickets: '50', packAiTickets: '0', productName: 'Pack Upload - Boost S' } },
     { id: PACK_IDS.upload_m, title: 'Boost M', price: '3,99 €', tickets: 120, description: 'Le meilleur rapport qualité-prix pour un usage plus conséquent.', icon: Upload, mode: 'payment', featured: true, metadata: { packUploadTickets: '120', packAiTickets: '0', productName: 'Pack Upload - Boost M' } },
-    { id: PACK_IDS.upload_l, title: 'Boost L', price: '7,99 €', tickets: 300, description: 'Idéal pour les gros besoins en téléversement, comme un projet complet.', icon: Upload, mode: 'payment', metadata: { packUploadTickets: '300', packAiTickets: '0', productName: 'Pack Upload - Boost L' } }
+    { id: PACK_IDS.upload_l, title: 'Boost L', price: '7,99 €', tickets: 300, description: 'Idéal pour les gros besoins en téléversement, comme un projet complet.', icon: Upload, mode: 'payment', featured: false, metadata: { packUploadTickets: '300', packAiTickets: '0', productName: 'Pack Upload - Boost L' } }
 ];
 
 const aiPacks = [
-    { id: PACK_IDS.ai_s, title: 'IA S', price: '2,99 €', tickets: 20, description: 'Parfait pour découvrir et expérimenter avec l\'édition par IA.', icon: Sparkles, mode: 'payment', metadata: { packUploadTickets: '0', packAiTickets: '20', productName: 'Pack IA - S' } },
+    { id: PACK_IDS.ai_s, title: 'IA S', price: '2,99 €', tickets: 20, description: 'Parfait pour découvrir et expérimenter avec l\'édition par IA.', icon: Sparkles, mode: 'payment', featured: false, metadata: { packUploadTickets: '0', packAiTickets: '20', productName: 'Pack IA - S' } },
     { id: PACK_IDS.ai_m, title: 'IA M', price: '5,99 €', tickets: 50, description: 'Pour les créatifs qui veulent donner vie à leurs idées sans compter.', icon: Sparkles, mode: 'payment', featured: true, metadata: { packUploadTickets: '0', packAiTickets: '50', productName: 'Pack IA - M' } },
-    { id: PACK_IDS.ai_l, title: 'IA L', price: '14,99 €', tickets: 150, description: 'Libérez tout le potentiel de votre créativité et réalisez vos projets les plus ambitieux.', icon: Sparkles, mode: 'payment', metadata: { packUploadTickets: '0', packAiTickets: '150', productName: 'Pack IA - L' } }
+    { id: PACK_IDS.ai_l, title: 'IA L', price: '14,99 €', tickets: 150, description: 'Libérez tout le potentiel de votre créativité et réalisez vos projets les plus ambitieux.', icon: Sparkles, mode: 'payment', featured: false, metadata: { packUploadTickets: '0', packAiTickets: '150', productName: 'Pack IA - L' } }
 ];
 
 
@@ -131,7 +131,7 @@ function CheckoutButton({ item, disabled }: { item: any, disabled: boolean }) {
                     toast({
                         variant: 'destructive',
                         title: 'Erreur de paiement',
-                        description: error.message || "Une erreur est survenue avec ce produit. Il n'est peut-être pas actif ou sa configuration est incorrecte. Veuillez vérifier dans Stripe."
+                        description: `Détail : ${error.message}` || "Une erreur est survenue avec ce produit. Il n'est peut-être pas actif ou sa configuration est incorrecte. Veuillez vérifier dans Stripe."
                     });
                     setIsLoading(false);
                 }
