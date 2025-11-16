@@ -220,7 +220,7 @@ export default function EditImagePage() {
             </header>
             
             <div className="container mx-auto">
-                <main className="py-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                <main className="py-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
                     
                     {/* --- COLONNE DE GAUCHE : INPUT --- */}
                     <div className="flex flex-col gap-4">
