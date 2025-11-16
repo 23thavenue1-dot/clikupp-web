@@ -127,11 +127,11 @@ function CheckoutButton({ item, disabled }: { item: any, disabled: boolean }) {
             onSnapshot(docRef, (snap) => {
                 const { error, url } = snap.data() || {};
                 if (error) {
-                    console.error('Erreur de la session de paiement:', error);
+                    console.error('Erreur de la session de paiement:', JSON.stringify(error, null, 2));
                     toast({
                         variant: 'destructive',
                         title: 'Erreur de paiement',
-                        description: error.message || "Impossible d'initier le paiement. Veuillez réessayer."
+                        description: error.message || "Ce produit n'est peut-être pas actif ou disponible. Veuillez vérifier sa configuration dans Stripe."
                     });
                     setIsLoading(false);
                 }
@@ -306,4 +306,5 @@ export default function ShopPage() {
     )
 }
 
+    
     
