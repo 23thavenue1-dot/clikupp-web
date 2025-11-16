@@ -77,6 +77,34 @@ Ce document sert de journal de bord pour l'intégration de la fonctionnalité de
 
 ---
 
+### **Étape 6 : Passage en Production (Mode "Live")**
+
+Ce chapitre explique la marche à suivre pour faire passer votre intégration Stripe du mode "Test" au mode "Production" ("Live") afin d'accepter de vrais paiements.
+
+#### 1. Actions Côté Utilisateur (Tableau de Bord Stripe)
+
+Stripe sépare complètement l'environnement de Test de l'environnement de Production. **Rien de ce que vous avez créé en mode test n'existe en mode production.** Vous devez donc tout recréer.
+
+1.  **Activer votre compte Stripe :** Suivez les étapes de Stripe pour activer votre compte en mode "Live" (informations sur l'entreprise, coordonnées bancaires, etc.).
+2.  **Passer en mode "Live" :** Sur votre tableau de bord Stripe, utilisez l'interrupteur pour basculer du mode "Test" au mode "Live".
+3.  **Recréer tous les produits et prix :** C'est l'étape la plus importante. Vous devez recréer à l'identique chaque produit (packs de tickets et abonnements) en mode "Live".
+    *   Pour chaque produit, Stripe générera de **nouveaux ID de prix** (commençant par `price_...`).
+    *   **Crucial :** Vous devrez me fournir cette nouvelle liste d'ID de prix "Live".
+4.  **Récupérer les nouvelles clés d'API "Live" :** Dans la section "Développeurs > Clés API" de votre tableau de bord (en mode "Live"), vous trouverez de nouvelles clés :
+    *   Une nouvelle clé **secrète** (commençant par `sk_live_...`).
+    *   Le **secret de signature du webhook** pour le mode "Live".
+
+#### 2. Actions Côté Développeur / IA (Code & Firebase)
+
+Une fois les étapes ci-dessus accomplies, je prends le relais.
+
+1.  **Mise à jour des ID de Prix :** Je remplacerai tous les anciens ID de prix de test par les nouveaux ID "Live" dans le fichier `src/app/shop/page.tsx`.
+2.  **Reconfiguration de l'extension Firebase :** C'est le cœur de l'opération. Je ne peux pas le faire directement, mais je vous guiderai. Vous devrez aller dans votre console Firebase, trouver l'extension "Run Payments with Stripe", et la **reconfigurer** en y collant :
+    *   Votre nouvelle **clé API secrète "Live"** (`sk_live_...`).
+    *   Votre nouveau **secret de signature du webhook "Live"**.
+
+---
+
 ### **Checklist de Validation du Système de Paiement**
 
 Cette liste répertorie tous les points de contrôle critiques à vérifier pour s'assurer que le système de paiement fonctionne de bout en bout.
