@@ -133,7 +133,7 @@ export default function EditImagePage() {
     }
 
     const hasAiTickets = totalAiTickets > 0;
-    const monthlyLimitReached = (userProfile?.aiTicketMonthlyCount ?? 0) >= 40 && (userProfile?.aiTicketCount ?? 0) === 0;
+    const monthlyLimitReached = (userProfile?.aiTicketMonthlyCount ?? 0) >= 40 && totalAiTickets === 0;
     const nextRefillDate = userProfile?.aiTicketMonthlyReset ? format(addMonths(startOfMonth(userProfile.aiTicketMonthlyReset.toDate()), 1), "d MMMM", { locale: fr }) : 'prochain mois';
 
 
