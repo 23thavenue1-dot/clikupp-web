@@ -131,7 +131,7 @@ function CheckoutButton({ item, disabled }: { item: any, disabled: boolean }) {
                     toast({
                         variant: 'destructive',
                         title: 'Erreur de paiement',
-                        description: "Une erreur est survenue avec ce produit. Il n'est peut-être pas actif ou sa configuration est incorrecte. Veuillez vérifier dans Stripe."
+                        description: error.message || "Une erreur est survenue avec ce produit. Il n'est peut-être pas actif ou sa configuration est incorrecte. Veuillez vérifier dans Stripe."
                     });
                     setIsLoading(false);
                 }
