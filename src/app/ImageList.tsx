@@ -553,7 +553,7 @@ export function ImageList() {
                                                             <Button
                                                                 variant="secondary"
                                                                 size="icon"
-                                                                className="h-8 w-8 transition-opacity"
+                                                                className="h-8 w-8"
                                                                 onClick={(e) => e.preventDefault()}
                                                             >
                                                                 <MoreHorizontal size={16} />
@@ -566,8 +566,8 @@ export function ImageList() {
                                                             </DropdownMenuItem>
                                                             <DropdownMenuSeparator />
                                                             <DropdownMenuItem onClick={(e) => openEditDialog(e, image)}>
-                                                                <Pencil className="mr-2 h-4 w-4" />
-                                                                <span>Modifier la description</span>
+                                                                <Wand2 className="mr-2 h-4 w-4" />
+                                                                <span>Générer une description</span>
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem onClick={(e) => openAddToGalleryDialog(e, image)}>
                                                                 <CopyPlus className="mr-2 h-4 w-4" />
@@ -854,3 +854,4 @@ export function ImageList() {
 
 
     
+

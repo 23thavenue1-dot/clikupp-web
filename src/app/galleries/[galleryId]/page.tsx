@@ -481,7 +481,7 @@ export default function GalleryDetailPage() {
                                                     <div className="absolute top-2 right-2 z-10 flex gap-2">
                                                         <DropdownMenu>
                                                             <DropdownMenuTrigger asChild>
-                                                                <Button variant="secondary" size="icon" className="h-8 w-8 transition-opacity">
+                                                                <Button variant="secondary" size="icon" className="h-8 w-8">
                                                                     <MoreHorizontal size={16} />
                                                                 </Button>
                                                             </DropdownMenuTrigger>
@@ -494,7 +494,7 @@ export default function GalleryDetailPage() {
                                                                 <DropdownMenuItem asChild>
                                                                     <Link href={`/edit/${image.id}`}><Sparkles className="mr-2 h-4 w-4" /><span>Éditer avec l'IA</span></Link>
                                                                 </DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => openEditDialog(image)}><Pencil className="mr-2 h-4 w-4" /><span>Modifier la description</span></DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => openEditDialog(image)}><Wand2 className="mr-2 h-4 w-4" /><span>Générer une description</span></DropdownMenuItem>
                                                                 <DropdownMenuSeparator />
                                                                 <DropdownMenuItem asChild>
                                                                     <Link href={`/image/${image.id}`}><Share2 className="mr-2 h-4 w-4" /><span>Détails et Partage</span></Link>
