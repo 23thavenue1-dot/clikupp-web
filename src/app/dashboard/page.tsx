@@ -183,6 +183,21 @@ export default function DashboardPage() {
       }
   ]
 
+  const subscriptionTicketsStats = [
+      {
+          title: 'Tickets d\'upload (Abonnement)',
+          value: isProfileLoading ? <Skeleton className="h-6 w-10"/> : (userProfile?.subscriptionUploadTickets === 999999 ? 'Illimités' : (userProfile?.subscriptionUploadTickets ?? 0).toString()),
+          icon: Upload,
+          description: 'Quota mensuel de tickets de votre abonnement.'
+      },
+      {
+          title: 'Tickets IA (Abonnement)',
+          value: isProfileLoading ? <Skeleton className="h-6 w-10"/> : (userProfile?.subscriptionAiTickets ?? 0).toString(),
+          icon: Sparkles,
+          description: 'Quota mensuel de tickets IA de votre abonnement.'
+      }
+  ]
+
   const badges = [
     { level: 1, title: 'Niv. 1 : Novice', icon: Medal, motivation: 'Félicitations ! C\'est le début d\'une grande aventure créative.' },
     { level: 2, title: 'Niv. 2 : Initié', icon: Award, motivation: 'Excellent ! Vous maîtrisez les bases, continuez comme ça.' },
@@ -250,6 +265,31 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card>
+
+          {(userProfile?.subscriptionTier ?? 'none') !== 'none' && (
+            <Card>
+                <CardHeader>
+                <CardTitle>Tickets d'Abonnement</CardTitle>
+                <CardDescription>Le solde de vos tickets mensuels inclus dans votre abonnement "{userProfile?.subscriptionTier}".</CardDescription>
+                </CardHeader>
+                <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {subscriptionTicketsStats.map((stat) => (
+                    <div key={stat.title} className="p-4 border rounded-lg flex items-start gap-4 bg-muted/20">
+                        <div className="bg-primary/10 text-primary p-3 rounded-md">
+                        <stat.icon className="h-6 w-6" />
+                        </div>
+                        <div>
+                        <p className="text-sm text-muted-foreground">{stat.title}</p>
+                        <div className="text-2xl font-bold">{stat.value}</div>
+                        <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
+                        </div>
+                    </div>
+                    ))}
+                </div>
+                </CardContent>
+            </Card>
+          )}
           
           <Card>
             <CardHeader>
