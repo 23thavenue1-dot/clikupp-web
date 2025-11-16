@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -268,7 +269,11 @@ export function ImageList() {
             toast({
                 variant: 'destructive',
                 title: 'Tickets IA épuisés',
-                description: 'Plus de tickets ? Rechargez dans la boutique !',
+                description: (
+                    <Link href="/shop" className="font-bold underline text-white">
+                        Rechargez dans la boutique !
+                    </Link>
+                ),
             });
             return;
         }
@@ -408,7 +413,7 @@ export function ImageList() {
         }
     };
 
-    const monthlyLimitReached = (userProfile?.aiTicketMonthlyCount ?? 0) >= 40 && totalAiTickets === 0;
+    const monthlyLimitReached = !!(userProfile && userProfile.aiTicketMonthlyCount >= 40 && totalAiTickets <= 0);
     const nextRefillDate = userProfile?.aiTicketMonthlyReset ? format(addMonths(startOfMonth(userProfile.aiTicketMonthlyReset.toDate()), 1), "d MMMM", { locale: fr }) : 'prochain mois';
 
 
@@ -728,12 +733,12 @@ export function ImageList() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                         </TooltipTrigger>
-                                        {!hasAiTickets && !monthlyLimitReached && (
+                                        {!hasAiTickets && (
                                              <TooltipContent>
                                                 <Link href="/shop">
                                                     <p className="cursor-pointer font-semibold text-primary flex items-center gap-2">
                                                         <ShoppingCart className="mr-2 h-4 w-4" />
-                                                        Plus de tickets ? Rechargez dans la boutique !
+                                                        Rechargez dans la boutique !
                                                     </p>
                                                 </Link>
                                             </TooltipContent>
@@ -841,6 +846,7 @@ export function ImageList() {
     
 
     
+
 
 
 

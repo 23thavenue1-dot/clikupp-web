@@ -110,12 +110,16 @@ export function Uploader() {
     if (!user || !firestore || !userProfile) return;
 
     if (totalUploadTickets <= 0 && totalUploadTickets !== Infinity) {
-      toast({
-        variant: 'destructive',
-        title: 'Tickets épuisés',
-        description: 'Vous n\'avez plus de tickets pour téléverser des images. Rechargez dans la boutique !',
-      });
-      return;
+        toast({
+            variant: 'destructive',
+            title: 'Tickets d\'upload épuisés',
+            description: (
+                <Link href="/shop" className="font-bold underline text-white">
+                    Rechargez dans la boutique !
+                </Link>
+            ),
+        });
+        return;
     }
     
     setIsUploading(true);

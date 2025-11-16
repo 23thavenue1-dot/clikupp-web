@@ -1,5 +1,6 @@
 
 
+
 'use client';
 
 import { useUser, useFirestore, useCollection, useMemoFirebase, useFirebase, useDoc } from '@/firebase';
@@ -7,7 +8,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { doc, getDoc, query, collection, orderBy } from 'firebase/firestore';
 import { type Gallery, type ImageMetadata, type UserProfile, getImagesForGallery, removeImagesFromGallery, addImageToGallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, toggleImagePinInGallery, createGallery, addMultipleImagesToGalleries, saveImageMetadata } from '@/lib/firestore';
-import { Loader2, ArrowLeft, Image as ImageIcon, BoxSelect, Trash2, X, Check, PlusCircle, Settings, MoreHorizontal, Sparkles, Pencil, Share2, Download, CopyPlus, Copy, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Ticket, Pin, PinOff } from 'lucide-react';
+import { Loader2, ArrowLeft, Image as ImageIcon, BoxSelect, Trash2, X, Check, PlusCircle, Settings, MoreHorizontal, Sparkles, Pencil, Share2, Download, CopyPlus, Copy, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, Ticket, Pin, PinOff, ShoppingCart } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
@@ -296,7 +297,15 @@ export default function GalleryDetailPage() {
         if (!imageToEdit || !user || !userProfile) return;
         const totalAiTickets = (userProfile.aiTicketCount || 0) + (userProfile.subscriptionAiTickets || 0) + (userProfile.packAiTickets || 0);
         if (totalAiTickets <= 0) {
-            toast({ variant: 'destructive', title: 'Tickets IA épuisés' });
+            toast({
+                variant: 'destructive',
+                title: 'Tickets IA épuisés',
+                description: (
+                    <Link href="/shop" className="font-bold underline text-white">
+                        Rechargez dans la boutique !
+                    </Link>
+                ),
+            });
             return;
         }
         setIsGeneratingDescription(true);
@@ -622,7 +631,12 @@ export default function GalleryDetailPage() {
                                     </TooltipTrigger>
                                     {!hasAiTickets && (
                                         <TooltipContent>
-                                            <p className="cursor-pointer font-semibold text-primary">Plus de tickets ? Rechargez ici !</p>
+                                            <Link href="/shop">
+                                                <p className="cursor-pointer font-semibold text-primary flex items-center gap-2">
+                                                    <ShoppingCart className="mr-2 h-4 w-4" />
+                                                    Rechargez dans la boutique !
+                                                </p>
+                                            </Link>
                                         </TooltipContent>
                                     )}
                                 </Tooltip>
