@@ -22,7 +22,7 @@ const SUBSCRIPTION_IDS = {
 };
 
 const PACK_IDS = {
-    upload_s: 'remplacez_par_id_pack_upload_s',
+    upload_s: 'price_1STtprFxufdYfSFcBU7c0LSm',
     upload_m: 'price_1SSLJIFxufdYfSFc0QLNkcq7', // Déjà configuré
     upload_l: 'remplacez_par_id_pack_upload_l',
     ai_s: 'remplacez_par_id_pack_ia_s',
