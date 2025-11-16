@@ -26,7 +26,7 @@ const PACK_IDS = {
     upload_m: 'price_1SSLJIFxufdYfSFc0QLNkcq7',
     upload_l: 'price_1STtvVFxufdYfSFc2QskMy8j',
     ai_s: 'price_1STu0qFxufdYfSFc7SVth0M6',
-    ai_m: 'remplacez_par_id_pack_ia_m',
+    ai_m: 'price_1STu4zFxufdYfSFcqRx9iL9y',
     ai_l: 'remplacez_par_id_pack_ia_l',
 };
 
@@ -246,11 +246,11 @@ function ShopContent() {
                                             <pack.icon className="h-6 w-6"/>
                                         </div>
                                         <CardTitle>{pack.title}</CardTitle>
-                                        <CardDescription className="text-lg font-semibold">{pack.tickets} tickets d'upload</CardDescription>
+                                        <CardDescription>{pack.description}</CardDescription>
                                         <p className="text-3xl font-bold">{pack.price}</p>
                                     </CardHeader>
                                     <CardContent className="flex-grow text-center">
-                                        <p className="text-muted-foreground text-sm">{pack.description}</p>
+                                        <p className="text-muted-foreground text-sm font-semibold">{pack.tickets} tickets d'upload</p>
                                     </CardContent>
                                     <CardFooter className="mt-auto">
                                         <CheckoutButton item={pack} disabled={!isUserConnected} />
@@ -270,11 +270,11 @@ function ShopContent() {
                                             <pack.icon className="h-6 w-6"/>
                                         </div>
                                         <CardTitle>{pack.title}</CardTitle>
-                                        <CardDescription className="text-lg font-semibold">{pack.tickets} tickets IA</CardDescription>
+                                        <CardDescription>{pack.description}</CardDescription>
                                         <p className="text-3xl font-bold">{pack.price}</p>
                                     </CardHeader>
                                     <CardContent className="flex-grow text-center">
-                                        <p className="text-muted-foreground text-sm">{pack.description}</p>
+                                        <p className="text-muted-foreground text-sm font-semibold">{pack.tickets} tickets IA</p>
                                     </CardContent>
                                     <CardFooter className="mt-auto">
                                         <CheckoutButton item={pack} disabled={!isUserConnected} />
