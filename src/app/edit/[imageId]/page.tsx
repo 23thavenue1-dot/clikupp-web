@@ -223,7 +223,7 @@ export default function EditImagePage() {
                 <main className="py-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                     
                     {/* --- COLONNE DE GAUCHE : INPUT --- */}
-                    <div className="flex flex-col gap-4 sticky top-20">
+                    <div className="flex flex-col gap-4">
                         <p className="text-sm font-semibold text-muted-foreground text-center">AVANT</p>
                         <div className="aspect-square w-full relative rounded-lg border bg-background overflow-hidden shadow-sm">
                             <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
