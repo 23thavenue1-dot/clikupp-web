@@ -298,7 +298,7 @@ export default function EditImagePage() {
                             {!isGenerating && generatedImageUrl && <Image src={generatedImageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
                             {!isGenerating && !generatedImageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
                         </div>
-                         <div className="rounded-lg border bg-card p-4 flex flex-col justify-between space-y-4 h-full">
+                         <div className="rounded-lg border bg-card p-4 flex flex-col flex-grow space-y-4">
                             <div className="flex-grow flex flex-col justify-center">
                                 <h2 className="text-base font-semibold mb-4 text-center">2. Créez la publication</h2>
                                 
