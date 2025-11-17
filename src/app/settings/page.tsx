@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useFirebase, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
@@ -313,6 +314,7 @@ function AccountTab() {
   }, [userProfile]);
 
   const redirectToCustomerPortal = async () => {
+    if (!user) return;
     setIsPortalLoading(true);
     const functionURL = 'https://us-central1-studio-9587105821-540bd.cloudfunctions.net/ext-invertase-firestore-stripe-payments-createPortalLink';
     
@@ -320,12 +322,15 @@ function AccountTab() {
         const response = await fetch(functionURL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ returnUrl: window.location.href }),
+            body: JSON.stringify({ 
+              returnUrl: window.location.href,
+              uid: user.uid // Ajout de l'UID pour une identification plus robuste
+            }),
         });
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error.message || 'La création du portail a échoué.');
+          throw new Error(errorData.error.message || 'La création du portail a échoué. Assurez-vous que les URLs sont autorisées dans la configuration de l\'extension Stripe.');
         }
 
         const { url } = await response.json();
