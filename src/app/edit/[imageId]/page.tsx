@@ -420,7 +420,7 @@ export default function EditImagePage() {
                                                 <AccordionContent>
                                                     <div className="flex flex-wrap gap-2 pt-2">
                                                         {userProfile.customPrompts.map((p) => (
-                                                            <Button
+                                                             <Button
                                                                 key={p.id}
                                                                 variant="outline"
                                                                 size="sm"
