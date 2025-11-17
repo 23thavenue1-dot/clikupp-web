@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState } from "react";
@@ -79,6 +80,9 @@ export default function SignupPage() {
         profilePictureUpdateCount: 0,
         // Stripe
         stripeCustomerId: null,
+        // Suivi IA
+        totalImageEdits: 0,
+        totalDescriptionGenerations: 0,
       });
 
 

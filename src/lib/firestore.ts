@@ -67,8 +67,11 @@ export interface UserProfile {
   subscriptionAiTickets: number;
   subscriptionTier: 'none' | 'creator' | 'pro' | 'master';
   subscriptionRenewalDate: Timestamp | null;
-  // Champ Stripe
+  // Stripe
   stripeCustomerId?: string;
+  // Nouveaux compteurs pour le suivi de l'IA
+  totalImageEdits: number;
+  totalDescriptionGenerations: number;
 }
 
 
@@ -252,11 +255,18 @@ export function decrementTicketCount(firestore: Firestore, userId: string, profi
 
 /**
  * Décrémente le compteur de tickets IA de l'utilisateur en respectant la hiérarchie.
+ * Met également à jour les compteurs de suivi d'utilisation.
  * @param firestore L'instance Firestore.
  * @param userId L'ID de l'utilisateur.
  * @param profile Le profil complet de l'utilisateur.
+ * @param type Le type d'opération IA ('edit' ou 'description').
  */
-export function decrementAiTicketCount(firestore: Firestore, userId: string, profile: UserProfile): void {
+export function decrementAiTicketCount(
+    firestore: Firestore,
+    userId: string,
+    profile: UserProfile,
+    type: 'edit' | 'description'
+): void {
   const userDocRef = doc(firestore, 'users', userId);
   const updates: { [key: string]: any } = {};
   
@@ -271,6 +281,13 @@ export function decrementAiTicketCount(firestore: Firestore, userId: string, pro
       return;
   }
 
+  // Incrémenter le compteur de suivi approprié
+  if (type === 'edit') {
+      updates.totalImageEdits = increment(1);
+  } else if (type === 'description') {
+      updates.totalDescriptionGenerations = increment(1);
+  }
+
   updateDoc(userDocRef, updates).catch(error => {
     const permissionError = new FirestorePermissionError({
         path: userDocRef.path,
@@ -280,6 +297,7 @@ export function decrementAiTicketCount(firestore: Firestore, userId: string, pro
     errorEmitter.emit('permission-error', permissionError);
   });
 }
+
 
 
 /**

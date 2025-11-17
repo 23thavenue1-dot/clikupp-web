@@ -172,7 +172,7 @@ export default function EditImagePage() {
             setHistoryIndex(newHistory.length - 1);
 
 
-            await decrementAiTicketCount(firestore, user.uid, userProfile);
+            await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             toast({ title: isRefinement ? 'Image affinée !' : 'Image générée !', description: 'Un ticket IA a été utilisé.' });
             if (isRefinement) setRefinePrompt('');
 
@@ -232,7 +232,7 @@ export default function EditImagePage() {
             
             // L'état local du dialogue sera mis à jour par l'effet sur `currentHistoryItem`
 
-            await decrementAiTicketCount(firestore, user.uid, userProfile);
+            await decrementAiTicketCount(firestore, user.uid, userProfile, 'description');
             toast({ title: "Contenu généré !", description: `Publication pour ${platform} prête. Un ticket IA a été utilisé.` });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur IA', description: "Le service de génération n'a pas pu répondre." });

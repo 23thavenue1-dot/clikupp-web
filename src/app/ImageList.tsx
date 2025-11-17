@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -292,7 +293,7 @@ export function ImageList() {
             setHashtagsString(result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' '));
             setWasGeneratedByAI(true);
             
-            await decrementAiTicketCount(firestore, user.uid, userProfile);
+            await decrementAiTicketCount(firestore, user.uid, userProfile, 'description');
             
             toast({ title: "Contenu généré !", description: `Publication pour ${platform} prête. Un ticket IA a été utilisé.` });
         } catch (error) {
@@ -854,4 +855,3 @@ export function ImageList() {
 
 
     
-

@@ -1,6 +1,7 @@
 
 
 
+
 'use client';
 
 import { useUser, useFirestore, useCollection, useMemoFirebase, useFirebase, useDoc } from '@/firebase';
@@ -316,7 +317,7 @@ export default function GalleryDetailPage() {
             setCurrentDescription(result.description);
             setHashtagsString(result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' '));
             setWasGeneratedByAI(true);
-            await decrementAiTicketCount(firestore, user.uid, userProfile);
+            await decrementAiTicketCount(firestore, user.uid, userProfile, 'description');
             toast({ title: "Contenu généré !", description: `Un ticket IA a été utilisé.` });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur IA' });
