@@ -244,19 +244,6 @@ export function Navbar() {
                     <DropdownMenuSeparator />
                     <DropdownMenuGroup>
                         <DropdownMenuItem asChild>
-                          <Link href="/dashboard" className="relative">
-                            <LayoutDashboard className="mr-2 h-4 w-4" />
-                            <span>Tableau de bord</span>
-                            {hasNewAchievements && <span className="absolute right-2 flex h-2 w-2 bg-red-500 rounded-full" />}
-                          </Link>
-                        </DropdownMenuItem>
-                         <DropdownMenuItem asChild>
-                          <Link href="/shop">
-                            <ShoppingCart className="mr-2 h-4 w-4" />
-                            <span>Boutique</span>
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
                           <Link href="/settings">
                             <Settings className="mr-2 h-4 w-4" />
                             <span>Paramètres</span>
