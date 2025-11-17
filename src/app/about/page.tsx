@@ -33,8 +33,8 @@ export default function AboutPage() {
                         <details>
                             <summary className="font-semibold cursor-pointer">a) Gestion du Compte</summary>
                             <ul className="mt-2 pl-6 list-disc">
-                                <li><strong>Profil Public :</strong> Dans vos <code>Paramètres &gt; Profil</code>, vous pouvez personnaliser votre nom d'affichage, votre biographie, ajouter un site web et choisir votre avatar.</li>
-                                <li><strong>Sécurité :</strong> Dans <code>Paramètres &gt; Compte</code>, vous pouvez changer votre mot de passe et gérer vos préférences de notification. C'est aussi ici que vous pouvez supprimer votre compte.</li>
+                                <li><strong>Profil Public :</strong> Dans vos <span className="font-sans text-primary font-semibold">Paramètres &gt; Profil</span>, vous pouvez personnaliser votre nom d'affichage, votre biographie, ajouter un site web et choisir votre avatar.</li>
+                                <li><strong>Sécurité :</strong> Dans <span className="font-sans text-primary font-semibold">Paramètres &gt; Compte</span>, vous pouvez changer votre mot de passe et gérer vos préférences de notification. C'est aussi ici que vous pouvez supprimer votre compte.</li>
                             </ul>
                         </details>
 
@@ -43,7 +43,7 @@ export default function AboutPage() {
                              <ul className="mt-2 pl-6 list-disc">
                                 <li><strong>Téléversement :</strong> Vous pouvez ajouter des images depuis un fichier local ou via une URL externe.</li>
                                 <li><strong>Galerie Principale :</strong> Toutes vos images apparaissent sur la page d'accueil, triées par défaut de la plus récente à la plus ancienne.</li>
-                                <li><strong>Organisation par Galeries :</strong> La page <code>Mes Galeries</code> vous permet de créer des albums thématiques. Vous pouvez y ajouter ou retirer des images pour une organisation parfaite.</li>
+                                <li><strong>Organisation par Galeries :</strong> La page <span className="font-sans text-primary font-semibold">Mes Galeries</span> vous permet de créer des albums thématiques. Vous pouvez y ajouter ou retirer des images pour une organisation parfaite.</li>
                             </ul>
                         </details>
 
@@ -51,7 +51,7 @@ export default function AboutPage() {
                             <summary className="font-semibold cursor-pointer">c) Fonctionnalités IA</summary>
                              <ul className="mt-2 pl-6 list-disc">
                                 <li><strong>Génération de Description :</strong> Sur chaque image, vous pouvez utiliser l'IA pour générer un titre, une description et des hashtags pertinents pour les réseaux sociaux.</li>
-                                <li><strong>Édition d'Image par IA :</strong> La page d'édition (<code>Éditer avec l'IA</code>) est la fonctionnalité la plus puissante. Décrivez les changements que vous souhaitez en langage naturel ("Rends le ciel plus bleu", "Transforme en peinture") et laissez l'IA créer une nouvelle version de votre image.</li>
+                                <li><strong>Édition d'Image par IA :</strong> La page d'édition (<span className="font-sans text-primary font-semibold">Éditer avec l'IA</span>) est la fonctionnalité la plus puissante. Décrivez les changements que vous souhaitez en langage naturel ("Rends le ciel plus bleu", "Transforme en peinture") et laissez l'IA créer une nouvelle version de votre image.</li>
                             </ul>
                         </details>
                         
