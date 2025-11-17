@@ -365,7 +365,7 @@ export default function EditImagePage() {
     }
 
     const hasAiTickets = totalAiTickets > 0;
-    const monthlyLimitReached = !!(userProfile && userProfile.aiTicketMonthlyCount >= 40 && totalAiTickets <= 0);
+    const monthlyLimitReached = !!(userProfile && userProfile.aiTicketMonthlyCount >= 20 && totalAiTickets <= 0);
     const nextRefillDate = userProfile?.aiTicketMonthlyReset ? format(addMonths(startOfMonth(userProfile.aiTicketMonthlyReset.toDate()), 1), "d MMMM", { locale: fr }) : 'prochain mois';
 
 
@@ -728,3 +728,4 @@ export default function EditImagePage() {
         </div>
     );
 }
+

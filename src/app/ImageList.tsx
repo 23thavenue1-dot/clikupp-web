@@ -419,7 +419,7 @@ export function ImageList() {
         }
     };
 
-    const monthlyLimitReached = !!(userProfile && userProfile.aiTicketMonthlyCount >= 40 && totalAiTickets <= 0);
+    const monthlyLimitReached = !!(userProfile && userProfile.aiTicketMonthlyCount >= 20 && totalAiTickets <= 0);
     const nextRefillDate = userProfile?.aiTicketMonthlyReset ? format(addMonths(startOfMonth(userProfile.aiTicketMonthlyReset.toDate()), 1), "d MMMM", { locale: fr }) : 'prochain mois';
 
 

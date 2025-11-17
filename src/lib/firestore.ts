@@ -119,7 +119,7 @@ export type Gallery = {
 
 const DAILY_UPLOAD_TICKETS = 5;
 const DAILY_AI_TICKETS = 3;
-const MONTHLY_AI_TICKET_LIMIT = 40;
+const MONTHLY_AI_TICKET_LIMIT = 20;
 
 /**
  * Vérifie et recharge les tickets de l'utilisateur (journaliers et mensuels).
