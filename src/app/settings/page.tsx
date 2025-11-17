@@ -316,6 +316,9 @@ function AccountTab() {
   const redirectToCustomerPortal = async () => {
     if (!user) return;
     setIsPortalLoading(true);
+    
+    // The function URL can be found in the Firebase console after deploying the extension.
+    // It's usually in the format: https://<region>-<project-id>.cloudfunctions.net/ext-invertase-firestore-stripe-payments-createPortalLink
     const functionURL = 'https://us-central1-studio-9587105821-540bd.cloudfunctions.net/ext-invertase-firestore-stripe-payments-createPortalLink';
     
     try {
@@ -323,14 +326,15 @@ function AccountTab() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-              returnUrl: window.location.href,
-              uid: user.uid // Ajout de l'UID pour une identification plus robuste
+              returnUrl: window.location.href, // Redirect back to this page
+              // Note: The function automatically uses the authenticated user's UID on the backend.
             }),
         });
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error.message || 'La création du portail a échoué. Assurez-vous que les URLs sont autorisées dans la configuration de l\'extension Stripe.');
+          console.error('Stripe Portal Error:', errorData);
+          throw new Error(errorData.error?.message || 'La création du portail a échoué. Assurez-vous que l\'URL de l\'application est autorisée dans les paramètres de l\'extension Stripe ou que l\'utilisateur a un ID client Stripe valide.');
         }
 
         const { url } = await response.json();
@@ -339,8 +343,8 @@ function AccountTab() {
     } catch (error: any) {
         toast({
             variant: 'destructive',
-            title: 'Erreur',
-            description: error.message || "Impossible d'accéder au portail de gestion. Veuillez réessayer."
+            title: 'Erreur d\'accès au portail',
+            description: error.message || "Impossible d'accéder au portail de gestion. Si vous n'avez pas encore d'abonnement, cette fonction ne sera pas disponible."
         });
         setIsPortalLoading(false);
     }

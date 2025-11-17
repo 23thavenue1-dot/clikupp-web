@@ -80,9 +80,9 @@ exports.onSubscriptionChange = functions
     // --- CAS 1: L'abonnement devient ACTIF (nouvel abonnement ou réactivation) ---
     if (afterData && afterData.status === "active" && (!beforeData || beforeData.status !== "active")) {
       
-      // Simplification radicale : on ne lit QUE les métadonnées de la session.
       const meta = afterData.metadata || {};
       const tier = meta.subscriptionTier || 'none';
+      const stripeCustomerId = afterData.customer; // Récupérer l'ID client Stripe
       
       if (tier === 'none') {
         functions.logger.error(`Erreur ABONNEMENT: 'subscriptionTier' non trouvé dans les métadonnées pour ${userId}.`, { metadata: meta });
@@ -99,7 +99,8 @@ exports.onSubscriptionChange = functions
           subscriptionTier: tier,
           subscriptionUploadTickets: uploadTickets,
           subscriptionAiTickets: aiTickets,
-          subscriptionRenewalDate: afterData.current_period_end // timestamp
+          subscriptionRenewalDate: afterData.current_period_end, // timestamp
+          stripeCustomerId: stripeCustomerId, // Sauvegarder l'ID client
       };
 
       try {
