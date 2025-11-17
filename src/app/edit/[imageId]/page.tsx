@@ -8,13 +8,13 @@ import { doc } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile, CustomPrompt } from '@/lib/firestore';
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2, Star } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2, Star, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { editImage } from '@/ai/flows/edit-image-flow';
-import { decrementAiTicketCount, saveImageMetadata, saveCustomPrompt } from '@/lib/firestore';
+import { decrementAiTicketCount, saveImageMetadata, saveCustomPrompt, deleteCustomPrompt } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +28,7 @@ import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { generateImageDescription } from '@/ai/flows/generate-description-flow';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic';
 
@@ -81,6 +82,11 @@ export default function EditImagePage() {
     const [newPromptName, setNewPromptName] = useState("");
     const [promptToSave, setPromptToSave] = useState("");
     const [isSavingPrompt, setIsSavingPrompt] = useState(false);
+
+    // State pour la suppression de prompt
+    const [isDeletePromptDialogOpen, setIsDeletePromptDialogOpen] = useState(false);
+    const [promptToDelete, setPromptToDelete] = useState<CustomPrompt | null>(null);
+    const [isDeletingPrompt, setIsDeletingPrompt] = useState(false);
 
 
     const imageDocRef = useMemoFirebase(() => {
@@ -286,6 +292,26 @@ export default function EditImagePage() {
         }
     };
 
+    const openDeletePromptDialog = (prompt: CustomPrompt) => {
+        setPromptToDelete(prompt);
+        setIsDeletePromptDialogOpen(true);
+    };
+
+    const handleDeletePrompt = async () => {
+        if (!promptToDelete || !user || !firestore) return;
+        setIsDeletingPrompt(true);
+
+        try {
+            await deleteCustomPrompt(firestore, user.uid, promptToDelete);
+            toast({ title: "Prompt supprimé", description: `"${promptToDelete.name}" a été supprimé.` });
+            setIsDeletePromptDialogOpen(false);
+            setPromptToDelete(null);
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de supprimer le prompt.' });
+        } finally {
+            setIsDeletingPrompt(false);
+        }
+    };
 
 
     if (isUserLoading || isImageLoading || isProfileLoading) {
@@ -420,9 +446,17 @@ export default function EditImagePage() {
                                                 <AccordionContent>
                                                     <div className="flex flex-wrap gap-2 pt-2">
                                                         {userProfile.customPrompts.filter(p => typeof p === 'object' && p !== null && p.id && p.name && p.value).map((p) => (
-                                                            <div key={p.id}>
-                                                                <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.value)} disabled={isGenerating || isSaving}>
+                                                            <div key={p.id} className="group relative">
+                                                                <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2 pr-6" onClick={() => setPrompt(p.value)} disabled={isGenerating || isSaving}>
                                                                     {p.name}
+                                                                </Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="absolute -top-1 -right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                    onClick={(e) => { e.stopPropagation(); openDeletePromptDialog(p); }}
+                                                                >
+                                                                    <Trash2 className="h-3 w-3 text-destructive" />
                                                                 </Button>
                                                             </div>
                                                         ))}
@@ -612,6 +646,28 @@ export default function EditImagePage() {
                     </div>
                 </main>
             </div>
+
+            <AlertDialog open={isDeletePromptDialogOpen} onOpenChange={setIsDeletePromptDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Supprimer le prompt "{promptToDelete?.name}" ?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Cette action est irréversible et supprimera définitivement ce prompt de votre liste.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeletingPrompt}>Annuler</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDeletePrompt}
+                            disabled={isDeletingPrompt}
+                            className="bg-destructive hover:bg-destructive/90"
+                        >
+                            {isDeletingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Supprimer
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

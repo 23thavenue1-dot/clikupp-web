@@ -819,6 +819,30 @@ export async function saveCustomPrompt(firestore: Firestore, userId: string, pro
         throw error;
     }
 }
+
+/**
+ * Supprime un prompt personnalisé de la liste de l'utilisateur.
+ * @param firestore L'instance Firestore.
+ * @param userId L'ID de l'utilisateur.
+ * @param promptToDelete L'objet prompt complet à supprimer.
+ */
+export async function deleteCustomPrompt(firestore: Firestore, userId: string, promptToDelete: CustomPrompt): Promise<void> {
+    const userDocRef = doc(firestore, 'users', userId);
+
+    try {
+        await updateDoc(userDocRef, {
+            customPrompts: arrayRemove(promptToDelete)
+        });
+    } catch (error) {
+        const permissionError = new FirestorePermissionError({
+            path: userDocRef.path,
+            operation: 'update',
+            requestResourceData: { customPromptToRemove: promptToDelete },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        throw error;
+    }
+}
     
 
     
