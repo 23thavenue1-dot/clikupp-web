@@ -74,7 +74,7 @@ const deleteAccountFormSchema = z.object({
 
 // --- Profile Tab Component ---
 function ProfileTab() {
-  const { user, firebaseApp } = useFirebase();
+  const { user, firebaseApp, auth } = useFirebase();
   const firestore = useFirestore();
   const { toast } = useToast();
   
@@ -121,7 +121,7 @@ function ProfileTab() {
   };
   
   const handleSaveChanges = async () => {
-    if (!user || !firestore || !userDocRef) return;
+    if (!user || !firestore || !userDocRef || !auth) return;
     setIsSaving(true);
 
     try {
@@ -284,7 +284,7 @@ function ProfileTab() {
 
 // --- Account Tab Component ---
 function AccountTab() {
-  const { user, firebaseApp } = useFirebase();
+  const { user, firebaseApp, auth } = useFirebase();
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
