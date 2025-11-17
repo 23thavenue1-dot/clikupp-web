@@ -52,7 +52,10 @@ type Payment = {
     }[];
     metadata: {
         productName?: string;
-    }
+        packUploadTickets?: string;
+        packAiTickets?: string;
+    };
+    _generated_for_history?: boolean;
 };
 
 const passwordFormSchema = z.object({
@@ -515,18 +518,25 @@ function AccountTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {payments.map((payment) => (
-                  <TableRow key={payment.id}>
-                    <TableCell>{format(new Date(payment.created * 1000), 'd MMMM yyyy', { locale: fr })}</TableCell>
-                    <TableCell className="font-medium">{payment.metadata?.productName || payment.items?.[0]?.price?.product?.name || 'Produit inconnu'}</TableCell>
-                    <TableCell>{(payment.amount / 100).toFixed(2)} {payment.currency.toUpperCase()}</TableCell>
-                    <TableCell className="text-right">
-                       <Badge variant={payment.status === 'succeeded' ? 'default' : 'destructive'} className={payment.status === 'succeeded' ? 'bg-green-100 text-green-800' : ''}>
-                          {payment.status}
-                       </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {payments
+                    .filter((payment) => {
+                      const meta = payment.metadata || {};
+                      const hasPackTickets = meta.packUploadTickets || meta.packAiTickets;
+                      const isSyntheticSubscription = payment._generated_for_history === true;
+                      return hasPackTickets || isSyntheticSubscription;
+                    })
+                    .map((payment) => (
+                      <TableRow key={payment.id}>
+                        <TableCell>{format(new Date(payment.created * 1000), 'd MMMM yyyy', { locale: fr })}</TableCell>
+                        <TableCell className="font-medium">{payment.metadata?.productName || payment.items?.[0]?.price?.product?.name || 'Produit inconnu'}</TableCell>
+                        <TableCell>{(payment.amount / 100).toFixed(2)} {payment.currency.toUpperCase()}</TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant={payment.status === 'succeeded' ? 'default' : 'destructive'} className={payment.status === 'succeeded' ? 'bg-green-100 text-green-800' : ''}>
+                              {payment.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                  ))}
               </TableBody>
             </Table>
           ) : (
