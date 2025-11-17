@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
@@ -30,12 +29,12 @@ import {
 } from "@/components/ui/dialog"
 import Link from 'next/link';
 
-// Limites de stockage en octets
+// Limites de stockage en octets (NOUVELLES LIMITES)
 const STORAGE_LIMITS = {
-    none: 200 * 1024 * 1024,        // 200 Mo
-    creator: 10 * 1024 * 1024 * 1024,  // 10 Go
-    pro: 50 * 1024 * 1024 * 1024,      // 50 Go
-    master: 250 * 1024 * 1024 * 1024   // 250 Go
+    none: 200 * 1024 * 1024,         // 200 Mo
+    creator: 10 * 1024 * 1024 * 1024,   // 10 Go
+    pro: 50 * 1024 * 1024 * 1024,       // 50 Go
+    master: 250 * 1024 * 1024 * 1024    // 250 Go
 };
 
 // Helper pour formater les octets
@@ -70,7 +69,7 @@ export function Uploader() {
   const [customName, setCustomName] = useState('');
   const [description, setDescription] = useState('');
   
-  const [isUploading, setIsUploading] = useState(false);
+  const [isUploading, setIsUploading] = useState(isUploading);
   const [activeTab, setActiveTab] = useState('storage');
 
   const [imageUrl, setImageUrl] = useState('');
@@ -402,3 +401,5 @@ export function Uploader() {
     </>
   );
 }
+
+    

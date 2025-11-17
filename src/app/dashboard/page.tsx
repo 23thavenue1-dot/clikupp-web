@@ -19,11 +19,12 @@ import { useAchievementNotification } from '@/hooks/useAchievementNotification';
 const XP_PER_ACHIEVEMENT = 20;
 const XP_PER_LEVEL = 100;
 
+// NOUVELLES LIMITES DE STOCKAGE
 const STORAGE_LIMITS = {
-    none: 200 * 1024 * 1024,        // 200 Mo
-    creator: 10 * 1024 * 1024 * 1024,  // 10 Go
-    pro: 50 * 1024 * 1024 * 1024,      // 50 Go
-    master: 250 * 1024 * 1024 * 1024   // 250 Go
+    none: 200 * 1024 * 1024,         // 200 Mo
+    creator: 10 * 1024 * 1024 * 1024,   // 10 Go
+    pro: 50 * 1024 * 1024 * 1024,       // 50 Go
+    master: 250 * 1024 * 1024 * 1024    // 250 Go
 };
 
 // Helper to format bytes
@@ -448,3 +449,5 @@ export default function DashboardPage() {
     </TooltipProvider>
   );
 }
+
+    
