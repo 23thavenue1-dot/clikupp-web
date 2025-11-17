@@ -88,6 +88,11 @@ exports.onSubscriptionChange = functions
         functions.logger.error(`Erreur ABONNEMENT: 'subscriptionTier' non trouvé dans les métadonnées pour ${userId}.`, { metadata: meta });
         return;
       }
+      
+      if (!stripeCustomerId) {
+        functions.logger.error(`Erreur ABONNEMENT: 'customer' (ID client Stripe) non trouvé dans l'objet d'abonnement pour ${userId}.`, { subscriptionData: afterData });
+        return;
+      }
 
       const uploadTickets = meta.monthlyUploadTickets === 'unlimited' 
           ? 999999 
