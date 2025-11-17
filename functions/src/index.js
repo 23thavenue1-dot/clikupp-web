@@ -113,22 +113,26 @@ exports.onSubscriptionChange = functions
           // B. Create a representative payment document for purchase history
           const priceInfo = afterData.items?.[0]?.price;
           if (priceInfo) {
+              const productName =
+                  priceInfo.product?.name ||       // 1. Nom officiel du produit Stripe
+                  meta.productName ||              // 2. Ce que nous avons mis dans metadata
+                  `Abonnement - ${tier}`;          // 3. Fallback générique
+
               const paymentForHistory = {
                   created: afterData.created.seconds, // Use subscription creation time
                   amount: priceInfo.unit_amount,
                   currency: priceInfo.currency,
                   status: 'succeeded',
                   metadata: {
-                      productName: meta.productName || `Abonnement - ${tier}`
+                      productName: productName
                   },
-                  // Add a marker to distinguish it from a real payment event
                   _generated_for_history: true, 
               };
               
               // Use the subscription ID as the payment document ID to prevent duplicates
               const paymentDocRef = db.doc(`customers/${userId}/payments/sub_${subId}`);
               await paymentDocRef.set(paymentForHistory);
-              functions.logger.info(`Entrée d'historique créée pour l'abonnement ${subId} pour ${userId}.`);
+              functions.logger.info(`Entrée d'historique créée pour l'abonnement ${subId} : ${productName}`);
           }
 
       } catch (error) {
