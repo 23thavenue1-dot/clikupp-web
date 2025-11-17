@@ -4,7 +4,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useFirebase, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import type { ImageMetadata, UserProfile } from '@/lib/firestore';
+import type { ImageMetadata, UserProfile, CustomPrompt } from '@/lib/firestore';
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2, Star } from 'lucide-react';
@@ -74,7 +74,13 @@ export default function EditImagePage() {
     
     // State pour la sauvegarde finale
     const [isSaving, setIsSaving] = useState(false);
+    
+    // State pour la sauvegarde de prompt
+    const [isSavePromptDialogOpen, setIsSavePromptDialogOpen] = useState(false);
+    const [newPromptName, setNewPromptName] = useState("");
+    const [promptToSave, setPromptToSave] = useState("");
     const [isSavingPrompt, setIsSavingPrompt] = useState(false);
+
 
     const imageDocRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -251,18 +257,34 @@ export default function EditImagePage() {
         }
     };
     
+    const openSavePromptDialog = () => {
+        if (!prompt.trim()) return;
+        setPromptToSave(prompt);
+        setNewPromptName(""); // Reset name field
+        setIsSavePromptDialogOpen(true);
+    };
+
     const handleSavePrompt = async () => {
-        if (!prompt.trim() || !user || !firestore) return;
+        if (!promptToSave || !newPromptName.trim() || !user || !firestore) return;
         setIsSavingPrompt(true);
+
+        const newCustomPrompt: CustomPrompt = {
+            id: `prompt_${Date.now()}`,
+            name: newPromptName,
+            value: promptToSave,
+        };
+
         try {
-            await saveCustomPrompt(firestore, user.uid, prompt);
-            toast({ title: "Prompt sauvegardé", description: "Vous pouvez maintenant le retrouver dans 'Mes Prompts'." });
+            await saveCustomPrompt(firestore, user.uid, newCustomPrompt);
+            toast({ title: "Prompt sauvegardé", description: `"${newPromptName}" a été ajouté à 'Mes Prompts'.` });
+            setIsSavePromptDialogOpen(false);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de sauvegarder le prompt.' });
         } finally {
             setIsSavingPrompt(false);
         }
     };
+
 
 
     if (isUserLoading || isImageLoading || isProfileLoading) {
@@ -336,16 +358,53 @@ export default function EditImagePage() {
                                             disabled={isGenerating || isSaving}
                                             className="pr-10"
                                         />
-                                        <Button 
-                                            variant="ghost" 
-                                            size="icon" 
-                                            className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-primary"
-                                            onClick={handleSavePrompt}
-                                            disabled={!prompt.trim() || isSavingPrompt || isGenerating || isSaving}
-                                            aria-label="Sauvegarder le prompt"
-                                        >
-                                            {isSavingPrompt ? <Loader2 className="h-4 w-4 animate-spin" /> : <Star className="h-4 w-4" />}
-                                        </Button>
+                                        <Dialog open={isSavePromptDialogOpen} onOpenChange={setIsSavePromptDialogOpen}>
+                                            <DialogTrigger asChild>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-primary"
+                                                    disabled={!prompt.trim() || isGenerating || isSaving}
+                                                    onClick={openSavePromptDialog}
+                                                    aria-label="Sauvegarder le prompt"
+                                                >
+                                                    <Star className="h-4 w-4" />
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent>
+                                                <DialogHeader>
+                                                    <DialogTitle>Sauvegarder le prompt</DialogTitle>
+                                                    <DialogDescription>
+                                                        Donnez un nom à cette instruction pour la retrouver facilement plus tard.
+                                                    </DialogDescription>
+                                                </DialogHeader>
+                                                <div className="space-y-4 py-4">
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="prompt-name">Nom du prompt</Label>
+                                                        <Input 
+                                                            id="prompt-name"
+                                                            value={newPromptName}
+                                                            onChange={(e) => setNewPromptName(e.target.value)}
+                                                            placeholder="Ex: Style super-héros"
+                                                            disabled={isSavingPrompt}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Instruction</Label>
+                                                        <Textarea value={promptToSave} readOnly disabled rows={4} className="bg-muted"/>
+                                                    </div>
+                                                </div>
+                                                <DialogFooter>
+                                                    <DialogClose asChild>
+                                                        <Button variant="secondary" disabled={isSavingPrompt}>Annuler</Button>
+                                                    </DialogClose>
+                                                    <Button onClick={handleSavePrompt} disabled={isSavingPrompt || !newPromptName.trim()}>
+                                                        {isSavingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                                        Sauvegarder
+                                                    </Button>
+                                                </DialogFooter>
+                                            </DialogContent>
+                                        </Dialog>
                                     </div>
                                 </div>
                                 <div className="w-full rounded-md border p-2 bg-muted/40 overflow-y-auto max-h-48">
@@ -359,9 +418,9 @@ export default function EditImagePage() {
                                                 </AccordionTrigger>
                                                 <AccordionContent>
                                                     <div className="flex flex-wrap gap-2 pt-2">
-                                                        {userProfile.customPrompts.map((p, index) => (
-                                                            <Button key={index} variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p)} disabled={isGenerating || isSaving}>
-                                                                {p}
+                                                        {userProfile.customPrompts.map((p) => (
+                                                            <Button key={p.id} variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.value)} disabled={isGenerating || isSaving}>
+                                                                {p.name}
                                                             </Button>
                                                         ))}
                                                     </div>
@@ -551,3 +610,4 @@ export default function EditImagePage() {
         </div>
     );
 }
+

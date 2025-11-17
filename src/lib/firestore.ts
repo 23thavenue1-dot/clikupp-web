@@ -797,7 +797,7 @@ export async function addMultipleImagesToGalleries(
  * Sauvegarde un prompt personnalisé pour l'utilisateur.
  * @param firestore L'instance Firestore.
  * @param userId L'ID de l'utilisateur.
- * @param prompt Le prompt à sauvegarder.
+ * @param prompt L'objet prompt à sauvegarder.
  */
 export async function saveCustomPrompt(firestore: Firestore, userId: string, prompt: CustomPrompt): Promise<void> {
     if (!prompt.name.trim() || !prompt.value.trim()) {
