@@ -49,7 +49,8 @@ const subscriptions = [
         metadata: { 
             subscriptionTier: 'creator', 
             monthlyUploadTickets: '500', 
-            monthlyAiTickets: '50' 
+            monthlyAiTickets: '50',
+            productName: 'Abonnement - Créateur'
         }
     },
     {
@@ -70,7 +71,8 @@ const subscriptions = [
         metadata: { 
             subscriptionTier: 'pro', 
             monthlyUploadTickets: 'unlimited', 
-            monthlyAiTickets: '150' 
+            monthlyAiTickets: '150',
+            productName: 'Abonnement - Pro'
         }
     },
     {
@@ -90,7 +92,8 @@ const subscriptions = [
         metadata: { 
             subscriptionTier: 'master', 
             monthlyUploadTickets: 'unlimited', 
-            monthlyAiTickets: '400' 
+            monthlyAiTickets: '400',
+            productName: 'Abonnement - Maître'
         }
     }
 ];
