@@ -1,10 +1,10 @@
 # Projet Clikup : Votre plateforme d'hébergement d'images intelligente, avec édition et amélioration par IA.
 
-**Clikup** est une application web moderne et sécurisée conçue pour l'hébergement, la gestion et le partage d'images, augmentée par une IA pour l'édition et l'amélioration de vos créations. Plus qu'un simple outil de téléversement, Clikup a pour vocation de devenir un compagnon créatif intelligent, évoluant pour répondre aux besoins des créateurs de contenu, des développeurs et des utilisateurs quotidiens.
+**Clikup** est une application web moderne et sécurisée conçue pour l'hébergement, la gestion et le partage d'images, augmentée par une IA pour l'édition et l'amélioration de vos créations. Plus qu'un simple outil de téléversement, Clikup est devenu un écosystème complet pour les créateurs, intégrant des mécaniques de jeu, une boutique et des fonctionnalités avancées pour une expérience riche et engageante.
 
 ---
 
-### État Actuel du Projet : Une Plateforme Créative et Intelligente
+### État Actuel du Projet : Une Plateforme Complète et Ludique
 
 À ce jour, Clikup est une application stable et entièrement fonctionnelle, dotée des caractéristiques suivantes :
 
@@ -14,48 +14,37 @@
     *   **Paramètres de Compte Avancés :** Gestion du mot de passe, des préférences de notification et une option sécurisée pour supprimer complètement son compte et ses données.
 
 *   **Organisation d'Images Puissante :**
-    *   **Téléversement Polyvalent :** Trois méthodes d'upload sont disponibles : depuis un fichier local (rapide et sécurisé), via une URL externe ou directement sur le cloud (Firebase Storage).
-    *   **Galerie Personnelle :** Toutes les images téléversées sont affichées dans une galerie privée où l'utilisateur peut les consulter et les gérer.
+    *   **Téléversement Polyvalent :** Deux méthodes d'upload sont disponibles : depuis un fichier local ou via une URL externe.
+    *   **Galerie Personnelle :** Toutes les images sont affichées dans une galerie privée où l'utilisateur peut les gérer.
     *   **Organisation par Galeries (Albums) :** Les utilisateurs peuvent créer des galeries personnalisées, y ajouter des images (individuellement ou par sélection multiple) et les retirer, offrant une organisation complète de leur bibliothèque visuelle.
-    *   **Téléchargement Facile :** Chaque image peut être facilement téléchargée sur ordinateur ou téléphone, avec une expérience adaptée à chaque plateforme.
-    *   **Détails et Partage Simplifié :** Une page dédiée pour chaque image permet de visualiser toutes ses informations et de copier en un clic son contenu (titre, description, hashtags) ainsi que ses liens de partage (URL, BBCode, HTML).
+    *   **Téléchargement Facile et Partage Simplifié :** Chaque image peut être téléchargée, et une page dédiée permet de copier en un clic son contenu (titre, description, hashtags) ainsi que ses liens de partage (URL, BBCode, HTML).
 
 *   **Fonctionnalités IA Intégrées :**
     *   **Analyse et Description :** L'IA peut générer des titres, descriptions et hashtags pertinents pour une image.
-    *   **Édition d'Image par le Langage Naturel :** L'utilisateur peut demander des modifications complexes simplement en les décrivant : "Rends le ciel plus dramatique", "Enlève l'objet en arrière-plan", "Transforme cette photo en peinture à l'huile".
+    *   **Édition d'Image par le Langage Naturel :** L'utilisateur peut demander des modifications complexes simplement en les décrivant.
 
-*   **Système de Tickets Équitable :**
-    *   Pour garantir une utilisation équitable et maîtriser les coûts, chaque utilisateur reçoit **5 tickets de téléversement** et **3 tickets IA** par jour. Ce système prévient les abus tout en offrant un accès quotidien gratuit et prévisible.
+*   **Système de Gamification et de Progression :**
+    *   **Niveaux et Expérience (XP) :** Les utilisateurs gagnent des points d'expérience pour débloquer des niveaux et des badges.
+    *   **Succès :** Des dizaines de succès peuvent être débloqués en réalisant des actions spécifiques (premier upload, profil complet, etc.), encourageant la découverte de l'application.
+    *   **Tableau de Bord Personnel :** Une page dédiée où chaque utilisateur peut suivre sa progression, ses statistiques d'utilisation (nombre d'images, tickets restants), et consulter ses badges et succès débloqués.
 
-*   **Interface Soignée et Personnalisable :**
-    *   Une interface utilisateur réactive et agréable, avec la possibilité de choisir entre trois thèmes visuels (Clair, Nuit et Mid).
+*   **Modèle Économique "Freemium" et Boutique Intégrée :**
+    *   **Système de Tickets Équitable :** Chaque utilisateur reçoit des **tickets de téléversement** et des **tickets IA** gratuits quotidiennement.
+    *   **Boutique Complète :** Une boutique fonctionnelle permet aux utilisateurs d'acheter des **packs de tickets** (achats uniques) ou de souscrire à des **abonnements** mensuels ("Créateur", "Pro", "Maître") pour augmenter leurs quotas de tickets et leur espace de stockage.
+    *   **Gestion des Abonnements :** Les utilisateurs peuvent gérer leur abonnement directement depuis leurs paramètres via un portail client sécurisé.
+
+*   **Politique de Stockage Juste et Transparente :**
+    *   Les limites de stockage dépendent de l'abonnement, mais les données ne sont jamais prises en otage.
+    *   En cas de fin d'abonnement, une **période de grâce de 90 jours** est accordée à l'utilisateur pour lui permettre de se réabonner ou de télécharger ses fichiers avant qu'un nettoyage automatique des fichiers les plus anciens ne soit effectué pour respecter la limite du forfait gratuit.
 
 ---
 
 ### Notre Vision : L'Assistant Créatif Ultime
 
-La base actuelle n'est qu'un début. Notre vision est de transformer Clikup en un service d'hébergement "intelligent" qui assiste l'utilisateur à chaque étape de son processus créatif.
+La base actuelle est extrêmement solide. Notre vision est de transformer Clikup en un service d'hébergement "intelligent" qui assiste l'utilisateur à chaque étape de son processus créatif.
 
 **Prochaines Étapes Possibles :**
 1.  **Critique et Conseil Photo :** L'IA pourra fournir des conseils pour améliorer la composition, la lumière ou le cadrage d'une photo.
 2.  **Partage Simplifié vers les Réseaux Sociaux :** Intégrer des outils pour publier directement le contenu généré sur des plateformes comme Instagram ou Facebook.
 
 **Vision Finale :** Devenir la plateforme de référence où les images ne sont pas seulement stockées, mais comprises, enrichies et transformées, offrant des possibilités créatives sans précédent directement depuis le navigateur.
-
----
-
-### Avantages pour les Utilisateurs
-
-*   **Simplicité et Contrôle :** Une interface épurée où la gestion de son compte et de ses images est intuitive et complète.
-*   **Sécurité :** L'assurance que ses données sont protégées par les mécanismes robustes de Firebase (Authentification et Règles de Sécurité).
-*   **Gratuité et Prévisibilité :** Un modèle économique simple basé sur des tickets quotidiens gratuits, sans surprise.
-*   **Innovation :** La promesse de bénéficier des dernières avancées en matière d'IA générative pour sublimer ses créations.
-
-### Profils Utilisateurs Visés
-
-Clikup est conçu pour un large éventail d'utilisateurs :
-
-*   **Les Créateurs de Contenu et Blogueurs :** Pour héberger facilement les images de leurs articles, obtenir rapidement des descriptions optimisées (SEO) et des liens de partage.
-*   **Les Développeurs et Intégrateurs Web :** Pour disposer d'un outil rapide et fiable pour héberger des ressources graphiques pour leurs projets.
-*   **Les Amateurs de Photographie :** Pour stocker leurs photos, recevoir des conseils pour s'améliorer et, à terme, expérimenter avec l'édition par IA.
-*   **L'Utilisateur Quotidien :** Toute personne cherchant une alternative simple, moderne et gratuite aux hébergeurs d'images traditionnels pour partager des images sur des forums, des réseaux sociaux ou avec des amis.
