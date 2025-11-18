@@ -10,6 +10,14 @@ if (admin.apps.length === 0) {
 }
 const db = admin.firestore();
 
+// Définir les limites de stockage ici pour être cohérent avec le front-end
+const STORAGE_LIMITS = {
+    none: 200 * 1024 * 1024,      // 200 Mo
+    creator: 10 * 1024 * 1024 * 1024, // 10 Go
+    pro: 50 * 1024 * 1024 * 1024,   // 50 Go
+    master: 250 * 1024 * 1024 * 1024 // 250 Go
+};
+
 /**
  * Cloud Function that triggers when a one-time payment (ticket pack) is created.
  * It credits the purchased tickets to the user's profile.
@@ -68,6 +76,7 @@ exports.onPaymentSuccess = functions
  * Cloud Function that triggers on a subscription change.
  * It updates the subscription status and ticket quotas on the user profile.
  * It also creates a representative document in the 'payments' collection for history.
+ * It now also manages the storage grace period.
  */
 exports.onSubscriptionChange = functions
   .region("us-central1")
@@ -103,6 +112,7 @@ exports.onSubscriptionChange = functions
           subscriptionUploadTickets: uploadTickets,
           subscriptionAiTickets: aiTickets,
           subscriptionRenewalDate: afterData.current_period_end, // timestamp
+          gracePeriodEndDate: null, // IMPORTANT: Annuler toute période de grâce
       };
 
       try {
@@ -142,35 +152,38 @@ exports.onSubscriptionChange = functions
     }
 
     // --- CASE 2: Subscription is CANCELED, EXPIRED, or UNPAID (but not yet deleted) ---
-    if (afterData && ["canceled", "past_due", "unpaid"].includes(afterData.status) && beforeData?.status === "active") {
-       const updates = {
-          subscriptionTier: 'none',
-          subscriptionUploadTickets: 0,
-          subscriptionAiTickets: 0,
-          subscriptionRenewalDate: null
-       };
+    const isEnding = afterData && ["canceled", "past_due", "unpaid"].includes(afterData.status) && beforeData?.status === "active";
+    const isDeleted = !afterData && beforeData; // Case 3
+
+    if (isEnding || isDeleted) {
+        const updates = {
+            subscriptionTier: 'none',
+            subscriptionUploadTickets: 0,
+            subscriptionAiTickets: 0,
+            subscriptionRenewalDate: null,
+            gracePeriodEndDate: null // Default to null
+        };
+
         try {
-          await userRef.set(updates, { merge: true });
-          functions.logger.info(`Abonnement désactivé pour ${userId}.`, { status: afterData.status });
+            const userDoc = await userRef.get();
+            if (userDoc.exists) {
+                const userProfile = userDoc.data();
+                const storageUsed = userProfile.storageUsed || 0;
+                
+                // Si le stockage utilisé dépasse la limite gratuite, on déclenche la période de grâce
+                if (storageUsed > STORAGE_LIMITS.none) {
+                    const ninetyDaysFromNow = new Date();
+                    ninetyDaysFromNow.setDate(ninetyDaysFromNow.getDate() + 90);
+                    updates.gracePeriodEndDate = admin.firestore.Timestamp.fromDate(ninetyDaysFromNow);
+                    functions.logger.info(`Période de grâce activée pour ${userId} jusqu'au ${ninetyDaysFromNow.toISOString()}`);
+                }
+            }
+
+            await userRef.set(updates, { merge: true });
+            functions.logger.info(`Abonnement désactivé/supprimé pour ${userId}.`, { status: afterData?.status || 'deleted' });
+
         } catch (error) {
-           functions.logger.error(`Erreur lors de la désactivation de l'abonnement pour ${userId}:`, error);
-        }
-        return;
-    }
-    
-    // --- CASE 3: Subscription document is DELETED ---
-    if (!afterData && beforeData) {
-       const updates = {
-          subscriptionTier: 'none',
-          subscriptionUploadTickets: 0,
-          subscriptionAiTickets: 0,
-          subscriptionRenewalDate: null
-       };
-        try {
-          await userRef.set(updates, { merge: true });
-          functions.logger.info(`Abonnement supprimé pour ${userId}.`);
-        } catch (error) {
-           functions.logger.error(`Erreur lors de la suppression de l'abonnement pour ${userId}:`, error);
+            functions.logger.error(`Erreur lors de la désactivation/suppression de l'abonnement pour ${userId}:`, error);
         }
         return;
     }
