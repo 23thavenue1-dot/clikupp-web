@@ -186,10 +186,10 @@ export function Uploader() {
   };
 
   // Generic upload handler
-  const handleUpload = async (uploadFn: () => Promise<void>) => {
+  const handleUpload = async (uploadFn: () => Promise<void>, ticketType: 'upload' | 'none' = 'upload') => {
     if (!user || !firestore || !userProfile) return;
 
-    if (totalUploadTickets <= 0 && totalUploadTickets !== Infinity) {
+    if (ticketType === 'upload' && totalUploadTickets <= 0 && totalUploadTickets !== Infinity) {
         toast({
             variant: 'destructive',
             title: 'Tickets d\'upload épuisés',
@@ -206,11 +206,12 @@ export function Uploader() {
 
     try {
       await uploadFn();
-      // La décrémentation est maintenant plus intelligente
-      if (totalUploadTickets !== Infinity) {
+      
+      if (ticketType === 'upload' && totalUploadTickets !== Infinity) {
           await decrementTicketCount(firestore, user.uid, userProfile);
       }
-      toast({ title: 'Succès', description: 'Votre image a été enregistrée et 1 ticket a été utilisé.' });
+
+      toast({ title: 'Succès', description: 'Votre image a été enregistrée.' });
       resetState();
     } catch (error) {
       const errorMessage = (error as Error).message;
@@ -225,7 +226,6 @@ export function Uploader() {
   const handleUrlUpload = async () => {
     if (!imageUrl.trim() || !user || !userProfile) return;
     
-    // Pour les URL, nous ne connaissons pas la taille à l'avance, donc nous vérifions simplement si le stockage est déjà plein.
     if (storageUsed >= storageLimit) {
         toast({
             variant: 'destructive',
@@ -248,7 +248,6 @@ export function Uploader() {
   const handleStorageUpload = async () => {
     if (!selectedFile || !firebaseApp || !user || !userProfile) return;
 
-    // Double vérification au cas où le profil a changé depuis la sélection du fichier
     if ((storageUsed + selectedFile.size) > storageLimit) {
         toast({
             variant: 'destructive',
@@ -333,71 +332,38 @@ export function Uploader() {
     }
 };
 
-  const handleSaveGeneratedImage = async () => {
-        if (!generatedImageUrl || !user || !firebaseApp || !userProfile || !firestore) return;
-
-        // On vérifie les tickets d'upload ici car c'est une opération d'upload
-        if (totalUploadTickets <= 0 && totalUploadTickets !== Infinity) {
-            toast({
-                variant: 'destructive',
-                title: 'Tickets d\'upload épuisés',
-                description: 'Vous n\'avez plus de tickets pour enregistrer cette image.',
-            });
-            return;
-        }
-
-        setIsUploading(true);
+ const handleSaveGeneratedImage = async () => {
+    if (!generatedImageUrl || !user || !firebaseApp || !userProfile || !firestore) return;
+    
+    await handleUpload(async () => {
         setStatus({ state: 'processing' });
+        const blob = await dataUriToBlob(generatedImageUrl);
 
-        try {
-            const blob = await dataUriToBlob(generatedImageUrl);
-
-            if ((storageUsed + blob.size) > storageLimit) {
-                toast({
-                    variant: 'destructive',
-                    title: 'Espace de stockage insuffisant',
-                    description: 'L\'image générée est trop volumineuse pour votre quota actuel. Libérez de l\'espace.'
-                });
-                setIsUploading(false);
-                return;
-            }
-
-            const storage = getStorage(firebaseApp);
-            const newFileName = `ai-generated-${Date.now()}.png`;
-            const imageFile = new File([blob], newFileName, { type: blob.type });
-
-            const metadata = await uploadFileAndGetMetadata(
-                storage,
-                user,
-                imageFile,
-                `Généré par IA: ${prompt}`,
-                (progress) => setStatus({ state: 'uploading', progress })
-            );
-            
-            await saveImageMetadata(firestore, user, { 
-                ...metadata,
-                title: generatedTitle || `Généré par IA: ${prompt}`,
-                description: generatedDescription,
-                hashtags: generatedHashtags,
-                generatedByAI: true,
-            });
-
-            // On décrémente un ticket d'upload car c'est une action de sauvegarde
-            if (totalUploadTickets !== Infinity) {
-                await decrementTicketCount(firestore, user.uid, userProfile);
-            }
-
-            toast({ title: "Création enregistrée !", description: "Votre nouvelle image a été ajoutée à votre galerie et 1 ticket upload a été utilisé." });
-            resetState();
-
-        } catch (error) {
-             const errorMessage = (error as Error).message;
-             setStatus({ state: 'error', message: `Erreur: ${errorMessage}` });
-             toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: errorMessage });
-        } finally {
-            setIsUploading(false);
+        if ((storageUsed + blob.size) > storageLimit) {
+            throw new Error('Espace de stockage insuffisant pour enregistrer cette image.');
         }
-    };
+
+        const storage = getStorage(firebaseApp);
+        const newFileName = `ai-generated-${Date.now()}.png`;
+        const imageFile = new File([blob], newFileName, { type: blob.type });
+
+        const metadata = await uploadFileAndGetMetadata(
+            storage,
+            user,
+            imageFile,
+            `Généré par IA: ${prompt}`,
+            (progress) => setStatus({ state: 'uploading', progress })
+        );
+        
+        await saveImageMetadata(firestore, user, { 
+            ...metadata,
+            title: generatedTitle || `Généré par IA: ${prompt}`,
+            description: generatedDescription,
+            hashtags: generatedHashtags,
+            generatedByAI: true,
+        });
+    }, 'none'); // Spécifier 'none' pour ne pas décompter de ticket d'upload
+};
 
 
   const renderFilePicker = (disabled: boolean) => (
@@ -441,6 +407,11 @@ export function Uploader() {
         )}
     </div>
   );
+
+  const isAiTab = activeTab === 'ai';
+  const ticketsToShow = isAiTab ? totalAiTickets : totalUploadTickets;
+  const ticketTypeLabel = isAiTab ? 'IA' : 'd\'upload';
+
 
   return (
     <>
@@ -505,30 +476,48 @@ export function Uploader() {
               {userProfile !== undefined ? (
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button variant="secondary" className="flex items-center gap-2 font-semibold px-3 py-1.5 rounded-full text-sm h-auto" title={`${totalUploadTickets} tickets restants`}>
+                      <Button variant="secondary" className="flex items-center gap-2 font-semibold px-3 py-1.5 rounded-full text-sm h-auto" title={`${ticketsToShow} tickets ${ticketTypeLabel} restants`}>
                           <Ticket className="h-5 w-5" />
-                          <span>{totalUploadTickets === Infinity ? '∞' : totalUploadTickets}</span>
+                          <span>{ticketsToShow === Infinity ? '∞' : ticketsToShow}</span>
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Détail de vos Tickets d'Upload</DialogTitle>
+                        <DialogTitle>Détail de vos Tickets</DialogTitle>
                         <DialogDescription>
                           Vos tickets sont utilisés dans cet ordre : gratuits, abonnements, puis packs achetés.
                         </DialogDescription>
                       </DialogHeader>
                       <div className="py-4 space-y-3">
                           <div className="flex justify-between items-center text-sm p-2 bg-muted rounded-md">
-                              <span>Tickets gratuits (rechargés chaque jour)</span>
+                              <span className='font-semibold'>Tickets d'upload</span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md ml-4">
+                              <span>Gratuits (quotidiens)</span>
                               <span className="font-bold">{userProfile?.ticketCount ?? 0}</span>
                           </div>
-                          <div className="flex justify-between items-center text-sm p-2 bg-muted rounded-md">
-                              <span>Tickets d'abonnement (rechargés chaque mois)</span>
+                          <div className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md ml-4">
+                              <span>Abonnement (mensuels)</span>
                               <span className="font-bold">{userProfile?.subscriptionTier === 'pro' || userProfile?.subscriptionTier === 'master' ? 'Illimités' : (userProfile?.subscriptionUploadTickets ?? 0)}</span>
                           </div>
-                          <div className="flex justify-between items-center text-sm p-2 bg-muted rounded-md">
-                              <span>Tickets de packs (achetés, n'expirent pas)</span>
+                           <div className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md ml-4">
+                              <span>Packs (achetés)</span>
                               <span className="font-bold">{userProfile?.packUploadTickets ?? 0}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm p-2 bg-muted rounded-md mt-4">
+                              <span className='font-semibold'>Tickets IA</span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md ml-4">
+                              <span>Gratuits (quotidiens)</span>
+                              <span className="font-bold">{userProfile?.aiTicketCount ?? 0}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md ml-4">
+                              <span>Abonnement (mensuels)</span>
+                              <span className="font-bold">{userProfile?.subscriptionAiTickets ?? 0}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md ml-4">
+                              <span>Packs (achetés)</span>
+                              <span className="font-bold">{userProfile?.packAiTickets ?? 0}</span>
                           </div>
                       </div>
                        <DialogFooter>
@@ -633,7 +622,7 @@ export function Uploader() {
 
                         <Button onClick={handleSaveGeneratedImage} disabled={isUploading || (totalUploadTickets <= 0 && totalUploadTickets !== Infinity)} className="w-full">
                            {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                           Enregistrer (1 Ticket Upload)
+                           Enregistrer l'image
                         </Button>
                         <Button variant="outline" onClick={() => setGeneratedImageUrl(null)} disabled={isUploading}>
                             Générer une autre image
