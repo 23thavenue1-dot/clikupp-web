@@ -85,6 +85,7 @@ export default function SignupPage() {
         totalDescriptionGenerations: 0,
         // Suivi Stockage
         storageUsed: 0,
+        gracePeriodEndDate: null,
       });
 
 

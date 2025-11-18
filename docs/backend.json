@@ -127,7 +127,8 @@
         "stripeCustomerId": { "type": "string", "description": "The user's customer ID in Stripe." },
         "totalImageEdits": { "type": "number", "description": "Total count of AI image edits performed by the user." },
         "totalDescriptionGenerations": { "type": "number", "description": "Total count of AI description generations performed by the user." },
-        "storageUsed": { "type": "number", "description": "Total storage used by the user in bytes." }
+        "storageUsed": { "type": "number", "description": "Total storage used by the user in bytes." },
+        "gracePeriodEndDate": { "type": ["string", "null"], "description": "If the user is over their storage quota after a subscription ends, this is the date when their oldest files will be deleted. Null if they are within their quota.", "format": "date-time" }
       },
       "required": [
         "id", "email", "displayName", "creationTimestamp", "ticketCount", "lastTicketRefill", 
