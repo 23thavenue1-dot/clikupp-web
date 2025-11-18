@@ -17,7 +17,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { UploadCloud, Link as LinkIcon, Loader2, HardDriveUpload, Ticket, ShoppingCart, AlertTriangle, Wand2, Save, Instagram, Facebook, MessageSquare, VenetianMask } from 'lucide-react';
+import { UploadCloud, Link as LinkIcon, Loader2, HardDriveUpload, Ticket, ShoppingCart, AlertTriangle, Wand2, Save, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -242,7 +242,7 @@ export function Uploader() {
         bbCode: `[img]${imageUrl}[/img]`,
         htmlCode: `<img src="${imageUrl}" alt="Image depuis URL" />`,
       });
-    });
+    }, 'upload');
   };
   
   const handleStorageUpload = async () => {
@@ -267,7 +267,7 @@ export function Uploader() {
           (progress) => setStatus({ state: 'uploading', progress })
       );
       await saveImageMetadata(firestore, user, { ...metadata, description });
-    });
+    }, 'upload');
   };
 
   const handleGenerateImage = async () => {
@@ -287,7 +287,8 @@ export function Uploader() {
     }
     
     setIsGenerating(true);
-    setGeneratedImageUrl(null);
+    // Ne pas réinitialiser generatedImageUrl ici pour que l'ancienne image reste visible pendant la génération
+    // setGeneratedImageUrl(null);
 
     try {
       const result = await generateImage({ prompt });
@@ -476,7 +477,7 @@ export function Uploader() {
               {userProfile !== undefined ? (
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button variant="secondary" className="flex items-center gap-2 font-semibold px-3 py-1.5 rounded-full text-sm h-auto" title={`${ticketsToShow} tickets ${ticketTypeLabel} restants`}>
+                      <Button variant="secondary" className="flex items-center gap-2 font-semibold px-3 py-1.5 rounded-full text-sm h-auto" title={`${ticketsToShow} ${ticketTypeLabel} restants`}>
                           <Ticket className="h-5 w-5" />
                           <span>{ticketsToShow === Infinity ? '∞' : ticketsToShow}</span>
                       </Button>
@@ -584,7 +585,12 @@ export function Uploader() {
                   {generatedImageUrl ? (
                     <div className="space-y-4">
                         <div className="aspect-square relative w-full rounded-lg border bg-muted flex items-center justify-center">
-                            <Image src={generatedImageUrl} alt="Image générée par IA" fill className="object-contain" unoptimized />
+                           {isGenerating && (
+                              <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10 rounded-lg">
+                                 <Loader2 className="h-10 w-10 text-primary animate-spin" />
+                              </div>
+                           )}
+                           <Image src={generatedImageUrl} alt="Image générée par IA" fill className="object-contain" unoptimized />
                         </div>
 
                         <Separator/>
@@ -604,7 +610,7 @@ export function Uploader() {
 
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="w-full" disabled={isGeneratingDescription || totalAiTickets <= 0}>
+                            <Button variant="outline" className="w-full" disabled={isGenerating || isGeneratingDescription || totalAiTickets <= 0}>
                                 {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4"/>}
                                 {isGeneratingDescription ? "Génération..." : "Générer la description (1 Ticket IA)"}
                             </Button>
@@ -620,12 +626,18 @@ export function Uploader() {
 
                         <Separator/>
 
-                        <Button onClick={handleSaveGeneratedImage} disabled={isUploading || (totalUploadTickets <= 0 && totalUploadTickets !== Infinity)} className="w-full">
-                           {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                           Enregistrer l'image
-                        </Button>
-                        <Button variant="outline" onClick={() => setGeneratedImageUrl(null)} disabled={isUploading}>
-                            Générer une autre image
+                        <div className="grid grid-cols-2 gap-2">
+                            <Button onClick={handleGenerateImage} disabled={isGenerating || isUploading || totalAiTickets <= 0}>
+                               <RefreshCw className="mr-2 h-4 w-4" />
+                               Regénérer
+                            </Button>
+                            <Button onClick={handleSaveGeneratedImage} disabled={isUploading || isGenerating || (totalUploadTickets <= 0 && totalUploadTickets !== Infinity)}>
+                               {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                               Enregistrer
+                            </Button>
+                        </div>
+                        <Button variant="outline" onClick={() => setGeneratedImageUrl(null)} disabled={isUploading || isGenerating}>
+                            Créer une nouvelle image
                         </Button>
                     </div>
                   ) : (
