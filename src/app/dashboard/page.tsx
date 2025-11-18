@@ -7,7 +7,7 @@ import type { User } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Award, Camera, Heart, Medal, Star, UserCheck, GalleryVertical, CalendarClock, Trophy, Crown, Gem, Shield, Rocket, Sparkles, Sun, Upload, Share2, ThumbsUp, Pencil, ClipboardList, Library, Image as ImageIcon, Sparkle, Mail, FileText, Wand2, MailOpen, KeyRound, Loader2, Package, ShoppingCart, HardDrive } from 'lucide-react';
+import { Award, Camera, Heart, Medal, Star, UserCheck, GalleryVertical, CalendarClock, Trophy, Crown, Gem, Shield, Rocket, Sparkles, Sun, Upload, Share2, ThumbsUp, Pencil, ClipboardList, Library, Image as ImageIcon, Sparkle, Mail, FileText, Wand2, MailOpen, KeyRound, Loader2, Package, ShoppingCart, HardDrive, Info } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Check } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -16,6 +16,9 @@ import { collection, query, updateDoc, doc, arrayUnion, increment } from 'fireba
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAchievementNotification } from '@/hooks/useAchievementNotification';
+import Link from 'next/link';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 const XP_PER_ACHIEVEMENT = 20;
 const XP_PER_LEVEL = 100;
@@ -58,6 +61,8 @@ export default function DashboardPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { markAchievementsAsSeen } = useAchievementNotification();
+
+  const [infoDialogContent, setInfoDialogContent] = useState<{ title: string; description: React.ReactNode } | null>(null);
 
   const userDocRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -198,13 +203,31 @@ export default function DashboardPage() {
         title: 'Tickets d\'upload (Gratuits)',
         value: isProfileLoading ? <Skeleton className="h-6 w-10"/> : (userProfile?.ticketCount ?? 0).toString(),
         icon: Upload,
-        description: 'Tickets réinitialisés chaque jour.'
+        description: 'Tickets réinitialisés chaque jour.',
+        onClick: () => setInfoDialogContent({
+            title: 'Fonctionnement des Tickets d\'Upload Gratuits',
+            description: (
+                <div className="text-sm space-y-2">
+                    <p>Chaque jour à minuit, votre compte est automatiquement rechargé avec <strong>5 tickets d'upload</strong>.</p>
+                    <p>Ces tickets vous permettent de téléverser des images depuis votre appareil ou via une URL. Les tickets non utilisés à la fin de la journée ne sont pas reportés.</p>
+                </div>
+            )
+        })
     },
     {
         title: 'Tickets IA (Gratuits)',
         value: isProfileLoading ? <Skeleton className="h-6 w-10"/> : (userProfile?.aiTicketCount ?? 0).toString(),
         icon: Sparkles,
-        description: 'Tickets réinitialisés chaque jour (limite mensuelle).'
+        description: 'Tickets réinitialisés chaque jour (limite mensuelle).',
+        onClick: () => setInfoDialogContent({
+            title: 'Fonctionnement des Tickets IA Gratuits',
+            description: (
+                 <div className="text-sm space-y-2">
+                    <p>Chaque jour, votre compte reçoit <strong>3 tickets IA</strong> pour l'édition d'image et la génération de description.</p>
+                    <p>Pour assurer un service équitable, la distribution de ces tickets gratuits est limitée à un total de <strong>20 par mois civil</strong>. Une fois cette limite atteinte, la recharge quotidienne s'arrête jusqu'au premier jour du mois suivant.</p>
+                </div>
+            )
+        })
     }
   ]
 
@@ -260,235 +283,249 @@ export default function DashboardPage() {
   }
 
   return (
-    <TooltipProvider>
-      <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="w-full max-w-4xl mx-auto space-y-8">
-          <header>
-            <h1 className="text-3xl font-bold tracking-tight">Tableau de Bord</h1>
-            <p className="text-muted-foreground mt-1">Vos statistiques, succès et progression sur Clikup.</p>
-          </header>
+    <Dialog open={!!infoDialogContent} onOpenChange={(open) => !open && setInfoDialogContent(null)}>
+      <TooltipProvider>
+        <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+          <div className="w-full max-w-4xl mx-auto space-y-8">
+            <header>
+              <h1 className="text-3xl font-bold tracking-tight">Tableau de Bord</h1>
+              <p className="text-muted-foreground mt-1">Vos statistiques, succès et progression sur Clikup.</p>
+            </header>
 
-          <Card>
-              <CardHeader>
-                  <CardTitle>Progression & Niveau</CardTitle>
-                  <CardDescription>Gagnez de l'expérience en débloquant des succès pour monter en niveau.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                  <div className="flex justify-between items-center mb-2">
-                      <p className="font-semibold">Niveau {currentLevel}</p>
-                      <p className="text-sm text-muted-foreground">Prochain niveau : {XP_PER_LEVEL} XP</p>
-                  </div>
-                  <Progress value={progressPercentage} />
-                  <p className="text-center text-sm text-muted-foreground">Votre progression : {currentXp} / {XP_PER_LEVEL} XP</p>
-              </CardContent>
-          </Card>
-
-           <Card>
-              <CardHeader>
-                  <CardTitle>Utilisation du Stockage</CardTitle>
-                  <CardDescription>Votre quota de stockage dépend de votre plan d'abonnement.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                   <div className="flex justify-between items-center mb-2 text-sm">
-                        <p className="font-semibold">{formatBytes(currentStorageUsed)} utilisés</p>
-                        <p className="text-muted-foreground">Limite : {formatBytes(storageLimit)}</p>
-                   </div>
-                  <Progress value={storageProgressPercentage} />
-                  <p className="text-center text-sm text-muted-foreground">
-                      {storageProgressPercentage.toFixed(2)}% de votre stockage utilisé
-                  </p>
-              </CardContent>
-            </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Statistiques d'Utilisation</CardTitle>
-              <CardDescription>Un aperçu de votre activité sur la plateforme.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {stats.map((stat) => (
-                  <div key={stat.title} className="p-4 border rounded-lg flex items-start gap-4 bg-muted/20">
-                    <div className="bg-primary/10 text-primary p-3 rounded-md">
-                      <stat.icon className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">{stat.title}</p>
-                      <div className="text-2xl font-bold">{stat.value}</div>
-                      <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Tickets Gratuits</CardTitle>
-              <CardDescription>Le solde de vos tickets quotidiens offerts.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {freeTicketsStats.map((stat) => (
-                  <div key={stat.title} className="p-4 border rounded-lg flex items-start gap-4 bg-muted/20">
-                    <div className="bg-primary/10 text-primary p-3 rounded-md">
-                      <stat.icon className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">{stat.title}</p>
-                      <div className="text-2xl font-bold">{stat.value}</div>
-                      <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {(userProfile?.subscriptionTier ?? 'none') !== 'none' && (
             <Card>
                 <CardHeader>
-                <CardTitle>Tickets d'Abonnement</CardTitle>
-                <CardDescription>Le solde de vos tickets mensuels inclus dans votre abonnement "{userProfile?.subscriptionTier}".</CardDescription>
+                    <CardTitle>Progression & Niveau</CardTitle>
+                    <CardDescription>Gagnez de l'expérience en débloquant des succès pour monter en niveau.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
+                    <div className="flex justify-between items-center mb-2">
+                        <p className="font-semibold">Niveau {currentLevel}</p>
+                        <p className="text-sm text-muted-foreground">Prochain niveau : {XP_PER_LEVEL} XP</p>
+                    </div>
+                    <Progress value={progressPercentage} />
+                    <p className="text-center text-sm text-muted-foreground">Votre progression : {currentXp} / {XP_PER_LEVEL} XP</p>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Utilisation du Stockage</CardTitle>
+                    <CardDescription>Votre quota de stockage dépend de votre plan d'abonnement.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex justify-between items-center mb-2 text-sm">
+                          <p className="font-semibold">{formatBytes(currentStorageUsed)} utilisés</p>
+                          <p className="text-muted-foreground">Limite : {formatBytes(storageLimit)}</p>
+                    </div>
+                    <Progress value={storageProgressPercentage} />
+                    <p className="text-center text-sm text-muted-foreground">
+                        {storageProgressPercentage.toFixed(2)}% de votre stockage utilisé
+                    </p>
+                </CardContent>
+              </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Statistiques d'Utilisation</CardTitle>
+                <CardDescription>Un aperçu de votre activité sur la plateforme.</CardDescription>
+              </CardHeader>
+              <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {subscriptionTicketsStats.map((stat) => (
+                  {stats.map((stat) => (
                     <div key={stat.title} className="p-4 border rounded-lg flex items-start gap-4 bg-muted/20">
-                        <div className="bg-primary/10 text-primary p-3 rounded-md">
+                      <div className="bg-primary/10 text-primary p-3 rounded-md">
                         <stat.icon className="h-6 w-6" />
-                        </div>
-                        <div>
+                      </div>
+                      <div>
                         <p className="text-sm text-muted-foreground">{stat.title}</p>
                         <div className="text-2xl font-bold">{stat.value}</div>
                         <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
-                        </div>
+                      </div>
                     </div>
-                    ))}
+                  ))}
                 </div>
-                </CardContent>
+              </CardContent>
             </Card>
-          )}
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Tickets Achetés</CardTitle>
-              <CardDescription>Le solde de vos tickets achetés via des packs dans la boutique.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {purchasedTicketsStats.map((stat) => (
-                  <div key={stat.title} className="p-4 border rounded-lg flex items-start gap-4 bg-muted/20">
-                    <div className="bg-primary/10 text-primary p-3 rounded-md">
-                      <stat.icon className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">{stat.title}</p>
-                      <div className="text-2xl font-bold">{stat.value}</div>
-                      <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Badges de Niveau</CardTitle>
-              <CardDescription>Collectionnez des badges uniques en montant de niveau.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-4">
-                {badges.map((badge) => {
-                  const unlocked = currentLevel >= badge.level;
-                  return (
-                    <Tooltip key={badge.title}>
-                      <TooltipTrigger asChild>
-                        <div
-                          className={`relative aspect-square p-2 border rounded-lg flex flex-col items-center justify-center text-center transition-opacity ${!unlocked ? 'opacity-50' : 'bg-primary/5 border-primary/20'}`}
-                        >
-                          {unlocked && (
-                              <div className="absolute top-1 right-1 bg-green-500 rounded-full p-0.5">
-                                  <Check className="h-3 w-3 text-white" />
-                              </div>
-                          )}
-                          <div className={`p-2 rounded-full mb-1 ${unlocked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                            <badge.icon className="h-6 w-6" />
-                          </div>
-                          <p className="text-[10px] font-semibold truncate max-w-full">{badge.title}</p>
+            <Card>
+              <CardHeader>
+                <CardTitle>Tickets Gratuits</CardTitle>
+                <CardDescription>Le solde de vos tickets quotidiens offerts. Cliquez pour en savoir plus.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {freeTicketsStats.map((stat) => (
+                    <DialogTrigger key={stat.title} asChild>
+                        <div onClick={stat.onClick} className="p-4 border rounded-lg flex items-start gap-4 bg-muted/20 hover:bg-muted/50 transition-colors cursor-pointer">
+                            <div className="bg-primary/10 text-primary p-3 rounded-md">
+                                <stat.icon className="h-6 w-6" />
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">{stat.title}</p>
+                                <div className="text-2xl font-bold">{stat.value}</div>
+                                <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
+                            </div>
+                            <Info className="h-4 w-4 text-muted-foreground/50 ml-auto" />
                         </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="font-semibold">{badge.title}</p>
-                        {unlocked ? (
-                          <p className="text-sm text-green-600 dark:text-green-400 italic">{badge.motivation}</p>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">Atteindre le niveau {badge.level}.</p>
-                        )}
-                        {!unlocked && <p className="text-xs font-bold text-center mt-1">(Verrouillé)</p>}
-                      </TooltipContent>
-                    </Tooltip>
-                  )
-                })}
-              </div>
-            </CardContent>
-          </Card>
+                    </DialogTrigger>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Succès</CardTitle>
-              <CardDescription>Débloquez des succès pour gagner {XP_PER_ACHIEVEMENT} XP chacun.</CardDescription>
-            </CardHeader>
-            <CardContent>
-               <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-4">
-                {unlockedAchievements.map((achievement) => {
-                    const progress = !achievement.unlocked && achievement.getProgress && userProfile && userImages && userNotes && user
-                    // @ts-ignore
-                        ? achievement.getProgress(userProfile, userImages, user, userNotes)
-                        : null;
+            {(userProfile?.subscriptionTier ?? 'none') !== 'none' && (
+              <Card>
+                  <CardHeader>
+                  <CardTitle>Tickets d'Abonnement</CardTitle>
+                  <CardDescription>Le solde de vos tickets mensuels inclus dans votre abonnement "{userProfile?.subscriptionTier}".</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {subscriptionTicketsStats.map((stat) => (
+                      <div key={stat.title} className="p-4 border rounded-lg flex items-start gap-4 bg-muted/20">
+                          <div className="bg-primary/10 text-primary p-3 rounded-md">
+                          <stat.icon className="h-6 w-6" />
+                          </div>
+                          <div>
+                          <p className="text-sm text-muted-foreground">{stat.title}</p>
+                          <div className="text-2xl font-bold">{stat.value}</div>
+                          <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
+                          </div>
+                      </div>
+                      ))}
+                  </div>
+                  </CardContent>
+              </Card>
+            )}
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Tickets Achetés</CardTitle>
+                <CardDescription>Le solde de vos tickets achetés via des packs dans la boutique.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {purchasedTicketsStats.map((stat) => (
+                     <Link href="/shop" key={stat.title} className="p-4 border rounded-lg flex items-start gap-4 bg-muted/20 hover:bg-muted/50 transition-colors">
+                      <div className="bg-primary/10 text-primary p-3 rounded-md">
+                        <stat.icon className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">{stat.title}</p>
+                        <div className="text-2xl font-bold">{stat.value}</div>
+                        <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
+            <Card>
+              <CardHeader>
+                <CardTitle>Badges de Niveau</CardTitle>
+                <CardDescription>Collectionnez des badges uniques en montant de niveau.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-4">
+                  {badges.map((badge) => {
+                    const unlocked = currentLevel >= badge.level;
                     return (
-                        <Tooltip key={achievement.title}>
-                            <TooltipTrigger asChild>
-                               <div
-                                className={`relative aspect-square p-2 border rounded-lg flex flex-col items-center justify-center text-center transition-all duration-300 ${!achievement.unlocked ? 'opacity-60' : 'bg-primary/5 border-primary/20'}`}
-                               >
-                                <div className={`p-2 rounded-full mb-1 transition-colors ${achievement.unlocked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                                    <achievement.icon className="h-6 w-6" />
+                      <Tooltip key={badge.title}>
+                        <TooltipTrigger asChild>
+                          <div
+                            className={`relative aspect-square p-2 border rounded-lg flex flex-col items-center justify-center text-center transition-opacity ${!unlocked ? 'opacity-50' : 'bg-primary/5 border-primary/20'}`}
+                          >
+                            {unlocked && (
+                                <div className="absolute top-1 right-1 bg-green-500 rounded-full p-0.5">
+                                    <Check className="h-3 w-3 text-white" />
                                 </div>
-                                <p className="text-[10px] font-semibold truncate max-w-full">{achievement.title}</p>
-                                {achievement.unlocked && (
-                                    <div className="absolute top-1 right-1 bg-green-500 rounded-full p-0.5">
-                                        <Check className="h-3 w-3 text-white" />
-                                    </div>
-                                )}
-                               </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p className="font-semibold">{achievement.title}</p>
-                                <p className="text-sm text-muted-foreground">{achievement.description}</p>
-                                {progress && progress.target > 1 && (
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                        Progression : {Math.min(progress.current, progress.target)} / {progress.target}
-                                    </p>
-                                )}
-                                {!achievement.unlocked && <p className="text-xs font-bold text-center mt-1">(Verrouillé)</p>}
-                            </TooltipContent>
-                        </Tooltip>
+                            )}
+                            <div className={`p-2 rounded-full mb-1 ${unlocked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                              <badge.icon className="h-6 w-6" />
+                            </div>
+                            <p className="text-[10px] font-semibold truncate max-w-full">{badge.title}</p>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="font-semibold">{badge.title}</p>
+                          {unlocked ? (
+                            <p className="text-sm text-green-600 dark:text-green-400 italic">{badge.motivation}</p>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">Atteindre le niveau {badge.level}.</p>
+                          )}
+                          {!unlocked && <p className="text-xs font-bold text-center mt-1">(Verrouillé)</p>}
+                        </TooltipContent>
+                      </Tooltip>
                     )
-                })}
-              </div>
-            </CardContent>
-          </Card>
+                  })}
+                </div>
+              </CardContent>
+            </Card>
 
+            <Card>
+              <CardHeader>
+                <CardTitle>Succès</CardTitle>
+                <CardDescription>Débloquez des succès pour gagner {XP_PER_ACHIEVEMENT} XP chacun.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-4">
+                  {unlockedAchievements.map((achievement) => {
+                      const progress = !achievement.unlocked && achievement.getProgress && userProfile && userImages && userNotes && user
+                      // @ts-ignore
+                          ? achievement.getProgress(userProfile, userImages, user, userNotes)
+                          : null;
+
+                      return (
+                          <Tooltip key={achievement.title}>
+                              <TooltipTrigger asChild>
+                                <div
+                                className={`relative aspect-square p-2 border rounded-lg flex flex-col items-center justify-center text-center transition-all duration-300 ${!achievement.unlocked ? 'opacity-60' : 'bg-primary/5 border-primary/20'}`}
+                                >
+                                  <div className={`p-2 rounded-full mb-1 transition-colors ${achievement.unlocked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                                      <achievement.icon className="h-6 w-6" />
+                                  </div>
+                                  <p className="text-[10px] font-semibold truncate max-w-full">{achievement.title}</p>
+                                  {achievement.unlocked && (
+                                      <div className="absolute top-1 right-1 bg-green-500 rounded-full p-0.5">
+                                          <Check className="h-3 w-3 text-white" />
+                                      </div>
+                                  )}
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                  <p className="font-semibold">{achievement.title}</p>
+                                  <p className="text-sm text-muted-foreground">{achievement.description}</p>
+                                  {progress && progress.target > 1 && (
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                          Progression : {Math.min(progress.current, progress.target)} / {progress.target}
+                                      </p>
+                                  )}
+                                  {!achievement.unlocked && <p className="text-xs font-bold text-center mt-1">(Verrouillé)</p>}
+                              </TooltipContent>
+                          </Tooltip>
+                      )
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+          </div>
         </div>
-      </div>
-    </TooltipProvider>
+      </TooltipProvider>
+
+      {/* --- Dialog pour les infos sur les tickets --- */}
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{infoDialogContent?.title}</DialogTitle>
+          <DialogDescription asChild>
+            {infoDialogContent?.description}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button onClick={() => setInfoDialogContent(null)}>Compris</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
-
-    
-
-    
