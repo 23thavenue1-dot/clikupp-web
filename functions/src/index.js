@@ -9,6 +9,8 @@ if (admin.apps.length === 0) {
   admin.initializeApp();
 }
 const db = admin.firestore();
+const storage = admin.storage();
+
 
 // Définir les limites de stockage ici pour être cohérent avec le front-end
 const STORAGE_LIMITS = {
@@ -188,3 +190,92 @@ exports.onSubscriptionChange = functions
         return;
     }
   });
+
+
+/**
+ * Scheduled Cloud Function that runs daily to clean up storage for users
+ * whose grace period has ended and are over their storage quota.
+ */
+exports.scheduledStorageCleanup = functions
+  .region("us-central1")
+  .pubsub.schedule("every 24 hours")
+  .onRun(async (context) => {
+    functions.logger.log("Exécution du nettoyage de stockage programmé.");
+
+    const now = admin.firestore.Timestamp.now();
+    const usersRef = db.collection("users");
+    
+    // 1. Trouver les utilisateurs dont la période de grâce est terminée.
+    const query = usersRef
+      .where("gracePeriodEndDate", "!=", null)
+      .where("gracePeriodEndDate", "<=", now);
+
+    const snapshot = await query.get();
+
+    if (snapshot.empty) {
+      functions.logger.log("Aucun utilisateur à traiter pour le nettoyage.");
+      return null;
+    }
+
+    const freeTierLimit = STORAGE_LIMITS.none;
+    const cleanupPromises = [];
+
+    // 2. Traiter chaque utilisateur trouvé.
+    for (const userDoc of snapshot.docs) {
+      const userProfile = userDoc.data();
+      const userId = userDoc.id;
+      let storageUsed = userProfile.storageUsed || 0;
+
+      if (storageUsed <= freeTierLimit) {
+        // L'utilisateur a libéré de l'espace manuellement, on annule la période de grâce.
+        cleanupPromises.push(userDoc.ref.update({ gracePeriodEndDate: null }));
+        functions.logger.log(`L'utilisateur ${userId} est repassé sous le quota. Période de grâce annulée.`);
+        continue;
+      }
+
+      functions.logger.log(`Début du nettoyage pour l'utilisateur ${userId}. Stockage utilisé: ${storageUsed}`);
+
+      // 3. Récupérer les images, triées par date de création (les plus anciennes d'abord).
+      const imagesRef = userDoc.ref.collection("images");
+      const imagesQuery = imagesRef.orderBy("uploadTimestamp", "asc");
+      const imagesSnapshot = await imagesQuery.get();
+
+      let freedSpace = 0;
+
+      // 4. Supprimer les images jusqu'à ce que l'utilisateur soit sous le quota.
+      for (const imageDoc of imagesSnapshot.docs) {
+        if (storageUsed - freedSpace <= freeTierLimit) {
+          break; // Objectif atteint
+        }
+
+        const imageData = imageDoc.data();
+        const fileSize = imageData.fileSize || 0;
+        const storagePath = imageData.storagePath;
+
+        const deleteFilePromise = storagePath
+          ? storage.bucket().file(storagePath).delete().catch(err => {
+              functions.logger.error(`Impossible de supprimer le fichier de Storage: ${storagePath}`, err);
+            })
+          : Promise.resolve();
+        
+        const deleteDocPromise = imageDoc.ref.delete();
+
+        cleanupPromises.push(deleteFilePromise, deleteDocPromise);
+        freedSpace += fileSize;
+        functions.logger.log(`- Suppression de l'image ${imageDoc.id} (${fileSize} octets) pour l'utilisateur ${userId}.`);
+      }
+      
+      // 5. Mettre à jour le profil de l'utilisateur avec le nouveau stockage utilisé et annuler la période de grâce.
+      const userUpdatePromise = userDoc.ref.update({
+        storageUsed: admin.firestore.FieldValue.increment(-freedSpace),
+        gracePeriodEndDate: null,
+      });
+      cleanupPromises.push(userUpdatePromise);
+      functions.logger.log(`Nettoyage terminé pour ${userId}. Espace libéré: ${freedSpace} octets.`);
+    }
+
+    await Promise.all(cleanupPromises);
+    functions.logger.log("Nettoyage de stockage programmé terminé.");
+    return null;
+});
+
