@@ -165,8 +165,9 @@ export default function EditImagePage() {
                 hashtags: ''
             };
             
-            // On ajoute la nouvelle image à la fin de l'historique sans tronquer
-            const newHistory = [...generatedImageHistory, newHistoryItem];
+            // Si on est en milieu d'historique, on le coupe avant d'ajouter le nouvel item.
+            const newHistory = generatedImageHistory.slice(0, historyIndex + 1);
+            newHistory.push(newHistoryItem);
             
             setGeneratedImageHistory(newHistory);
             setHistoryIndex(newHistory.length - 1);
@@ -729,3 +730,5 @@ export default function EditImagePage() {
     );
 }
 
+
+    
