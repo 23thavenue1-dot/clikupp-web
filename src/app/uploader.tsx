@@ -17,7 +17,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { UploadCloud, Link as LinkIcon, Loader2, HardDriveUpload, Ticket, ShoppingCart, AlertTriangle, Wand2, Save, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw } from 'lucide-react';
+import { UploadCloud, Link as LinkIcon, Loader2, HardDriveUpload, Ticket, ShoppingCart, AlertTriangle, Wand2, Save, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -39,6 +39,15 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Label } from '@/components/ui/label';
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic';
+
+// Structure pour l'historique de génération
+interface ImageHistoryItem {
+    imageUrl: string;
+    prompt: string;
+    title: string;
+    description: string;
+    hashtags: string;
+}
 
 
 // Limites de stockage en octets (NOUVELLES LIMITES)
@@ -97,7 +106,10 @@ export function Uploader() {
   const [prompt, setPrompt] = useState('');
   const [refinePrompt, setRefinePrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+
+  // Historique des images et descriptions générées
+  const [generatedImageHistory, setGeneratedImageHistory] = useState<ImageHistoryItem[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
   
   // State pour la description générée
   const [generatedTitle, setGeneratedTitle] = useState('');
@@ -141,6 +153,22 @@ export function Uploader() {
   const isInGracePeriod = !!(userProfile?.gracePeriodEndDate && userProfile.gracePeriodEndDate.toDate() > new Date());
   const showStorageWarning = storagePercentage >= 80 && !isInGracePeriod;
 
+  const currentHistoryItem = useMemo(() => {
+      if (historyIndex >= 0 && historyIndex < generatedImageHistory.length) {
+          return generatedImageHistory[historyIndex];
+      }
+      return null;
+  }, [generatedImageHistory, historyIndex]);
+
+  useEffect(() => {
+      if (currentHistoryItem) {
+          setGeneratedTitle(currentHistoryItem.title);
+          setGeneratedDescription(currentHistoryItem.description);
+          setGeneratedHashtags(currentHistoryItem.hashtags);
+          setRefinePrompt(currentHistoryItem.prompt);
+      }
+  }, [currentHistoryItem]);
+
 
   const resetState = () => {
     setStatus({ state: 'idle' });
@@ -150,7 +178,8 @@ export function Uploader() {
     setImageUrl('');
     setPrompt('');
     setRefinePrompt('');
-    setGeneratedImageUrl(null);
+    setGeneratedImageHistory([]);
+    setHistoryIndex(-1);
     setGeneratedTitle('');
     setGeneratedDescription('');
     setGeneratedHashtags('');
@@ -232,7 +261,7 @@ export function Uploader() {
         toast({
             variant: 'destructive',
             title: 'Espace de stockage plein',
-            description: 'Libérez de l\'espace ou augmentez votre quota pour ajouter de nouvelles images.'
+            description: `Libérez de l'espace ou augmentez votre quota pour ajouter de nouvelles images.`,
         });
         return;
     }
@@ -274,7 +303,7 @@ export function Uploader() {
 
   const handleGenerateImage = async (isRefinement = false) => {
     const currentPrompt = isRefinement ? refinePrompt : prompt;
-    const baseImageUrl = isRefinement ? generatedImageUrl : undefined;
+    const baseImageUrl = isRefinement ? currentHistoryItem?.imageUrl : undefined;
     
     if (!currentPrompt.trim() || !user || !firestore || !userProfile) return;
 
@@ -294,7 +323,19 @@ export function Uploader() {
             ? await editImage({ imageUrl: baseImageUrl, prompt: currentPrompt })
             : await generateImage({ prompt: currentPrompt });
       
-        setGeneratedImageUrl(result.imageUrl);
+        const newHistoryItem: ImageHistoryItem = {
+            imageUrl: result.imageUrl,
+            prompt: currentPrompt,
+            title: '',
+            description: '',
+            hashtags: ''
+        };
+
+        const newHistory = generatedImageHistory.slice(0, historyIndex + 1);
+        newHistory.push(newHistoryItem);
+
+        setGeneratedImageHistory(newHistory);
+        setHistoryIndex(newHistory.length - 1);
       
         await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
       
@@ -310,7 +351,7 @@ export function Uploader() {
   };
 
   const handleGenerateDescription = async (platform: Platform) => {
-    if (!generatedImageUrl || !user || !userProfile || !firestore) return;
+    if (!currentHistoryItem || !user || !userProfile || !firestore) return;
     if (totalAiTickets <= 0) {
          toast({
             variant: 'destructive',
@@ -322,11 +363,20 @@ export function Uploader() {
 
     setIsGeneratingDescription(true);
     try {
-        const result = await generateImageDescription({ imageUrl: generatedImageUrl, platform: platform });
+        const result = await generateImageDescription({ imageUrl: currentHistoryItem.imageUrl, platform: platform });
         
-        setGeneratedTitle(result.title);
-        setGeneratedDescription(result.description);
-        setGeneratedHashtags(result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' '));
+        const updatedHistoryItem: ImageHistoryItem = {
+            ...currentHistoryItem,
+            title: result.title,
+            description: result.description,
+            hashtags: result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' ')
+        };
+
+        setGeneratedImageHistory(prev => {
+            const newHistory = [...prev];
+            newHistory[historyIndex] = updatedHistoryItem;
+            return newHistory;
+        });
 
         await decrementAiTicketCount(firestore, user.uid, userProfile, 'description');
         toast({ title: "Contenu généré !", description: `Publication pour ${platform} prête. Un ticket IA a été utilisé.` });
@@ -338,11 +388,11 @@ export function Uploader() {
 };
 
  const handleSaveGeneratedImage = async () => {
-    if (!generatedImageUrl || !user || !firebaseApp || !userProfile || !firestore) return;
+    if (!currentHistoryItem || !user || !firebaseApp || !userProfile || !firestore) return;
     
     await handleUpload(async () => {
         setStatus({ state: 'processing' });
-        const blob = await dataUriToBlob(generatedImageUrl);
+        const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
 
         if ((storageUsed + blob.size) > storageLimit) {
             throw new Error('Espace de stockage insuffisant pour enregistrer cette image.');
@@ -356,19 +406,31 @@ export function Uploader() {
             storage,
             user,
             imageFile,
-            `Généré par IA: ${prompt}`,
+            `Généré par IA: ${currentHistoryItem.prompt}`,
             (progress) => setStatus({ state: 'uploading', progress })
         );
         
         await saveImageMetadata(firestore, user, { 
             ...metadata,
-            title: generatedTitle || `Généré par IA: ${prompt}`,
+            title: generatedTitle || `Généré par IA: ${currentHistoryItem.prompt}`,
             description: generatedDescription,
             hashtags: generatedHashtags,
             generatedByAI: true,
         });
-    }, 'none'); // Spécifier 'none' pour ne pas décompter de ticket d'upload
+    }, 'none'); // 'none' pour ne pas décompter de ticket d'upload
 };
+
+  const handleUndoGeneration = () => {
+      if (historyIndex > 0) {
+          setHistoryIndex(prev => prev - 1);
+      }
+  };
+
+  const handleRedoGeneration = () => {
+      if (historyIndex < generatedImageHistory.length - 1) {
+          setHistoryIndex(prev => prev + 1);
+      }
+  };
 
 
   const renderFilePicker = (disabled: boolean) => (
@@ -586,7 +648,7 @@ export function Uploader() {
               </TabsContent>
 
               <TabsContent value="ai" className="space-y-4 pt-6">
-                  {generatedImageUrl ? (
+                  {currentHistoryItem ? (
                     <div className="space-y-4">
                         <div className="aspect-square relative w-full rounded-lg border bg-muted flex items-center justify-center">
                            {isGenerating && (
@@ -594,7 +656,18 @@ export function Uploader() {
                                  <Loader2 className="h-10 w-10 text-primary animate-spin" />
                               </div>
                            )}
-                           <Image src={generatedImageUrl} alt="Image générée par IA" fill className="object-contain" unoptimized />
+                           <Image src={currentHistoryItem.imageUrl} alt="Image générée par IA" fill className="object-contain" unoptimized />
+                           
+                           {!isGenerating && generatedImageHistory.length > 0 && (
+                                <div className="absolute top-2 left-2 z-10 flex gap-2">
+                                    <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="bg-background/80" aria-label="Annuler" disabled={historyIndex <= 0}>
+                                        <Undo2 className="h-5 w-5" />
+                                    </Button>
+                                    <Button variant="outline" size="icon" onClick={handleRedoGeneration} className="bg-background/80" aria-label="Rétablir" disabled={historyIndex >= generatedImageHistory.length - 1}>
+                                        <Redo2 className="h-5 w-5" />
+                                    </Button>
+                                </div>
+                            )}
                         </div>
 
                         <Separator/>
@@ -617,6 +690,11 @@ export function Uploader() {
                                 Affiner
                             </Button>
                           </div>
+                           {currentHistoryItem?.prompt && (
+                               <div className="text-xs text-muted-foreground pt-1 italic">
+                                   Instruction pour cette image : "{currentHistoryItem.prompt}"
+                               </div>
+                           )}
                         </div>
 
                         <Separator/>
@@ -662,7 +740,7 @@ export function Uploader() {
                                Enregistrer
                             </Button>
                         </div>
-                        <Button variant="outline" onClick={() => setGeneratedImageUrl(null)} disabled={isUploading || isGenerating}>
+                        <Button variant="outline" onClick={() => resetState()} disabled={isUploading || isGenerating}>
                             Créer une nouvelle image
                         </Button>
                     </div>
