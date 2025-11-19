@@ -154,18 +154,20 @@ export async function checkAndRefillTickets(firestore: Firestore, userDocRef: Do
     if (isBefore(startOfDay(lastAiRefill), startOfDay(now))) {
         if (currentMonthlyAiCount < MONTHLY_AI_TICKET_LIMIT) {
             const ticketsToGrant = Math.min(DAILY_AI_TICKETS, MONTHLY_AI_TICKET_LIMIT - currentMonthlyAiCount);
+            
+            // CORRECTION: S'assurer que aiTicketCount est bien mis à jour
+            updates.aiTicketCount = ticketsToGrant;
+
             if (ticketsToGrant > 0) {
-                updates.aiTicketCount = ticketsToGrant;
                 // Important: on incrémente la valeur qu'on a déjà, ou la nouvelle valeur si elle est dans updates
                 updates.aiTicketMonthlyCount = increment(ticketsToGrant);
-            } else {
-                 updates.aiTicketCount = 0;
             }
         } else {
             updates.aiTicketCount = 0; // Limite mensuelle atteinte
         }
         updates.lastAiTicketRefill = serverTimestamp();
     }
+
 
     // Appliquer les mises à jour si nécessaire
     if (Object.keys(updates).length > 0) {
