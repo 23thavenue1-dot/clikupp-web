@@ -74,6 +74,7 @@ export interface UserProfile {
   totalDescriptionGenerations: number;
   // Suivi du stockage
   storageUsed: number;
+  gracePeriodEndDate: Timestamp | null;
 }
 
 
