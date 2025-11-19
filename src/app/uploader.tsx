@@ -418,7 +418,9 @@ export function Uploader() {
  const handleSaveGeneratedImage = async () => {
     if (!currentHistoryItem || !user || !firebaseApp || !userProfile || !firestore) return;
     
-    await handleUpload(async () => {
+    setIsUploading(true); // Re-use isUploading state to disable buttons
+    
+    try {
         setStatus({ state: 'processing' });
         const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
 
@@ -445,7 +447,18 @@ export function Uploader() {
             hashtags: generatedHashtags,
             generatedByAI: true,
         });
-    }, 'none'); // 'none' pour ne pas décompter de ticket d'upload
+
+        toast({ title: 'Succès', description: 'Votre image a été enregistrée dans votre galerie.' });
+        // Ne pas appeler resetState() ici pour conserver l'historique
+        setStatus({ state: 'success', url: metadata.directUrl });
+
+    } catch (error) {
+        const errorMessage = (error as Error).message;
+        setStatus({ state: 'error', message: `Erreur: ${errorMessage}` });
+        toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: errorMessage });
+    } finally {
+        setIsUploading(false);
+    }
 };
 
   const handleUndoGeneration = () => {
@@ -982,4 +995,3 @@ export function Uploader() {
     </>
   );
 }
-
