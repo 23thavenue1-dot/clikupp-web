@@ -1,6 +1,7 @@
+
 'use server';
 /**
- * @fileOverview Flow Genkit pour la génération de description d'image par IA, optimisé pour les réseaux sociaux.
+ * @fileOverview Flow Genkit pour la génération de description d'image par IA, optimisé pour les réseaux sociaux et l'e-commerce.
  *
  * - generateImageDescription: La fonction principale qui prend une URL d'image et une plateforme, puis retourne un contenu adapté.
  * - GenerateDescriptionInput: Le type d'entrée pour la fonction.
@@ -12,7 +13,7 @@ import { z } from 'genkit';
 
 const GenerateDescriptionInputSchema = z.object({
   imageUrl: z.string().url().describe("L'URL de l'image à analyser."),
-  platform: z.enum(['instagram', 'facebook', 'x', 'tiktok', 'generic']).describe("La plateforme de réseau social cible pour le contenu."),
+  platform: z.enum(['instagram', 'facebook', 'x', 'tiktok', 'generic', 'ecommerce']).describe("La plateforme cible pour le contenu (réseau social ou e-commerce)."),
 });
 export type GenerateDescriptionInput = z.infer<typeof GenerateDescriptionInputSchema>;
 
@@ -32,14 +33,23 @@ const prompt = ai.definePrompt({
     name: 'generateSocialMediaPostPrompt',
     input: { schema: GenerateDescriptionInputSchema },
     output: { schema: GenerateDescriptionOutputSchema },
-    prompt: `Tu es un community manager expert, spécialisé dans la création de contenu viral pour les réseaux sociaux.
+    prompt: `Tu es un expert polyvalent, agissant soit comme un community manager, soit comme un copywriter e-commerce.
 
-Analyse l'image suivante et prépare une publication optimisée pour la plateforme : **{{platform}}**.
+Analyse l'image suivante et prépare une publication optimisée pour la plateforme cible : **{{platform}}**.
 
 Voici tes instructions :
-1.  **Titre :** Crée un titre court et percutant.
-2.  **Description :** Rédige une description engageante qui inclut un ou deux émojis pertinents. Adapte le ton et la longueur à la plateforme : plus descriptif pour Instagram/Facebook, très court et direct pour X (anciennement Twitter).
-3.  **Hashtags :** Génère une liste de 5 à 10 hashtags pertinents, mélangeant des tags populaires et plus spécifiques.
+
+1.  **Si la plateforme est 'ecommerce' :**
+    *   **Personnalité :** Deviens un expert en marketing direct. Ton objectif est de VENDRE.
+    *   **Titre :** Crée un titre de produit clair, concis et désirable.
+    *   **Description :** Rédige une description commerciale et persuasive. Mets en avant 2 ou 3 bénéfices clés du produit. Utilise des listes à puces si nécessaire pour la clarté. Le ton doit être professionnel mais engageant.
+    *   **Hashtags :** Génère des mots-clés pertinents pour le référencement (SEO) et les places de marché, pas des hashtags de réseaux sociaux.
+
+2.  **Si la plateforme est un réseau social ('instagram', 'facebook', 'x', etc.) :**
+    *   **Personnalité :** Deviens un community manager créatif. Ton objectif est l'ENGAGEMENT.
+    *   **Titre :** Crée un titre court et percutant.
+    *   **Description :** Rédige une description engageante qui inclut un ou deux émojis pertinents. Adapte le ton et la longueur à la plateforme.
+    *   **Hashtags :** Génère une liste de 5 à 10 hashtags pertinents, mélangeant des tags populaires et plus spécifiques.
 
 Image à analyser : {{media url=imageUrl}}`,
 });
