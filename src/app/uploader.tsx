@@ -710,7 +710,9 @@ export function Uploader() {
               <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="storage"><UploadCloud className="mr-2 h-4 w-4"/>Via Fichier</TabsTrigger>
                   <TabsTrigger value="url"><LinkIcon className="mr-2 h-4 w-4"/>Via URL</TabsTrigger>
-                  <TabsTrigger value="ai"><Wand2 className="mr-2 h-4 w-4 text-yellow-500"/>Générer par IA</TabsTrigger>
+                  <TabsTrigger value="ai" className="data-[state=active]:text-gradient-ia data-[state=active]:font-bold">
+                    <Wand2 className="mr-2 h-4 w-4 text-yellow-500"/>Générer par IA
+                  </TabsTrigger>
               </TabsList>
 
               <TabsContent value="storage" className="space-y-4 pt-6">
@@ -935,7 +937,7 @@ export function Uploader() {
                                 })}
                             </Accordion>
                         </div>
-                        <Button onClick={() => handleGenerateImage(false)} disabled={isGenerating || !prompt.trim() || totalAiTickets <= 0} className="w-full">
+                        <Button onClick={() => handleGenerateImage(false)} disabled={isGenerating || !prompt.trim() || totalAiTickets <= 0} className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity">
                             {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
                             Générer l'image (1 Ticket IA)
                         </Button>
@@ -956,69 +958,68 @@ export function Uploader() {
             <p className="mt-4 text-sm text-center text-destructive">{status.message}</p>
           )}
 
+          {/* --- DIALOGS POUR LA GESTION DES PROMPTS --- */}
+          <Dialog open={isSavePromptDialogOpen} onOpenChange={setIsSavePromptDialogOpen}>
+              <DialogContent>
+                  <DialogHeader>
+                      <DialogTitle>Sauvegarder le prompt</DialogTitle>
+                      <DialogDescription>Donnez un nom à cette instruction pour la retrouver facilement plus tard.</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                          <Label htmlFor="prompt-name">Nom du prompt</Label>
+                          <Input id="prompt-name" value={newPromptName} onChange={(e) => setNewPromptName(e.target.value)} placeholder="Ex: Style super-héros" disabled={isSavingPrompt}/>
+                      </div>
+                      <div className="space-y-2">
+                          <Label>Instruction</Label>
+                          <Textarea value={promptToSave} readOnly disabled rows={4} className="bg-muted"/>
+                      </div>
+                  </div>
+                  <DialogFooter>
+                      <DialogClose asChild><Button variant="secondary" disabled={isSavingPrompt}>Annuler</Button></DialogClose>
+                      <Button onClick={handleSavePrompt} disabled={isSavingPrompt || !newPromptName.trim()}>
+                          {isSavingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                          Sauvegarder
+                      </Button>
+                  </DialogFooter>
+              </DialogContent>
+          </Dialog>
+          
+          <AlertDialog open={isDeletePromptDialogOpen} onOpenChange={setIsDeletePromptDialogOpen}>
+              <AlertDialogContent>
+                  <AlertDialogHeader>
+                      <AlertDialogTitle>Supprimer le prompt "{promptToDelete?.name}" ?</AlertDialogTitle>
+                      <AlertDialogDescription>Cette action est irréversible et supprimera définitivement ce prompt de votre liste.</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                      <AlertDialogCancel disabled={isDeletingPrompt}>Annuler</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDeletePrompt} disabled={isDeletingPrompt} className="bg-destructive hover:bg-destructive/90">
+                          {isDeletingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Supprimer
+                      </AlertDialogAction>
+                  </AlertDialogFooter>
+              </AlertDialogContent>
+          </AlertDialog>
+          
+          <Dialog open={isEditPromptDialogOpen} onOpenChange={setIsEditPromptDialogOpen}>
+              <DialogContent>
+                  <DialogHeader><DialogTitle>Renommer le prompt</DialogTitle></DialogHeader>
+                  <div className="py-4 space-y-2">
+                      <Label htmlFor="edit-prompt-name">Nouveau nom</Label>
+                      <Input id="edit-prompt-name" value={editedPromptName} onChange={(e) => setEditedPromptName(e.target.value)} disabled={isEditingPrompt} />
+                  </div>
+                  <DialogFooter>
+                      <DialogClose asChild><Button variant="secondary" disabled={isEditingPrompt}>Annuler</Button></DialogClose>
+                      <Button onClick={handleEditPrompt} disabled={isEditingPrompt || !editedPromptName.trim()}>
+                          {isEditingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Enregistrer
+                      </Button>
+                  </DialogFooter>
+              </DialogContent>
+          </Dialog>
+
         </CardContent>
       </Card>
-      
-      {/* --- DIALOGS POUR LA GESTION DES PROMPTS --- */}
-      <Dialog open={isSavePromptDialogOpen} onOpenChange={setIsSavePromptDialogOpen}>
-          <DialogContent>
-              <DialogHeader>
-                  <DialogTitle>Sauvegarder le prompt</DialogTitle>
-                  <DialogDescription>Donnez un nom à cette instruction pour la retrouver facilement plus tard.</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                      <Label htmlFor="prompt-name">Nom du prompt</Label>
-                      <Input id="prompt-name" value={newPromptName} onChange={(e) => setNewPromptName(e.target.value)} placeholder="Ex: Style super-héros" disabled={isSavingPrompt}/>
-                  </div>
-                  <div className="space-y-2">
-                      <Label>Instruction</Label>
-                      <Textarea value={promptToSave} readOnly disabled rows={4} className="bg-muted"/>
-                  </div>
-              </div>
-              <DialogFooter>
-                  <DialogClose asChild><Button variant="secondary" disabled={isSavingPrompt}>Annuler</Button></DialogClose>
-                  <Button onClick={handleSavePrompt} disabled={isSavingPrompt || !newPromptName.trim()}>
-                      {isSavingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                      Sauvegarder
-                  </Button>
-              </DialogFooter>
-          </DialogContent>
-      </Dialog>
-      
-      <AlertDialog open={isDeletePromptDialogOpen} onOpenChange={setIsDeletePromptDialogOpen}>
-          <AlertDialogContent>
-              <AlertDialogHeader>
-                  <AlertDialogTitle>Supprimer le prompt "{promptToDelete?.name}" ?</AlertDialogTitle>
-                  <AlertDialogDescription>Cette action est irréversible et supprimera définitivement ce prompt de votre liste.</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                  <AlertDialogCancel disabled={isDeletingPrompt}>Annuler</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeletePrompt} disabled={isDeletingPrompt} className="bg-destructive hover:bg-destructive/90">
-                      {isDeletingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Supprimer
-                  </AlertDialogAction>
-              </AlertDialogFooter>
-          </AlertDialogContent>
-      </AlertDialog>
-      
-      <Dialog open={isEditPromptDialogOpen} onOpenChange={setIsEditPromptDialogOpen}>
-          <DialogContent>
-              <DialogHeader><DialogTitle>Renommer le prompt</DialogTitle></DialogHeader>
-              <div className="py-4 space-y-2">
-                  <Label htmlFor="edit-prompt-name">Nouveau nom</Label>
-                  <Input id="edit-prompt-name" value={editedPromptName} onChange={(e) => setEditedPromptName(e.target.value)} disabled={isEditingPrompt} />
-              </div>
-              <DialogFooter>
-                  <DialogClose asChild><Button variant="secondary" disabled={isEditingPrompt}>Annuler</Button></DialogClose>
-                  <Button onClick={handleEditPrompt} disabled={isEditingPrompt || !editedPromptName.trim()}>
-                      {isEditingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Enregistrer
-                  </Button>
-              </DialogFooter>
-          </DialogContent>
-      </Dialog>
-
     </>
   );
 }
