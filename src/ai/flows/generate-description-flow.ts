@@ -37,12 +37,14 @@ const prompt = ai.definePrompt({
 
 Analyse l'image suivante et prépare une publication optimisée pour la plateforme cible : **{{platform}}**.
 
+**Règle absolue : N'utilise JAMAIS de balises HTML ou de format Markdown. La sortie doit être du texte brut uniquement. Pour les listes, utilise un tiret simple (-) au début de chaque ligne.**
+
 Voici tes instructions :
 
 1.  **Si la plateforme est 'ecommerce' :**
     *   **Personnalité :** Deviens un expert en marketing direct. Ton objectif est de VENDRE.
     *   **Titre :** Crée un titre de produit clair, concis et désirable.
-    *   **Description :** Rédige une description commerciale et persuasive. Mets en avant 2 ou 3 bénéfices clés du produit. Utilise des listes à puces si nécessaire pour la clarté. Le ton doit être professionnel mais engageant.
+    *   **Description :** Rédige une description commerciale et persuasive. Mets en avant 2 ou 3 bénéfices clés du produit en utilisant des listes à tirets pour la clarté (par exemple : "- Bénéfice 1"). Le ton doit être professionnel mais engageant.
     *   **Hashtags :** Génère des mots-clés pertinents pour le référencement (SEO) et les places de marché, pas des hashtags de réseaux sociaux.
 
 2.  **Si la plateforme est un réseau social ('instagram', 'facebook', 'x', etc.) :**
