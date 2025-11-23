@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { UploadCloud, Link as LinkIcon, Loader2, HardDriveUpload, Ticket, ShoppingCart, AlertTriangle, Wand2, Save, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2, Star, Trash2, Pencil } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -88,6 +89,13 @@ async function dataUriToBlob(dataUri: string): Promise<Blob> {
     const blob = await response.blob();
     return blob;
 }
+
+type IconName = keyof typeof LucideIcons;
+
+const getIcon = (name: string): React.FC<LucideIcons.LucideProps> => {
+  const Icon = LucideIcons[name as IconName];
+  return Icon || LucideIcons.HelpCircle;
+};
 
 
 type UploadStatus =
@@ -886,8 +894,9 @@ export function Uploader() {
                             <Accordion type="single" collapsible className="w-full">
                                 {userProfile && userProfile.customPrompts && userProfile.customPrompts.length > 0 && (
                                     <AccordionItem value="custom-prompts">
-                                        <AccordionTrigger className="text-sm py-2 hover:no-underline">
-                                            <div className="flex flex-col text-left"><span className="font-semibold">Mes Prompts</span></div>
+                                        <AccordionTrigger className="text-sm py-2 hover:no-underline flex items-center gap-2">
+                                            <Star className="h-4 w-4 text-yellow-500" />
+                                            <span className="font-semibold">Mes Prompts</span>
                                         </AccordionTrigger>
                                         <AccordionContent>
                                             <div className="flex flex-col gap-2 pt-2">
@@ -906,20 +915,24 @@ export function Uploader() {
                                         </AccordionContent>
                                     </AccordionItem>
                                 )}
-                                {suggestionCategories.map(category => (
-                                    <AccordionItem value={category.name} key={category.name}>
-                                        <AccordionTrigger className="text-sm py-2 hover:no-underline">
-                                            <div className="flex flex-col text-left"><span className="font-semibold">{category.name}</span></div>
-                                        </AccordionTrigger>
-                                        <AccordionContent>
-                                            <div className="flex flex-wrap gap-2 pt-2">
-                                                {category.prompts.map((p) => (
-                                                    <Button key={p.title} variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.prompt)} disabled={isGenerating}>{p.title}</Button>
-                                                ))}
-                                            </div>
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                ))}
+                                {suggestionCategories.map(category => {
+                                    const Icon = getIcon(category.icon);
+                                    return (
+                                        <AccordionItem value={category.name} key={category.name}>
+                                            <AccordionTrigger className="text-sm py-2 hover:no-underline flex items-center gap-2">
+                                                <Icon className="h-4 w-4 text-muted-foreground" />
+                                                <span className="font-semibold">{category.name}</span>
+                                            </AccordionTrigger>
+                                            <AccordionContent>
+                                                <div className="flex flex-wrap gap-2 pt-2">
+                                                    {category.prompts.map((p) => (
+                                                        <Button key={p.title} variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.prompt)} disabled={isGenerating}>{p.title}</Button>
+                                                    ))}
+                                                </div>
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    );
+                                })}
                             </Accordion>
                         </div>
                         <Button onClick={() => handleGenerateImage(false)} disabled={isGenerating || !prompt.trim() || totalAiTickets <= 0} className="w-full">

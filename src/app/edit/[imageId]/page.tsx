@@ -9,6 +9,7 @@ import type { ImageMetadata, UserProfile, CustomPrompt } from '@/lib/firestore';
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2, Star, Trash2, Pencil } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -39,6 +40,13 @@ interface ImageHistoryItem {
     description: string;
     hashtags: string;
 }
+
+type IconName = keyof typeof LucideIcons;
+
+const getIcon = (name: string): React.FC<LucideIcons.LucideProps> => {
+  const Icon = LucideIcons[name as IconName];
+  return Icon || LucideIcons.HelpCircle;
+};
 
 
 // --- Helper pour convertir Data URI en Blob ---
@@ -469,10 +477,9 @@ export default function EditImagePage() {
                                     <Accordion type="single" collapsible className="w-full">
                                         {userProfile && userProfile.customPrompts && userProfile.customPrompts.length > 0 && (
                                             <AccordionItem value="custom-prompts">
-                                                <AccordionTrigger className="text-sm py-2 hover:no-underline">
-                                                    <div className="flex flex-col text-left">
-                                                        <span className="font-semibold">Mes Prompts</span>
-                                                    </div>
+                                                <AccordionTrigger className="text-sm py-2 hover:no-underline flex items-center gap-2">
+                                                     <Star className="h-4 w-4 text-yellow-500" />
+                                                    <span className="font-semibold">Mes Prompts</span>
                                                 </AccordionTrigger>
                                                 <AccordionContent>
                                                     <div className="flex flex-col gap-2 pt-2">
@@ -495,26 +502,28 @@ export default function EditImagePage() {
                                                 </AccordionContent>
                                             </AccordionItem>
                                         )}
-                                        {suggestionCategories.map(category => (
-                                            <AccordionItem value={category.name} key={category.name}>
-                                                <AccordionTrigger className="text-sm py-2 hover:no-underline">
-                                                    <div className="flex flex-col text-left">
+                                        {suggestionCategories.map(category => {
+                                            const Icon = getIcon(category.icon);
+                                            return (
+                                                <AccordionItem value={category.name} key={category.name}>
+                                                    <AccordionTrigger className="text-sm py-2 hover:no-underline flex items-center gap-2">
+                                                        <Icon className="h-4 w-4 text-muted-foreground" />
                                                         <span className="font-semibold">{category.name}</span>
-                                                    </div>
-                                                </AccordionTrigger>
-                                                <AccordionContent>
-                                                    <div className="flex flex-wrap gap-2 pt-2">
-                                                        {category.prompts.map((p) => (
-                                                            <div key={p.title}>
-                                                                <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.prompt)} disabled={isGenerating || isSaving}>
-                                                                    {p.title}
-                                                                </Button>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </AccordionContent>
-                                            </AccordionItem>
-                                        ))}
+                                                    </AccordionTrigger>
+                                                    <AccordionContent>
+                                                        <div className="flex flex-wrap gap-2 pt-2">
+                                                            {category.prompts.map((p) => (
+                                                                <div key={p.title}>
+                                                                    <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.prompt)} disabled={isGenerating || isSaving}>
+                                                                        {p.title}
+                                                                    </Button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </AccordionContent>
+                                                </AccordionItem>
+                                            );
+                                        })}
                                     </Accordion>
                                 </div>
                             </div>
