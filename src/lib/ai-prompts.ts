@@ -116,6 +116,7 @@ export const suggestionCategories: PromptCategory[] = [
             { title: "Pull de Noël (et décor)", prompt: "Habille le sujet avec un pull de Noël un peu kitsch (avec des rennes ou des flocons) et ajoute des décorations de Noël comme des guirlandes lumineuses en arrière-plan." },
             { title: "Studio Photo de Noël", prompt: "Détoure le sujet et place-le dans un décor de studio photo sur le thème de Noël, avec un sapin décoré, des cadeaux et une fausse neige au sol." },
             { title: "Portrait de Famille version 'Noël'", prompt: "Ajoute un bonnet de Père Noël sur la tête de chaque personne présente sur la photo et transforme l'éclairage pour une ambiance plus chaude et festive." },
+            { title: "Transformation en Lutin", prompt: "Détoure fidèlement le visage du sujet et applique-le sur la tête d'un petit lutin de Noël. Le lutin doit porter une tenue classique verte et rouge avec un bonnet pointu. Le corps du lutin doit être petit et stylisé, mais le visage doit conserver un aspect réaliste et ressembler au sujet original. Place le personnage entier sur un fond de studio complètement blanc uni." },
         ],
     },
 ];
