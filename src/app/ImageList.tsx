@@ -502,18 +502,18 @@ export function ImageList() {
                             {sortedImages.map(image => {
                                 const isPinned = userProfile?.pinnedImageIds?.includes(image.id) ?? false;
                                 return (
-                                <div 
+                                <Link
+                                    href={isSelectionMode ? '#' : `/edit/${image.id}`}
                                     key={image.id}
-                                    onClick={() => {
+                                    onClick={(e) => {
                                         if (isSelectionMode) {
+                                            e.preventDefault();
                                             toggleImageSelection(image.id);
-                                        } else {
-                                            openEditDialog(new MouseEvent('click'), image);
                                         }
                                     }}
                                     className={cn(
                                         "group relative flex flex-col transition-all",
-                                        "cursor-pointer"
+                                        isSelectionMode && "cursor-pointer"
                                     )}
                                 >
                                      <div className={cn("block aspect-[4/5] w-full overflow-hidden rounded-lg border", selectedImages.has(image.id) && "ring-2 ring-primary ring-offset-2")}>
@@ -561,23 +561,25 @@ export function ImageList() {
                                                                 variant="secondary"
                                                                 size="icon"
                                                                 className="h-8 w-8"
-                                                                onClick={(e) => e.stopPropagation()}
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                }}
                                                             >
                                                                 <MoreHorizontal size={16} />
                                                             </Button>
                                                         </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
+                                                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                                            <DropdownMenuItem onClick={(e) => openEditDialog(e, image)}>
+                                                                <Wand2 className="mr-2 h-4 w-4" />
+                                                                <span>Générer une description</span>
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator/>
                                                             <DropdownMenuItem onClick={(e) => handleToggleGlobalPin(e, image)}>
                                                                 {isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
                                                                 <span>{isPinned ? 'Désépingler' : 'Épingler'}</span>
                                                             </DropdownMenuItem>
                                                             <DropdownMenuSeparator />
-                                                             <DropdownMenuItem asChild>
-                                                                <Link href={`/edit/${image.id}`} onClick={(e) => e.stopPropagation()}>
-                                                                    <Sparkles className="mr-2 h-4 w-4" />
-                                                                    <span>Éditer avec l'IA</span>
-                                                                </Link>
-                                                            </DropdownMenuItem>
                                                             <DropdownMenuItem onClick={(e) => openAddToGalleryDialog(e, image)}>
                                                                 <CopyPlus className="mr-2 h-4 w-4" />
                                                                 <span>Ajouter à la galerie</span>
@@ -625,7 +627,7 @@ export function ImageList() {
                                             </p>
                                         </div>
                                     </div>
-                                </div>
+                                </Link>
                             )})}
                         </div>
                     )}
@@ -857,16 +859,3 @@ export function ImageList() {
         </TooltipProvider>
     );
 }
-
-    
-
-    
-
-
-
-
-
-
-    
-
-    
