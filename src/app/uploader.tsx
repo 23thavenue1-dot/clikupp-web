@@ -53,7 +53,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { suggestionCategories } from '@/lib/ai-prompts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic';
+type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
 
 // Structure pour l'historique de génération
 interface ImageHistoryItem {
@@ -822,12 +822,18 @@ export function Uploader() {
 
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="w-full" disabled={isGenerating || isGeneratingDescription || totalAiTickets <= 0}>
+                             <Button 
+                                variant="outline" 
+                                className="w-full" 
+                                disabled={isGenerating || isGeneratingDescription || totalAiTickets <= 0}
+                            >
                                 {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4"/>}
                                 {isGeneratingDescription ? "Génération..." : "Générer la description (1 Ticket IA)"}
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent className="w-56">
+                              <DropdownMenuItem onClick={() => handleGenerateDescription('ecommerce')}><ShoppingCart className="mr-2 h-4 w-4" /> Annonce E-commerce</DropdownMenuItem>
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}><Instagram className="mr-2 h-4 w-4" /> Instagram</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleGenerateDescription('facebook')}><Facebook className="mr-2 h-4 w-4" /> Facebook</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleGenerateDescription('x')}><MessageSquare className="mr-2 h-4 w-4" /> X (Twitter)</DropdownMenuItem>
