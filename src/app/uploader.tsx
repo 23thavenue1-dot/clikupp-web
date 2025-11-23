@@ -702,7 +702,7 @@ export function Uploader() {
               <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="storage"><UploadCloud className="mr-2 h-4 w-4"/>Via Fichier</TabsTrigger>
                   <TabsTrigger value="url"><LinkIcon className="mr-2 h-4 w-4"/>Via URL</TabsTrigger>
-                  <TabsTrigger value="ai"><Wand2 className="mr-2 h-4 w-4"/>Générer par IA</TabsTrigger>
+                  <TabsTrigger value="ai"><Wand2 className="mr-2 h-4 w-4 text-yellow-500"/>Générer par IA</TabsTrigger>
               </TabsList>
 
               <TabsContent value="storage" className="space-y-4 pt-6">
