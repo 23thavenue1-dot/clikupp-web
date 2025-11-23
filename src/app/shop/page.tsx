@@ -30,6 +30,7 @@ const PACK_IDS = {
     upload_s: 'price_1SQImVFxufdYfSFc6oQcKZ3q',
     upload_m: 'price_1SSLJIFxufdYfSFc0QLNkcq7',
     upload_l: 'price_1STtvVFxufdYfSFc2QskMy8j',
+    upload_xl: 'price_UPLOAD_XL_ID', // ID pour le nouveau pack
     ai_s: 'price_1STu0qFxufdYfSFc7SVth0M6',
     ai_m: 'price_1STu4zFxufdYfSFcqRx9iL9y',
     ai_l: 'price_1SU5LQFxufdYfSFc1Eo4tjSP',
@@ -179,7 +180,8 @@ const storagePlans = [
 const uploadPacks = [
     { id: PACK_IDS.upload_s, title: 'Boost S', price: '1,99 €', tickets: 50, description: 'Crédite votre compte de 50 tickets de téléversement supplémentaires.', icon: Upload, mode: 'payment', featured: false, metadata: { packUploadTickets: '50', packAiTickets: '0', productName: 'Pack Upload - Boost S' } },
     { id: PACK_IDS.upload_m, title: 'Boost M', price: '3,99 €', tickets: 120, description: 'Le meilleur rapport qualité-prix pour un usage plus conséquent.', icon: Upload, mode: 'payment', featured: true, metadata: { packUploadTickets: '120', packAiTickets: '0', productName: 'Pack Upload - Boost M' } },
-    { id: PACK_IDS.upload_l, title: 'Boost L', price: '7,99 €', tickets: 300, description: 'Idéal pour les gros besoins en téléversement, comme un projet complet.', icon: Upload, mode: 'payment', featured: false, metadata: { packUploadTickets: '300', packAiTickets: '0', productName: 'Pack Upload - Boost L' } }
+    { id: PACK_IDS.upload_l, title: 'Boost L', price: '7,99 €', tickets: 300, description: 'Idéal pour les gros besoins en téléversement, comme un projet complet.', icon: Upload, mode: 'payment', featured: false, metadata: { packUploadTickets: '300', packAiTickets: '0', productName: 'Pack Upload - Boost L' } },
+    { id: PACK_IDS.upload_xl, title: 'Boost XL', price: '19,99 €', tickets: 1000, description: 'La solution ultime pour les utilisateurs avec des besoins de téléversement massifs.', icon: Upload, mode: 'payment', featured: false, metadata: { packUploadTickets: '1000', packAiTickets: '0', productName: 'Pack Upload - Boost XL' } }
 ];
 
 const aiPacks = [
@@ -396,7 +398,7 @@ function ShopContent() {
 
                     {/* --- Packs Upload --- */}
                     <TabsContent value="upload-packs" className="pt-8">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                             {uploadPacks.map((pack) => (
                                 <Card key={pack.title} className={pack.featured ? 'border-primary ring-2 ring-primary flex flex-col' : 'flex flex-col'}>
                                      <CardHeader className="text-center">
