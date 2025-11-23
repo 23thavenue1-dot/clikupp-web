@@ -57,16 +57,22 @@ export const suggestionCategories: PromptCategory[] = [
         ]
     },
     {
-        name: "Publicité &amp; Marketing",
+        name: "Publicité & Marketing",
         description: "Créez des visuels de qualité professionnelle pour promouvoir un produit.",
         icon: "ShoppingBag",
         prompts: [
             { title: "'Packshot' E-commerce sur Fond Uni", prompt: "Détoure parfaitement cet objet et place-le sur un fond de couleur unie et moderne (par exemple, un gris clair #f0f0f0). Ajoute une ombre portée réaliste et douce pour donner du volume. L'éclairage doit être neutre et valorisant, comme dans un studio professionnel, pour révéler les textures du produit." },
+            { title: "Focus Produit sur Texture Naturelle", prompt: "Détoure l'objet et place-le sur une texture naturelle et neutre comme du lin froissé, une planche de bois brut ou une plaque de marbre clair. L'éclairage doit être doux et légèrement latéral pour créer des ombres subtiles et mettre en valeur la matière du produit." },
+            { title: "Porté ou Tenu en Main (Focus)", prompt: "Intègre ce produit (bijou, montre, sac, vêtement...) porté ou tenu par une personne. Le cadre doit être très serré sur le produit, avec seulement une partie du corps visible (main, poignet, buste). Le style doit être épuré et l'arrière-plan uni ou très flou pour que toute l'attention soit sur le produit." },
+            { title: "Mise en scène 'Flat Lay'", prompt: "Crée une composition en 'flat lay' (vue de dessus) avec ce produit au centre. Entoure-le d'accessoires thématiques et esthétiques sur un fond texturé. Par exemple, pour un carnet, ajoute une tasse de café, des lunettes et une plante. L'harmonie des couleurs est essentielle." },
+            { title: "Appareil en Utilisation (Quotidien)", prompt: "Mets en scène cet appareil électronique (smartphone, ordinateur portable, casque...) utilisé par une personne dans un cadre quotidien réaliste (sur un bureau en bois, sur un canapé...). L'angle doit montrer l'appareil en fonctionnement, avec l'écran allumé si possible, pour aider à se projeter." },
+            { title: "Le Vêtement sur Cintre", prompt: "Présente ce vêtement suspendu sur un joli cintre en bois, accroché sur un mur de couleur neutre ou un portant minimaliste. L'éclairage doit être doux et uniforme. Tu peux ajouter une petite plante ou un objet déco à côté pour une touche de vie." },
             { title: "Mise en Scène 'Lifestyle'", prompt: "Intègre ce produit (vêtement, accessoire, objet) dans une scène de vie quotidienne réaliste et inspirante. L'ambiance doit être chaleureuse et authentique. Assure-toi que le produit reste le point focal de l'image tout en s'intégrant naturellement à son environnement (ex: un café, un parc, un bureau design)." },
             { title: "Publicité de Voiture Dynamique", prompt: "Place cette voiture sur une route de montagne sinueuse au coucher du soleil. Ajoute un effet de flou de mouvement sur les roues et le décor pour simuler une vitesse élevée. L'éclairage doit être spectaculaire, avec des reflets brillants sur la carrosserie pour un rendu dynamique et premium." },
             { title: "Explosion de Saveurs (Culinaire)", prompt: "Place ce plat ou cette boisson au centre d'une composition dynamique. Ajoute des projections d'ingrédients frais autour (éclaboussures de liquide, herbes volantes, etc.) pour créer une sensation d'explosion de saveurs. L'arrière-plan doit être texturé mais sobre pour faire ressortir le produit." },
-            { title: "Présentation Minimaliste &amp; Luxe", prompt: "Crée une présentation luxueuse et minimaliste pour cet objet (bijou, parfum, technologie). Place-le sur un podium en marbre ou en pierre sombre. L'éclairage doit être très focalisé, créant un 'spotlight' sur le produit avec des ombres profondes et des reflets subtils pour un effet haut de gamme." },
+            { title: "Présentation Minimaliste & Luxe", prompt: "Crée une présentation luxueuse et minimaliste pour cet objet (bijou, parfum, technologie). Place-le sur un podium en marbre ou en pierre sombre. L'éclairage doit être très focalisé, créant un 'spotlight' sur le produit avec des ombres profondes et des reflets subtils pour un effet haut de gamme." },
             { title: "Avant/Après Impactant", prompt: "Crée une image 'Avant/Après' côte à côte. Sur la partie 'Avant', montre une version terne et sans vie du sujet. Sur la partie 'Après', montre le même sujet transformé, vibrant de couleur, avec un éclairage parfait et une netteté améliorée pour démontrer l'efficacité d'un produit ou service." },
+            { title: "Zoom sur le Détail (Macro)", prompt: "Réalise une vue macro très rapprochée d'un détail intéressant de cet objet (la texture d'un tissu, la couture d'un sac, le logo gravé...). Le reste de l'objet doit être en arrière-plan et flou. Cela met en avant la qualité et le savoir-faire." },
         ]
     },
     {
@@ -91,7 +97,7 @@ export const suggestionCategories: PromptCategory[] = [
         ]
     },
     {
-        name: "Humour &amp; Créativité Décalée",
+        name: "Humour & Créativité Décalée",
         description: "Créez des images amusantes et surprenantes.",
         icon: "PartyPopper",
         prompts: [

@@ -70,12 +70,27 @@ Ce document répertorie les nouvelles instructions (prompts) pour l'édition d'i
 
 ---
 
-## Chapitre 5 : Publicité &amp; Marketing
+## Chapitre 5 : Publicité & Marketing
 
 *Objectif : Créer des visuels de qualité professionnelle pour promouvoir un produit.*
 
 -   **Titre :** "Packshot" E-commerce sur Fond Uni
     -   **Prompt :** `Détoure parfaitement cet objet et place-le sur un fond de couleur unie et moderne (par exemple, un gris clair #f0f0f0). Ajoute une ombre portée réaliste et douce pour donner du volume. L'éclairage doit être neutre et valorisant, comme dans un studio professionnel, pour révéler les textures du produit.`
+    
+-   **Titre :** Focus Produit sur Texture Naturelle
+    -   **Prompt :** `Détoure l'objet et place-le sur une texture naturelle et neutre comme du lin froissé, une planche de bois brut ou une plaque de marbre clair. L'éclairage doit être doux et légèrement latéral pour créer des ombres subtiles et mettre en valeur la matière du produit.`
+    
+-   **Titre :** Porté ou Tenu en Main (Focus)
+    -   **Prompt :** `Intègre ce produit (bijou, montre, sac, vêtement...) porté ou tenu par une personne. Le cadre doit être très serré sur le produit, avec seulement une partie du corps visible (main, poignet, buste). Le style doit être épuré et l'arrière-plan uni ou très flou pour que toute l'attention soit sur le produit.`
+    
+-   **Titre :** Mise en scène "Flat Lay"
+    -   **Prompt :** `Crée une composition en 'flat lay' (vue de dessus) avec ce produit au centre. Entoure-le d'accessoires thématiques et esthétiques sur un fond texturé. Par exemple, pour un carnet, ajoute une tasse de café, des lunettes et une plante. L'harmonie des couleurs est essentielle.`
+    
+-   **Titre :** Appareil en Utilisation (Quotidien)
+    -   **Prompt :** `Mets en scène cet appareil électronique (smartphone, ordinateur portable, casque...) utilisé par une personne dans un cadre quotidien réaliste (sur un bureau en bois, sur un canapé...). L'angle doit montrer l'appareil en fonctionnement, avec l'écran allumé si possible, pour aider à se projeter.`
+    
+-   **Titre :** Le Vêtement sur Cintre
+    -   **Prompt :** `Présente ce vêtement suspendu sur un joli cintre en bois, accroché sur un mur de couleur neutre ou un portant minimaliste. L'éclairage doit être doux et uniforme. Tu peux ajouter une petite plante ou un objet déco à côté pour une touche de vie.`
 
 -   **Titre :** Mise en Scène "Lifestyle"
     -   **Prompt :** `Intègre ce produit (vêtement, accessoire, objet) dans une scène de vie quotidienne réaliste et inspirante. L'ambiance doit être chaleureuse et authentique. Assure-toi que le produit reste le point focal de l'image tout en s'intégrant naturellement à son environnement (ex: un café, un parc, un bureau design).`
@@ -86,11 +101,14 @@ Ce document répertorie les nouvelles instructions (prompts) pour l'édition d'i
 -   **Titre :** Explosion de Saveurs (Culinaire)
     -   **Prompt :** `Place ce plat ou cette boisson au centre d'une composition dynamique. Ajoute des projections d'ingrédients frais autour (éclaboussures de liquide, herbes volantes, etc.) pour créer une sensation d'explosion de saveurs. L'arrière-plan doit être texturé mais sobre pour faire ressortir le produit.`
 
--   **Titre :** Présentation Minimaliste &amp; Luxe
+-   **Titre :** Présentation Minimaliste & Luxe
     -   **Prompt :** `Crée une présentation luxueuse et minimaliste pour cet objet (bijou, parfum, technologie). Place-le sur un podium en marbre ou en pierre sombre. L'éclairage doit être très focalisé, créant un "spotlight" sur le produit avec des ombres profondes et des reflets subtils pour un effet haut de gamme.`
 
 -   **Titre :** Avant/Après Impactant
     -   **Prompt :** `Crée une image "Avant/Après" côte à côte. Sur la partie "Avant", montre une version terne et sans vie du sujet. Sur la partie "Après", montre le même sujet transformé, vibrant de couleur, avec un éclairage parfait et une netteté améliorée pour démontrer l'efficacité d'un produit ou service.`
+
+-   **Titre :** Zoom sur le Détail (Macro)
+    -   **Prompt :** `Réalise une vue macro très rapprochée d'un détail intéressant de cet objet (la texture d'un tissu, la couture d'un sac, le logo gravé...). Le reste de l'objet doit être en arrière-plan et flou. Cela met en avant la qualité et le savoir-faire.`
 
 ---
 
@@ -127,7 +145,7 @@ Ce document répertorie les nouvelles instructions (prompts) pour l'édition d'i
 
 ---
 
-## Chapitre 8 : Humour &amp; Créativité Décalée
+## Chapitre 8 : Humour & Créativité Décalée
 
 *Objectif : Créer des images amusantes et surprenantes.*
 
