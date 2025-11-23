@@ -21,19 +21,21 @@ const SUBSCRIPTION_IDS = {
     pro: 'price_1SU6huFxufdYfSFcWxYURQxZ',
     master: 'price_1SUAVQFxufdYfSFc6DTV87BX',
     // NOUVEAUX IDs DE STOCKAGE (à créer dans Stripe)
-    storage_250: 'price_STORAGE_250_ID',
-    storage_500: 'price_STORAGE_500_ID',
-    storage_1000: 'price_STORAGE_1000_ID',
+    storage_250: 'price_1SWDazFxufdYfSFc0e81sMvJ',
+    storage_500: 'price_1SWDbGFxufdYfSFcC6eUUn0U',
+    storage_1000: 'price_1SWDbYFxufdYfSFc8V8Q5s9z',
 };
 
 const PACK_IDS = {
     upload_s: 'price_1SQImVFxufdYfSFc6oQcKZ3q',
     upload_m: 'price_1SSLJIFxufdYfSFc0QLNkcq7',
     upload_l: 'price_1STtvVFxufdYfSFc2QskMy8j',
-    upload_xl: 'price_UPLOAD_XL_ID', // ID pour le nouveau pack
+    upload_xl: 'price_1SWDeAFxufdYfSFcFH0Vf8gH', // ID pour le nouveau pack
     ai_s: 'price_1STu0qFxufdYfSFc7SVth0M6',
     ai_m: 'price_1STu4zFxufdYfSFcqRx9iL9y',
     ai_l: 'price_1SU5LQFxufdYfSFc1Eo4tjSP',
+    ai_xl: 'price_1SWDfZFxufdYfSFc0Ww3mD6v', // Nouveau pack 500 tickets
+    ai_xxl: 'price_1SWDfrFxufdYfSFc4d0yJjU6', // Nouveau pack 1000 tickets
 };
 
 
@@ -187,7 +189,9 @@ const uploadPacks = [
 const aiPacks = [
     { id: PACK_IDS.ai_s, title: 'IA S', price: '2,99 €', tickets: 20, description: 'Parfait pour découvrir et expérimenter avec l\'édition par IA.', icon: Sparkles, mode: 'payment', featured: false, metadata: { packUploadTickets: '0', packAiTickets: '20', productName: 'Pack IA - S' } },
     { id: PACK_IDS.ai_m, title: 'IA M', price: '5,99 €', tickets: 50, description: 'Pour les créatifs qui veulent donner vie à leurs idées sans compter.', icon: Sparkles, mode: 'payment', featured: true, metadata: { packUploadTickets: '0', packAiTickets: '50', productName: 'Pack IA - M' } },
-    { id: PACK_IDS.ai_l, title: 'IA L', price: '14,99 €', tickets: 150, description: 'Libérez tout le potentiel de votre créativité et réalisez vos projets les plus ambitieux.', icon: Sparkles, mode: 'payment', featured: false, metadata: { packUploadTickets: '0', packAiTickets: '150', productName: 'Pack IA - L' } }
+    { id: PACK_IDS.ai_l, title: 'IA L', price: '14,99 €', tickets: 150, description: 'Libérez tout le potentiel de votre créativité et réalisez vos projets les plus ambitieux.', icon: Sparkles, mode: 'payment', featured: false, metadata: { packUploadTickets: '0', packAiTickets: '150', productName: 'Pack IA - L' } },
+    { id: PACK_IDS.ai_xl, title: 'IA XL', price: '45,00 €', tickets: 500, description: 'Le choix des passionnés pour une créativité sans compromis sur de multiples projets.', icon: Sparkles, mode: 'payment', featured: false, metadata: { packUploadTickets: '0', packAiTickets: '500', productName: 'Pack IA - XL' } },
+    { id: PACK_IDS.ai_xxl, title: 'IA XXL', price: '80,00 €', tickets: 1000, description: 'La solution ultime pour les professionnels et les agences qui repoussent les limites de la création IA.', icon: Sparkles, mode: 'payment', featured: false, metadata: { packUploadTickets: '0', packAiTickets: '1000', productName: 'Pack IA - XXL' } }
 ];
 
 
@@ -427,7 +431,7 @@ function ShopContent() {
                                 <span className="font-semibold">1 Ticket IA = 1 génération ou modification d'image.</span>
                             </p>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-8">
                             {aiPacks.map((pack) => (
                                 <Card key={pack.title} className={pack.featured ? 'border-primary ring-2 ring-primary flex flex-col' : 'flex flex-col'}>
                                     <CardHeader className="text-center">
