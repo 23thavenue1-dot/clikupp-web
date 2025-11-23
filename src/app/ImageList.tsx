@@ -55,7 +55,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 
-type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic';
+type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
 
 
 export function ImageList() {
@@ -504,13 +504,17 @@ export function ImageList() {
                                 return (
                                 <div 
                                     key={image.id}
-                                    onClick={() => isSelectionMode && toggleImageSelection(image.id)}
+                                    onClick={() => {
+                                        if (isSelectionMode) {
+                                            toggleImageSelection(image.id);
+                                        }
+                                    }}
                                     className={cn(
                                         "group relative flex flex-col transition-all",
                                         isSelectionMode && "cursor-pointer"
                                     )}
                                 >
-                                    <Link href={isSelectionMode ? '#' : `/edit/${image.id}`} className={cn("block aspect-[4/5] w-full overflow-hidden rounded-lg border", selectedImages.has(image.id) && "ring-2 ring-primary ring-offset-2")}>
+                                     <Link href={isSelectionMode ? `#` : `/edit/${image.id}`} className={cn("block aspect-[4/5] w-full overflow-hidden rounded-lg border", selectedImages.has(image.id) && "ring-2 ring-primary ring-offset-2")}>
                                         {isSelectionMode ? (
                                             <div className="absolute top-2 left-2 z-10 bg-background rounded-full p-1 border">
                                                 <div className={cn(
@@ -747,6 +751,11 @@ export function ImageList() {
                                         )}
                                     </Tooltip>
                                     <DropdownMenuContent className="w-56">
+                                        <DropdownMenuItem onClick={() => handleGenerateDescription('ecommerce')}>
+                                            <ShoppingCart className="mr-2 h-4 w-4" />
+                                            <span>Annonce E-commerce</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
                                         <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}>
                                             <Instagram className="mr-2 h-4 w-4" />
                                             <span>Instagram</span>
@@ -853,5 +862,7 @@ export function ImageList() {
 
 
 
+
+    
 
     
