@@ -537,7 +537,7 @@ export default function EditImagePage() {
                                         size="lg"
                                         onClick={() => handleGenerateImage(false)}
                                         disabled={!prompt || !prompt.trim() || isGenerating || isSaving || !hasAiTickets}
-                                        className="w-full"
+                                        className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:opacity-90 transition-opacity"
                                     >
                                         {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5" />}
                                         {isGenerating ? 'Génération en cours...' : 'Générer l\'image'}
