@@ -96,7 +96,7 @@ export function Navbar() {
           {/* Left Section */}
           <div className="flex items-center justify-start flex-1">
             <Link href="/" className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-              <ImageIcon className="h-6 w-6 text-gradient-ia" />
+              <ImageIcon className="h-6 w-6 text-primary" />
               <span className="text-gradient-ia">Clikup</span>
             </Link>
           </div>
