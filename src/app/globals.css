@@ -100,7 +100,11 @@
   }
   body {
     @apply text-foreground;
-    background-image: linear-gradient(to bottom right, hsl(var(--background)), hsl(var(--muted)));
+    background-color: hsl(var(--background));
+    background-image: 
+        radial-gradient(at 10% 20%, hsl(var(--primary) / 0.1), transparent 50%),
+        radial-gradient(at 80% 10%, hsl(var(--accent) / 0.1), transparent 50%),
+        radial-gradient(at 50% 80%, hsl(var(--secondary) / 0.1), transparent 50%);
     @apply bg-fixed;
   }
 }
