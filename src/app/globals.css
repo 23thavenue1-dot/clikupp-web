@@ -103,6 +103,11 @@
     @apply bg-background text-foreground;
     /* La définition du dégradé est déplacée dans le layout pour éviter les conflits */
   }
+
+  /* CORRECTION FINALE : Annule l'effet de 'prevent-scroll' injecté par l'environnement */
+  html.prevent-scroll body {
+    overflow: visible !important;
+  }
 }
 
 @layer utilities {
