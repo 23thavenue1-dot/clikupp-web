@@ -528,7 +528,7 @@ export function ImageList() {
                                                     isSelectionMode && "cursor-pointer"
                                                 )}
                                             >
-                                                <div className={cn("block aspect-square w-full relative", selectedImages.has(image.id) && "ring-2 ring-primary ring-offset-2 rounded-lg")}>
+                                                <div className={cn("block aspect-square w-full relative overflow-hidden", selectedImages.has(image.id) && "ring-2 ring-primary ring-offset-2 rounded-lg")}>
                                                     {isSelectionMode ? (
                                                         <div className="absolute top-2 left-2 z-10 bg-background rounded-full p-1 border">
                                                             <div className={cn(
@@ -558,7 +558,7 @@ export function ImageList() {
                                                             alt={image.originalName || 'Image téléversée'}
                                                             fill
                                                             sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
-                                                            className="object-cover bg-muted"
+                                                            className="object-cover bg-muted transition-transform duration-300 group-hover:scale-105"
                                                             unoptimized // Important pour les Data URLs et celles de Storage
                                                         />
                                                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
