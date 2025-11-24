@@ -99,8 +99,9 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
     background-image: linear-gradient(to bottom right, hsl(var(--background)), hsl(var(--muted)));
+    @apply bg-fixed;
   }
 }
 
