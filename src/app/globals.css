@@ -98,14 +98,14 @@
   * {
     @apply border-border;
   }
-  body {
-    @apply text-foreground;
+  .bg-background {
     background-color: hsl(var(--background));
     background-image: 
-        radial-gradient(at 10% 20%, hsl(var(--primary) / 0.1), transparent 50%),
-        radial-gradient(at 80% 10%, hsl(var(--accent) / 0.1), transparent 50%),
-        radial-gradient(at 50% 80%, hsl(var(--secondary) / 0.1), transparent 50%);
+        conic-gradient(from 180deg at 50% 50%, hsl(var(--secondary)), hsl(var(--accent) / 0.2), hsl(var(--background)));
     @apply bg-fixed;
+  }
+  body {
+    @apply text-foreground;
   }
 }
 
