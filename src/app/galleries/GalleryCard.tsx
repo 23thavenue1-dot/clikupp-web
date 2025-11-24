@@ -15,6 +15,7 @@ import { ImageIcon, MoreHorizontal, Trash2, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface GalleryCardProps {
     gallery: Gallery;
@@ -73,7 +74,13 @@ export function GalleryCard({ gallery }: GalleryCardProps) {
 
     return (
         <>
-            <Card key={gallery.id} className="flex flex-col">
+            <Card 
+                key={gallery.id} 
+                className={cn(
+                    "flex flex-col transition-all duration-200 ease-out",
+                    "hover:shadow-xl hover:border-primary hover:-translate-y-0.5"
+                )}
+            >
                 <Link href={`/galleries/${gallery.id}`} className="block hover:bg-muted/30 transition-colors rounded-t-lg flex-grow">
                     <CardHeader>
                         <div className="relative aspect-video bg-muted rounded-md flex items-center justify-center overflow-hidden">
