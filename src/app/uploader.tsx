@@ -636,7 +636,7 @@ export function Uploader() {
           </Card>
       )}
 
-      <Card>
+      <Card className="transition-transform duration-200 hover:scale-[1.02] hover:-translate-y-1">
         <CardHeader>
           <div className="flex justify-between items-start">
               <div>
