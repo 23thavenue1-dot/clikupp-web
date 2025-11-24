@@ -524,11 +524,11 @@ export function ImageList() {
                                                     }
                                                 }}
                                                 className={cn(
-                                                    "group relative flex flex-col transition-all",
+                                                    "group relative flex flex-col transition-all overflow-hidden rounded-lg border",
                                                     isSelectionMode && "cursor-pointer"
                                                 )}
                                             >
-                                                <div className={cn("block aspect-[4/5] w-full overflow-hidden rounded-lg border", selectedImages.has(image.id) && "ring-2 ring-primary ring-offset-2")}>
+                                                <div className={cn("block aspect-square w-full relative", selectedImages.has(image.id) && "ring-2 ring-primary ring-offset-2 rounded-lg")}>
                                                     {isSelectionMode ? (
                                                         <div className="absolute top-2 left-2 z-10 bg-background rounded-full p-1 border">
                                                             <div className={cn(
@@ -630,15 +630,15 @@ export function ImageList() {
                                                                 </p>
                                                             )}
                                                         </div>
+                                                </div>
                                                     
-                                                    <div className="p-3 bg-card flex-grow flex flex-col gap-1">
-                                                        {image.title && (
-                                                            <p className="font-semibold text-sm line-clamp-2">{image.title}</p>
-                                                        )}
-                                                        <p className="text-xs text-muted-foreground italic line-clamp-2">
-                                                            {image.description || (image.title ? '' : 'Aucune description.')}
-                                                        </p>
-                                                    </div>
+                                                <div className="p-3 bg-card flex-grow flex flex-col gap-1">
+                                                    {image.title && (
+                                                        <p className="font-semibold text-sm line-clamp-2">{image.title}</p>
+                                                    )}
+                                                    <p className="text-xs text-muted-foreground italic line-clamp-2">
+                                                        {image.description || (image.title ? '' : 'Aucune description.')}
+                                                    </p>
                                                 </div>
                                             </div>
                                         )})}
