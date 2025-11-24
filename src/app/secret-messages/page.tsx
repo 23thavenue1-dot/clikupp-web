@@ -10,6 +10,7 @@ import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import type { UserProfile } from '@/lib/firestore';
 import { doc } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
 
 // A little type trick to allow dynamic icon names
 type IconName = keyof typeof LucideIcons;
@@ -66,7 +67,14 @@ export default function SecretMessagesPage() {
                         const Icon = getIcon(message.icon);
 
                         return (
-                            <AccordionItem key={message.level} value={`item-${message.level}`} className={`border rounded-lg transition-opacity ${isUnlocked ? 'opacity-100 bg-card' : 'opacity-50'}`}>
+                            <AccordionItem 
+                                key={message.level} 
+                                value={`item-${message.level}`} 
+                                className={cn(
+                                    "border rounded-lg transition-all duration-200 ease-out",
+                                    isUnlocked ? 'opacity-100 bg-card hover:shadow-xl hover:-translate-y-0.5 hover:border-primary' : 'opacity-50'
+                                )}
+                            >
                                 <AccordionTrigger className="p-4 hover:no-underline" disabled={!isUnlocked}>
                                     <div className="flex items-center gap-4 w-full">
                                         <div className={`p-3 rounded-lg ${isUnlocked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
