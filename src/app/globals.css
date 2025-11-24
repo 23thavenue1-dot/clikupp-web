@@ -99,13 +99,9 @@
   * {
     @apply border-border;
   }
-  .bg-background {
-    background-color: hsl(var(--background));
-    background-image: linear-gradient(to top left, hsl(var(--background)) 50%, hsl(var(--secondary)));
-    @apply bg-fixed;
-  }
   body {
-    @apply text-foreground;
+    @apply bg-background text-foreground;
+    /* La définition du dégradé est déplacée dans le layout pour éviter les conflits */
   }
 }
 

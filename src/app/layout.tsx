@@ -23,8 +23,19 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet" />
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              body {
+                background-color: hsl(var(--background));
+                background-image: linear-gradient(to top left, hsl(var(--background)) 50%, hsl(var(--secondary)));
+                background-attachment: fixed;
+              }
+            `,
+          }}
+        />
       </head>
-      <body className="font-body antialiased h-full bg-background">
+      <body className="font-body antialiased h-full">
         <FirebaseClientProvider>
           <ThemeProvider
             attribute="class"
