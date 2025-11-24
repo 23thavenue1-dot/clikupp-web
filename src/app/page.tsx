@@ -62,7 +62,7 @@ export default function Home() {
           </div>
         </header>
 
-        <div>
+        <div className="transition-transform duration-200 hover:scale-105 hover:-translate-y-1">
           <Uploader />
         </div>
 
