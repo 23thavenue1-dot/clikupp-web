@@ -559,8 +559,7 @@ export function ImageList() {
                                                             fill
                                                             sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
                                                             className={cn(
-                                                                "object-cover bg-muted transition-transform",
-                                                                !isSelectionMode && "group-hover:scale-105"
+                                                                "object-cover bg-muted transition-transform"
                                                             )}
                                                             unoptimized // Important pour les Data URLs et celles de Storage
                                                         />
