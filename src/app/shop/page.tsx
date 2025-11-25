@@ -14,6 +14,7 @@ import { useFirebase, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, onSnapshot, doc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/firestore';
 import { cn } from '@/lib/utils';
+import { getStripe } from '@/lib/stripe-client'; // Assurez-vous que ce fichier existe
 
 
 // Mettre les ID de prix ici pour la configuration.
@@ -220,22 +221,15 @@ function CheckoutButton({ item, disabled, isCurrentPlan }: { item: any, disabled
         setIsLoading(true);
 
         try {
-            const sessionPayload: any = {
-                client_reference_id: user.uid,
-                line_items: [{ price: item.id, quantity: 1 }],
-                success_url: `${window.location.origin}/shop?success=true&session_id={CHECKOUT_SESSION_ID}`,
-                cancel_url: `${window.location.origin}/shop?canceled=true`,
-                mode: item.mode,
-                metadata: { ...item.metadata, productName: item.metadata.productName || item.title }
-            };
-
-            // Pour les abonnements, on permet à Stripe de gérer le portail client
-            if (item.mode === 'subscription') {
-                sessionPayload.allow_promotion_codes = true;
-            }
-
             const checkoutSessionRef = collection(firestore, 'customers', user.uid, 'checkout_sessions');
-            const docRef = await addDoc(checkoutSessionRef, sessionPayload);
+            const docRef = await addDoc(checkoutSessionRef, {
+                line_items: [{ price: item.id, quantity: 1 }],
+                success_url: window.location.href,
+                cancel_url: window.location.href,
+                mode: item.mode,
+                allow_promotion_codes: true,
+                metadata: { ...item.metadata, productName: item.metadata.productName || item.title }
+            });
 
             onSnapshot(docRef, (snap) => {
                 const { error, url } = snap.data() || {};
