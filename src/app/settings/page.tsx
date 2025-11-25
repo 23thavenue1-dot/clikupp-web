@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Receipt, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Loader2, Receipt, ExternalLink, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -295,6 +295,7 @@ function AccountTab() {
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isPortalLoading, setIsPortalLoading] = useState(false);
+  const [isResettingStripe, setIsResettingStripe] = useState(false);
 
   const userDocRef = useMemoFirebase(() => user && firestore ? doc(firestore, `users/${user.uid}`) : null, [user, firestore]);
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
@@ -345,6 +346,23 @@ function AccountTab() {
         setIsPortalLoading(false);
     }
 };
+
+  const handleResetStripeCustomer = async () => {
+      if (!userDocRef) return;
+      setIsResettingStripe(true);
+      try {
+          await updateDoc(userDocRef, { stripeCustomerId: null });
+          toast({
+              title: "Client Stripe réinitialisé",
+              description: "Votre ancien ID client de test a été effacé. Vous pouvez maintenant effectuer un nouvel achat.",
+          });
+      } catch (error) {
+          console.error("Erreur de réinitialisation Stripe:", error);
+          toast({ variant: "destructive", title: "Erreur", description: "Impossible de réinitialiser l'ID client." });
+      } finally {
+          setIsResettingStripe(false);
+      }
+  };
 
 
   const handleChangePassword = async (values: z.infer<typeof passwordFormSchema>) => {
@@ -576,7 +594,21 @@ function AccountTab() {
           <CardTitle className="text-destructive">Zone de danger</CardTitle>
           <CardDescription>Ces actions sont irréversibles. Soyez certain de votre choix.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+           <AlertDialog>
+              <AlertDialogTrigger asChild>
+                  <div className="flex items-center justify-between">
+                      <div>
+                          <p className="font-medium">Réinitialiser le client Stripe</p>
+                          <p className="text-sm text-muted-foreground">À n'utiliser qu'en cas d'erreur persistante `No such customer`.</p>
+                      </div>
+                      <Button variant="destructive" disabled={isResettingStripe} onClick={handleResetStripeCustomer}>
+                          {isResettingStripe ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                          Réinitialiser Stripe
+                      </Button>
+                  </div>
+              </AlertDialogTrigger>
+          </AlertDialog>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <div className="flex items-center justify-between">
