@@ -227,7 +227,9 @@ function CheckoutButton({ item, disabled, isCurrentPlan }: { item: any, disabled
                 cancel_url: window.location.href,
                 mode: item.mode,
                 allow_promotion_codes: true,
-                customer_creation: 'always_create', // Force la création du client s'il n'existe pas en mode "Live"
+                // On passe l'email de l'utilisateur. Stripe l'utilisera pour
+                // retrouver le client ou en créer un nouveau en mode Live.
+                customer_email: user.email, 
                 metadata: { ...item.metadata, productName: item.metadata.productName || item.title }
             });
 
