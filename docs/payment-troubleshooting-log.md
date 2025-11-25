@@ -79,29 +79,34 @@ Ce document sert de journal de bord pour l'intégration de la fonctionnalité de
 
 ### **Étape 6 : Passage en Production (Mode "Live")**
 
-Ce chapitre explique la marche à suivre pour faire passer votre intégration Stripe du mode "Test" au mode "Production" ("Live") afin d'accepter de vrais paiements.
+Ce chapitre explique la marche à suivre pour faire passer votre intégration Stripe du mode "Test" au mode "Production" ("Live") afin d'accepter de vrais paiements. Le processus se déroule en deux phases : les actions que vous devez effectuer dans Stripe, et celles que nous devons coordonner pour mettre à jour l'application.
 
-#### 1. Actions Côté Utilisateur (Tableau de Bord Stripe)
+#### **Phase 1 : Actions de l'Utilisateur (VOUS) sur le Tableau de Bord Stripe**
 
 Stripe sépare complètement l'environnement de Test de l'environnement de Production. **Rien de ce que vous avez créé en mode test n'existe en mode production.** Vous devez donc tout recréer.
 
-1.  **Activer votre compte Stripe :** Suivez les étapes de Stripe pour activer votre compte en mode "Live" (informations sur l'entreprise, coordonnées bancaires, etc.).
-2.  **Passer en mode "Live" :** Sur votre tableau de bord Stripe, utilisez l'interrupteur pour basculer du mode "Test" au mode "Live".
-3.  **Recréer tous les produits et prix :** C'est l'étape la plus importante. Vous devez recréer à l'identique chaque produit (packs de tickets et abonnements) en mode "Live".
-    *   Pour chaque produit, Stripe générera de **nouveaux ID de prix** (commençant par `price_...`).
-    *   **Crucial :** Vous devrez me fournir cette nouvelle liste d'ID de prix "Live".
-4.  **Récupérer les nouvelles clés d'API "Live" :** Dans la section "Développeurs > Clés API" de votre tableau de bord (en mode "Live"), vous trouverez de nouvelles clés :
+1.  **Activer votre compte Stripe :** Si ce n'est pas déjà fait, suivez les étapes de Stripe pour activer votre compte en mode "Live" (informations sur l'entreprise, coordonnées bancaires, etc.).
+2.  **Basculer en mode "Live" :** Sur votre tableau de bord Stripe, utilisez l'interrupteur pour passer du mode "Test" au mode "Live". L'interface change généralement de couleur (d'orange à vert).
+3.  **Recréer tous les produits et prix :** C'est l'étape la plus importante et la plus méticuleuse. Vous devez recréer **à l'identique** chaque produit (packs de tickets et abonnements) en mode "Live".
+    *   Pour chaque produit, Stripe générera de **nouveaux ID de prix "Live"** (commençant aussi par `price_...`).
+    *   **Action requise :** Vous devrez me fournir cette **nouvelle liste complète d'ID de prix "Live"**.
+4.  **Récupérer les nouvelles clés d'API "Live" :** Dans la section `Développeurs > Clés API` de votre tableau de bord (en mode "Live"), vous trouverez de nouvelles clés :
     *   Une nouvelle clé **secrète** (commençant par `sk_live_...`).
     *   Le **secret de signature du webhook** pour le mode "Live".
+    *   **Action requise :** Gardez ces deux clés prêtes pour la phase suivante, sans les partager directement ici.
 
-#### 2. Actions Côté Développeur / IA (Code & Firebase)
+#### **Phase 2 : Actions du Développeur (MOI) et Configuration Finale (VOUS)**
 
-Une fois les étapes ci-dessus accomplies, je prends le relais.
+Une fois que vous avez terminé la phase 1 et que vous m'avez fourni la liste des nouveaux ID de prix, le processus final est le suivant :
 
-1.  **Mise à jour des ID de Prix :** Je remplacerai tous les anciens ID de prix de test par les nouveaux ID "Live" dans le fichier `src/app/shop/page.tsx`.
-2.  **Reconfiguration de l'extension Firebase :** C'est le cœur de l'opération. Je ne peux pas le faire directement, mais je vous guiderai. Vous devrez aller dans votre console Firebase, trouver l'extension "Run Payments with Stripe", et la **reconfigurer** en y collant :
-    *   Votre nouvelle **clé API secrète "Live"** (`sk_live_...`).
-    *   Votre nouveau **secret de signature du webhook "Live"**.
+1.  **Mise à jour des ID de Prix (Mon action) :** Je remplacerai tous les anciens ID de prix de test par les nouveaux ID "Live" dans le fichier `src/app/shop/page.tsx`.
+2.  **Reconfiguration de l'extension Firebase (Votre action) :** Une fois le code mis à jour par mes soins, vous devrez :
+    *   Aller dans votre **console Firebase**.
+    *   Trouver l'extension `Run Payments with Stripe` et cliquer sur **"Reconfigurer l'extension"**.
+    *   C'est ici que vous devrez coller votre nouvelle **clé API secrète "Live"** (`sk_live_...`) et votre nouveau **secret de signature du webhook "Live"**.
+    *   Valider la reconfiguration.
+
+Après ces deux phases, votre application sera prête à accepter des paiements réels.
 
 ---
 
@@ -159,5 +164,6 @@ Cette liste répertorie tous les points de contrôle critiques à vérifier pour
 -   [x] **Test de Paiement Final :** Le processus de paiement est complété avec succès.
 -   [x] **Vérification Firestore :** Après un paiement test réussi, le champ correspondant au pack acheté (ex: `packUploadTickets`) a bien été incrémenté.
 -   [x] **Vérification Interface :** Le compteur de tickets dans l'application reflète le nouveau solde.
+
 
 
