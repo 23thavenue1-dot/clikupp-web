@@ -845,28 +845,6 @@ export function Uploader() {
                                             </AccordionContent>
                                         </AccordionItem>
                                     </Accordion>
-
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                         <Button 
-                                            variant="outline" 
-                                            className="w-full" 
-                                            disabled={isGenerating || isGeneratingDescription || totalAiTickets <= 0}
-                                        >
-                                            {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4"/>}
-                                            {isGeneratingDescription ? "Génération..." : "Générer la description (1 Ticket)"}
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent className="w-56">
-                                          <DropdownMenuItem onClick={() => handleGenerateDescription('ecommerce')}><ShoppingCart className="mr-2 h-4 w-4" /> Annonce E-commerce</DropdownMenuItem>
-                                          <DropdownMenuSeparator />
-                                          <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}><Instagram className="mr-2 h-4 w-4" /> Instagram</DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => handleGenerateDescription('facebook')}><Facebook className="mr-2 h-4 w-4" /> Facebook</DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => handleGenerateDescription('x')}><MessageSquare className="mr-2 h-4 w-4" /> X (Twitter)</DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => handleGenerateDescription('tiktok')}><VenetianMask className="mr-2 h-4 w-4" /> TikTok</DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => handleGenerateDescription('generic')}><Wand2 className="mr-2 h-4 w-4" /> Générique</DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
                                 </>
                             ): (
                                 <>
@@ -956,14 +934,45 @@ export function Uploader() {
                         
                         <div className="p-4 mt-auto border-t space-y-3">
                              {currentHistoryItem ? (
-                                 <Button 
-                                     onClick={handleSaveGeneratedImage} 
-                                     disabled={isUploading || isGenerating}
-                                     className="w-full bg-green-600 hover:bg-green-700 text-white"
-                                 >
-                                     {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
-                                     {isUploading ? 'Sauvegarde...' : 'Sauvegarder'}
-                                 </Button>
+                                <>
+                                    <div className="space-y-2">
+                                        <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button 
+                                                variant="outline" 
+                                                className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity" 
+                                                disabled={isGenerating || isGeneratingDescription || totalAiTickets <= 0}
+                                            >
+                                                {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4"/>}
+                                                {isGeneratingDescription ? "Génération..." : "Générer la description (1 Ticket)"}
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent className="w-56">
+                                            <DropdownMenuItem onClick={() => handleGenerateDescription('ecommerce')}><ShoppingCart className="mr-2 h-4 w-4" /> Annonce E-commerce</DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}><Instagram className="mr-2 h-4 w-4" /> Instagram</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleGenerateDescription('facebook')}><Facebook className="mr-2 h-4 w-4" /> Facebook</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleGenerateDescription('x')}><MessageSquare className="mr-2 h-4 w-4" /> X (Twitter)</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleGenerateDescription('tiktok')}><VenetianMask className="mr-2 h-4 w-4" /> TikTok</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleGenerateDescription('generic')}><Wand2 className="mr-2 h-4 w-4" /> Générique</DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                        </DropdownMenu>
+
+                                        <Button onClick={() => resetState()} disabled={isGenerating || isUploading} variant="secondary" className="w-full">
+                                            <RefreshCw className="mr-2 h-4 w-4" />
+                                            Nouvelle Génération
+                                        </Button>
+                                    </div>
+                                    <Separator />
+                                    <Button 
+                                        onClick={handleSaveGeneratedImage} 
+                                        disabled={isUploading || isGenerating}
+                                        className="w-full bg-green-600 hover:bg-green-700 text-white"
+                                    >
+                                        {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                                        {isUploading ? 'Sauvegarde...' : 'Sauvegarder'}
+                                    </Button>
+                                </>
                              ) : (
                                 <Button 
                                     onClick={() => handleGenerateImage(false)} 
@@ -974,12 +983,6 @@ export function Uploader() {
                                     {isGenerating ? 'Génération...' : 'Générer l\'image (1 Ticket IA)'}
                                 </Button>
                              )}
-                             {currentHistoryItem &&
-                                 <Button onClick={() => resetState()} disabled={isGenerating || isUploading} variant="secondary" className="w-full">
-                                   <RefreshCw className="mr-2 h-4 w-4" />
-                                   Nouvelle Génération
-                                </Button>
-                             }
 
                              {totalAiTickets <= 0 && !isGenerating && !isUploading && (
                                  <Button variant="link" asChild className="text-sm font-semibold text-primary w-full">
