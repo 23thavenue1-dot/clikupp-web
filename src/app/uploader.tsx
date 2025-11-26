@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
@@ -41,7 +42,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import Link from 'next/link';
 import { generateImage, editImage } from '@/ai/flows/generate-image-flow';
@@ -134,7 +134,8 @@ export function Uploader() {
   const [historyIndex, setHistoryIndex] = useState(-1);
   
   const [showRegenerateAlert, setShowRegenerateAlert] = useState(false);
-
+  const [showResetAlert, setShowResetAlert] = useState(false);
+  
   // --- States pour la gestion des prompts favoris ---
   const [isSavePromptDialogOpen, setIsSavePromptDialogOpen] = useState(false);
   const [promptToSave, setPromptToSave] = useState("");
@@ -193,6 +194,24 @@ export function Uploader() {
       return null;
   }, [generatedImageHistory, historyIndex]);
 
+  // Logique pour la protection des changements non sauvegardés
+  const hasUnsavedChanges = useMemo(() => !!currentHistoryItem, [currentHistoryItem]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        if (hasUnsavedChanges) {
+            e.preventDefault();
+            e.returnValue = ''; // Requis pour certains navigateurs
+        }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasUnsavedChanges]);
+
 
   useEffect(() => {
       if (!currentHistoryItem) {
@@ -201,7 +220,11 @@ export function Uploader() {
   }, [currentHistoryItem]);
 
 
-  const performReset = () => {
+  const performReset = (force = false) => {
+    if (hasUnsavedChanges && !force) {
+        setShowResetAlert(true);
+        return;
+    }
     setStatus({ state: 'idle' });
     setSelectedFile(null);
     setCustomName('');
@@ -212,6 +235,7 @@ export function Uploader() {
     setHistoryIndex(-1);
     setIsUploading(false);
     setIsGenerating(false);
+    setShowResetAlert(false); // Fermer l'alerte si elle était ouverte
     if (fileInputRef.current) {
         fileInputRef.current.value = '';
     }
@@ -219,7 +243,11 @@ export function Uploader() {
   
 
   const handleTabChange = (value: string) => {
-    performReset();
+    if (hasUnsavedChanges) {
+        setShowResetAlert(true);
+        return; // Empêcher le changement d'onglet
+    }
+    performReset(true); // Forcer le reset si pas de changements
     setActiveTab(value);
   };
 
@@ -270,7 +298,7 @@ export function Uploader() {
       }
 
       toast({ title: 'Succès', description: 'Votre image a été enregistrée.' });
-      performReset();
+      performReset(true); // Forcer le reset après une sauvegarde réussie
     } catch (error) {
       const errorMessage = (error as Error).message;
       setStatus({ state: 'error', message: `Erreur: ${errorMessage}` });
@@ -587,7 +615,6 @@ export function Uploader() {
               </CardFooter>
           </Card>
       )}
-
       <Card>
         <CardHeader>
           <div className="flex justify-between items-start">
@@ -752,7 +779,6 @@ export function Uploader() {
                                             disabled={isGenerating || isUploading}
                                         />
                                       </div>
-                                      <p className="text-xs text-muted-foreground">Laissez vide pour regénérer avec la même instruction.</p>
                                   </div>
                                 </>
                             ): (
@@ -844,45 +870,17 @@ export function Uploader() {
                         <div className="p-4 mt-auto border-t space-y-2">
                             {currentHistoryItem ? (
                                 <>
-                                  <Button onClick={performReset} className="w-full" variant="secondary" disabled={isGenerating || isUploading}>
+                                  <Button onClick={() => performReset(false)} className="w-full" variant="secondary" disabled={isGenerating || isUploading}>
                                       Nouvelle Génération
                                   </Button>
-                                  {refinePrompt.trim() ? (
-                                    <Button 
-                                        onClick={() => handleGenerateImage(true)} 
-                                        disabled={isGenerating || isUploading || totalAiTickets <= 0}
-                                        className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
-                                    >
-                                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-                                        {isGenerating ? 'Affinage...' : 'Affiner (1 Ticket IA)'}
-                                    </Button>
-                                  ) : (
-                                    <AlertDialog open={showRegenerateAlert} onOpenChange={setShowRegenerateAlert}>
-                                        <AlertDialogTrigger asChild>
-                                            <Button
-                                                disabled={isGenerating || isUploading || totalAiTickets <= 0}
-                                                className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
-                                            >
-                                                <RefreshCw className="mr-2 h-4 w-4" />
-                                                Regénérer (1 Ticket IA)
-                                            </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>Confirmer la regénération ?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    Les variations entre deux générations peuvent parfois être très subtiles, voire à peine perceptibles. Voulez-vous continuer ?
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleGenerateImage(true)}>
-                                                    Continuer
-                                                </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                  )}
+                                  <Button
+                                      onClick={() => handleGenerateImage(true)}
+                                      disabled={isGenerating || isUploading || totalAiTickets <= 0 || !refinePrompt.trim()}
+                                      className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
+                                  >
+                                      <Wand2 className="mr-2 h-4 w-4" />
+                                      Affiner (1 Ticket IA)
+                                  </Button>
                                    <Button 
                                       onClick={handleSaveGeneratedImage} 
                                       disabled={isUploading || isGenerating || status.state === 'success'}
@@ -902,7 +900,7 @@ export function Uploader() {
                                     {isGenerating ? 'Génération...' : 'Générer l\'image (1 Ticket IA)'}
                                 </Button>
                             )}
-
+                            
                             {totalAiTickets <= 0 && !isGenerating && !isUploading && (
                                  <Button variant="link" asChild className="text-sm font-semibold text-primary w-full">
                                     <Link href="/shop">
@@ -922,6 +920,22 @@ export function Uploader() {
           )}
 
         </CardContent>
+        <AlertDialog open={showResetAlert} onOpenChange={setShowResetAlert}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Abandonner l'image non sauvegardée ?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Vous avez une image générée qui n'a pas été sauvegardée. Si vous continuez, elle sera perdue.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => performReset(true)} className="bg-destructive hover:bg-destructive/90">
+                        Abandonner
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
         <Dialog open={isSavePromptDialogOpen} onOpenChange={setIsSavePromptDialogOpen}>
             <DialogContent>
                 <DialogHeader>
@@ -984,3 +998,7 @@ export function Uploader() {
     </>
   );
 }
+
+    
+
+    
