@@ -42,6 +42,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import Link from 'next/link';
 import { generateImage, editImage } from '@/ai/flows/generate-image-flow';
@@ -198,12 +199,10 @@ export function Uploader() {
   const hasUnsavedChanges = useMemo(() => !!currentHistoryItem, [currentHistoryItem]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-        (window as any).hasUnsavedChanges = hasUnsavedChanges;
-    }
-}, [hasUnsavedChanges]);
+      if (typeof window !== 'undefined') {
+          (window as any).hasUnsavedChanges = hasUnsavedChanges;
+      }
 
-  useEffect(() => {
       const handleBeforeUnload = (e: BeforeUnloadEvent) => {
           if (hasUnsavedChanges) {
               e.preventDefault();
@@ -215,6 +214,9 @@ export function Uploader() {
 
       return () => {
           window.removeEventListener('beforeunload', handleBeforeUnload);
+          if (typeof window !== 'undefined') {
+              (window as any).hasUnsavedChanges = false;
+          }
       };
   }, [hasUnsavedChanges]);
 
@@ -295,6 +297,7 @@ export function Uploader() {
     }
     
     setIsUploading(true);
+    setStatus({ state: 'processing' });
 
     try {
       await uploadFn();
@@ -359,12 +362,19 @@ export function Uploader() {
           (progress) => setStatus({ state: 'uploading', progress })
       );
       await saveImageMetadata(firestore, user, { ...metadata, description: '' });
+      setStatus({ state: 'success', url: metadata.directUrl });
     }, 'upload');
   };
 
-  const handleGenerateImage = async (isRefinement = false) => {
-    const currentPrompt = isRefinement ? (refinePrompt || currentHistoryItem?.prompt) : prompt;
-    const baseImageUrl = isRefinement ? currentHistoryItem?.imageUrl : undefined;
+  const handleGenerateImage = async (isRefinement = false, isRegeneration = false) => {
+    let currentPrompt;
+    if (isRegeneration) {
+        currentPrompt = currentHistoryItem?.prompt;
+    } else {
+        currentPrompt = isRefinement ? (refinePrompt || currentHistoryItem?.prompt) : prompt;
+    }
+    
+    const baseImageUrl = isRefinement || isRegeneration ? currentHistoryItem?.imageUrl : undefined;
     
     if (!currentPrompt || !currentPrompt.trim() || !user || !firestore || !userProfile) return;
 
@@ -415,9 +425,7 @@ export function Uploader() {
  const handleSaveGeneratedImage = async () => {
     if (!currentHistoryItem || !user || !firebaseApp || !userProfile || !firestore) return;
     
-    setIsUploading(true);
-    
-    try {
+    const uploadFn = async () => {
         setStatus({ state: 'processing' });
         const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
 
@@ -444,17 +452,10 @@ export function Uploader() {
             hashtags: "",
             generatedByAI: true,
         });
+         setStatus({ state: 'success', url: metadata.directUrl });
+    };
 
-        toast({ title: 'Succès', description: 'Votre image a été enregistrée dans votre galerie.' });
-        setStatus({ state: 'success', url: metadata.directUrl });
-
-    } catch (error) {
-        const errorMessage = (error as Error).message;
-        setStatus({ state: 'error', message: `Erreur: ${errorMessage}` });
-        toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: errorMessage });
-    } finally {
-        setIsUploading(false);
-    }
+    await handleUpload(uploadFn, 'none'); // N'utilise pas de ticket d'upload
 };
 
   const handleUndoGeneration = () => {
@@ -703,9 +704,10 @@ export function Uploader() {
 
               <TabsContent value="storage" className="space-y-4 pt-6">
                    {renderFilePicker(isUploading || isInGracePeriod)}
+                   {status.state === 'uploading' && <Progress value={status.progress} />}
                    <Button 
                       onClick={handleStorageUpload} 
-                      disabled={isUploading || !selectedFile || isInGracePeriod} 
+                      disabled={isUploading || !selectedFile || isInGracePeriod || status.state === 'uploading'} 
                       className="w-full"
                    >
                       {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
@@ -789,7 +791,7 @@ export function Uploader() {
                                 </>
                             ): (
                                 <>
-                                    <div className='flex gap-2'>
+                                    <div className='relative'>
                                         <Textarea
                                             placeholder="Décrivez l'image que vous souhaitez créer..."
                                             value={prompt}
@@ -798,11 +800,11 @@ export function Uploader() {
                                             disabled={isGenerating}
                                             className="pr-10"
                                         />
-                                         <div className="relative">
+                                         <div className="absolute top-2 right-2">
                                             <Button 
                                                 variant="ghost" 
                                                 size="icon" 
-                                                className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-primary"
+                                                className="h-7 w-7 text-muted-foreground hover:text-primary"
                                                 disabled={!prompt.trim() || isGenerating}
                                                 onClick={openSavePromptDialog}
                                                 aria-label="Sauvegarder le prompt"
@@ -886,6 +888,32 @@ export function Uploader() {
                                             Affiner (1 Ticket IA)
                                         </Button>
                                     )}
+                                     <AlertDialog open={showRegenerateAlert} onOpenChange={setShowRegenerateAlert}>
+                                        <AlertDialogTrigger asChild>
+                                            <Button
+                                                disabled={isGenerating || isUploading || totalAiTickets <= 0}
+                                                className="w-full"
+                                                variant="outline"
+                                            >
+                                                <RefreshCw className="mr-2 h-4 w-4" />
+                                                Regénérer...
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Confirmer la regénération ?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    Les variations entre deux générations peuvent parfois être très subtiles. Pour un changement plus marqué, pensez à utiliser l'option 'Affiner'. Voulez-vous continuer ?
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleGenerateImage(false, true)}>
+                                                    Oui, regénérer
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
                                     <Button onClick={() => performReset(false)} className="w-full" variant="secondary" disabled={isGenerating || isUploading}>
                                       Nouvelle Génération
                                     </Button>
@@ -926,6 +954,9 @@ export function Uploader() {
           
           {status.state === 'error' && (
             <p className="mt-4 text-sm text-center text-destructive">{status.message}</p>
+          )}
+          {status.state === 'success' && (
+            <p className="mt-4 text-sm text-center text-green-600">Image téléversée avec succès !</p>
           )}
 
         </CardContent>
@@ -1007,7 +1038,3 @@ export function Uploader() {
     </>
   );
 }
-
-    
-
-    
