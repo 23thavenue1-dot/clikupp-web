@@ -330,7 +330,7 @@ export function Uploader() {
   };
 
   const handleGenerateImage = async (isRefinement = false) => {
-    const currentPrompt = isRefinement ? refinePrompt : prompt;
+    const currentPrompt = isRefinement ? (refinePrompt || prompt) : prompt;
     const baseImageUrl = isRefinement ? currentHistoryItem?.imageUrl : undefined;
     
     if (!currentPrompt.trim() || !user || !firestore || !userProfile) return;
@@ -766,6 +766,7 @@ export function Uploader() {
                                             disabled={isGenerating || isUploading}
                                         />
                                       </div>
+                                      <p className="text-xs text-muted-foreground">Laissez vide pour regénérer avec la même instruction.</p>
                                   </div>
                                 </>
                             ): (
@@ -867,7 +868,7 @@ export function Uploader() {
                                   </Button>
                                    <Button 
                                       onClick={() => handleGenerateImage(true)} 
-                                      disabled={isGenerating || isUploading || !refinePrompt.trim() || totalAiTickets <= 0}
+                                      disabled={isGenerating || isUploading || totalAiTickets <= 0}
                                       className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
                                   >
                                       {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
