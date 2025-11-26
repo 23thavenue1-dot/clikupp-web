@@ -116,7 +116,6 @@ export function Uploader() {
   const [status, setStatus] = useState<UploadStatus>({ state: 'idle' });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [customName, setCustomName] = useState('');
-  const [description, setDescription] = useState('');
   
   const [isUploading, setIsUploading] = useState(false);
   const [activeTab, setActiveTab] = useState('storage');
@@ -133,9 +132,7 @@ export function Uploader() {
   const [generatedImageHistory, setGeneratedImageHistory] = useState<ImageHistoryItem[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   
-  // State pour l'alerte de changements non sauvegardés
-  const [showUnsavedAlert, setShowUnsavedAlert] = useState(false);
-  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const [showRegenerateAlert, setShowRegenerateAlert] = useState(false);
 
   // --- States pour la gestion des prompts favoris ---
   const [isSavePromptDialogOpen, setIsSavePromptDialogOpen] = useState(false);
@@ -195,10 +192,6 @@ export function Uploader() {
       return null;
   }, [generatedImageHistory, historyIndex]);
 
-  const hasUnsavedChanges = useMemo(() => {
-    return generatedImageHistory.length > 0 && status.state !== 'success';
-  }, [generatedImageHistory, status.state]);
-
 
   useEffect(() => {
       if (!currentHistoryItem) {
@@ -206,21 +199,11 @@ export function Uploader() {
       }
   }, [currentHistoryItem]);
 
-  // Exposer l'état des changements non sauvegardés à la fenêtre globale
-  useEffect(() => {
-    (window as any).hasUnsavedChanges = hasUnsavedChanges;
-    // Fonction de nettoyage pour s'assurer que l'état est propre au démontage
-    return () => {
-      (window as any).hasUnsavedChanges = false;
-    };
-  }, [hasUnsavedChanges]);
-
 
   const performReset = () => {
     setStatus({ state: 'idle' });
     setSelectedFile(null);
     setCustomName('');
-    setDescription('');
     setImageUrl('');
     setPrompt('');
     setRefinePrompt('');
@@ -233,36 +216,11 @@ export function Uploader() {
     }
   };
   
-  const checkUnsavedChanges = (action: () => void) => {
-    if (hasUnsavedChanges) {
-      setPendingAction(() => action); // Stocke l'action à exécuter
-      setShowUnsavedAlert(true);
-    } else {
-      action(); // Exécute l'action directement
-    }
-  };
 
   const handleTabChange = (value: string) => {
-    checkUnsavedChanges(() => {
-        setActiveTab(value);
-        performReset();
-    });
+    performReset();
+    setActiveTab(value);
   };
-
-  const resetState = () => {
-      checkUnsavedChanges(() => {
-          performReset();
-      });
-  };
-
-  const handleConfirmUnsavedAction = () => {
-    if (pendingAction) {
-      pendingAction();
-    }
-    setShowUnsavedAlert(false);
-    setPendingAction(null);
-  };
-
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -337,7 +295,7 @@ export function Uploader() {
     await handleUpload(async () => {
       await saveImageFromUrl(firestore, user, {
         directUrl: imageUrl,
-        description: description,
+        description: '', // Description is now handled from the main gallery
         bbCode: `[img]${imageUrl}[/img]`,
         htmlCode: `<img src="${imageUrl}" alt="Image depuis URL" />`,
       });
@@ -365,7 +323,7 @@ export function Uploader() {
           customName,
           (progress) => setStatus({ state: 'uploading', progress })
       );
-      await saveImageMetadata(firestore, user, { ...metadata, description });
+      await saveImageMetadata(firestore, user, { ...metadata, description: '' });
     }, 'upload');
   };
 
@@ -711,13 +669,6 @@ export function Uploader() {
 
               <TabsContent value="storage" className="space-y-4 pt-6">
                    {renderFilePicker(isUploading || isInGracePeriod)}
-                   <Textarea
-                      placeholder="Ajoutez une description (optionnel)..."
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      disabled={isUploading || isInGracePeriod}
-                   />
-                   {status.state === 'uploading' && <Progress value={status.progress} className="w-full" />}
                    <Button 
                       onClick={handleStorageUpload} 
                       disabled={isUploading || !selectedFile || isInGracePeriod} 
@@ -734,12 +685,6 @@ export function Uploader() {
                       placeholder="https://example.com/image.png"
                       value={imageUrl}
                       onChange={(e) => setImageUrl(e.target.value)}
-                      disabled={isUploading || isInGracePeriod}
-                  />
-                   <Textarea
-                      placeholder="Ajoutez une description (optionnel)..."
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
                       disabled={isUploading || isInGracePeriod}
                   />
                   <Button onClick={handleUrlUpload} disabled={isUploading || !imageUrl.trim() || isInGracePeriod} className="w-full">
@@ -898,15 +843,10 @@ export function Uploader() {
                         <div className="p-4 mt-auto border-t space-y-2">
                             {currentHistoryItem ? (
                                 <>
-                                  <Button 
-                                      onClick={resetState} 
-                                      className="w-full"
-                                      variant="secondary"
-                                      disabled={isGenerating || isUploading}
-                                  >
+                                  <Button onClick={performReset} className="w-full" variant="secondary" disabled={isGenerating || isUploading}>
                                       Nouvelle Génération
                                   </Button>
-                                  {refinePrompt.trim() && (
+                                  {refinePrompt.trim() ? (
                                     <Button 
                                         onClick={() => handleGenerateImage(true)} 
                                         disabled={isGenerating || isUploading || totalAiTickets <= 0}
@@ -915,16 +855,34 @@ export function Uploader() {
                                         {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
                                         {isGenerating ? 'Affinage...' : 'Affiner (1 Ticket IA)'}
                                     </Button>
+                                  ) : (
+                                    <AlertDialog open={showRegenerateAlert} onOpenChange={setShowRegenerateAlert}>
+                                        <AlertDialogTrigger asChild>
+                                            <Button
+                                                disabled={isGenerating || isUploading || totalAiTickets <= 0}
+                                                className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
+                                            >
+                                                <RefreshCw className="mr-2 h-4 w-4" />
+                                                Regénérer (1 Ticket IA)
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Confirmer la regénération ?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    Les variations entre deux générations peuvent parfois être très subtiles, voire à peine perceptibles. Voulez-vous continuer ?
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleGenerateImage(true)}>
+                                                    Continuer
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
                                   )}
                                    <Button 
-                                      onClick={() => handleGenerateImage(true)} 
-                                      disabled={isGenerating || isUploading || totalAiTickets <= 0}
-                                      className="w-full"
-                                  >
-                                      {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                                      {isGenerating ? 'Génération...' : 'Regénérer (1 Ticket IA)'}
-                                  </Button>
-                                  <Button 
                                       onClick={handleSaveGeneratedImage} 
                                       disabled={isUploading || isGenerating || status.state === 'success'}
                                       className="w-full bg-green-600 hover:bg-green-700 text-white"
@@ -1022,24 +980,6 @@ export function Uploader() {
             </DialogContent>
         </Dialog>
       </Card>
-
-      <AlertDialog open={showUnsavedAlert} onOpenChange={setShowUnsavedAlert}>
-          <AlertDialogContent>
-              <AlertDialogHeader>
-                  <AlertDialogTitle>Changements non sauvegardés</AlertDialogTitle>
-                  <AlertDialogDescription>
-                      Vous avez une image générée qui n'a pas été sauvegardée. Si vous continuez, elle sera perdue.
-                      Êtes-vous sûr de vouloir continuer ?
-                  </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setPendingAction(null)}>Rester</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleConfirmUnsavedAction} variant="destructive">
-                      Continuer
-                  </AlertDialogAction>
-              </AlertDialogFooter>
-          </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
