@@ -603,7 +603,7 @@ export function Uploader() {
                       <CardTitle className="text-destructive">Action Requise : Stockage Dépassé</CardTitle>
                       <CardDescription className="text-destructive/80">
                           Votre abonnement a pris fin et votre stockage utilisé dépasse la limite gratuite.
-                          Vos fichiers les plus anciens seront supprimés après le <strong>{format(userProfile.gracePeriodEndDate!.toDate(), 'd MMMM yyyy', { locale: fr })}</strong>.
+                          Vos fichiers les plus anciens seront supprimés après le <strong>{userProfile.gracePeriodEndDate ? format(userProfile.gracePeriodEndDate.toDate(), 'd MMMM yyyy', { locale: fr }) : ''}</strong>.
                       </CardDescription>
                   </div>
               </CardHeader>
@@ -818,14 +818,6 @@ export function Uploader() {
                                             placeholder="Ex: change la couleur en rouge..."
                                             disabled={isGenerating || isUploading}
                                         />
-                                        <Button 
-                                            onClick={() => handleGenerateImage(true)} 
-                                            disabled={isGenerating || isUploading || !refinePrompt.trim() || totalAiTickets <= 0}
-                                            variant="secondary"
-                                            size="icon"
-                                        >
-                                            <RefreshCw className="h-4 w-4" />
-                                        </Button>
                                       </div>
                                   </div>
                                 </>
@@ -919,11 +911,19 @@ export function Uploader() {
                              {currentHistoryItem ? (
                                 <div className='space-y-2'>
                                   <Button 
-                                      onClick={resetState} 
+                                      onClick={() => handleGenerateImage(true)} 
+                                      disabled={isGenerating || isUploading || !refinePrompt.trim() || totalAiTickets <= 0}
                                       className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
+                                  >
+                                      {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                                      {isGenerating ? 'Génération...' : 'Regénérer (1 Ticket IA)'}
+                                  </Button>
+                                  <Button 
+                                      onClick={resetState} 
+                                      className="w-full"
+                                      variant="secondary"
                                       disabled={isGenerating || isUploading}
                                   >
-                                      <RefreshCw className="mr-2 h-4 w-4" />
                                       Nouvelle Génération
                                   </Button>
                                   <Button 
