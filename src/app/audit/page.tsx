@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { Separator } from '@/components/ui/separator';
 
 const MAX_IMAGES = 9;
 const AUDIT_COST = 5;
@@ -46,6 +47,7 @@ export default function AuditPage() {
 
     const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
     const [postTexts, setPostTexts] = useState(['', '', '']);
+    const [additionalContext, setAdditionalContext] = useState('');
 
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -137,6 +139,7 @@ export default function AuditPage() {
                 goal,
                 image_urls: imageUrls,
                 post_texts: postTexts.filter(t => t.trim() !== ''),
+                additionalContext: additionalContext.trim() || undefined,
             });
 
             // 4. Décrémenter les tickets
@@ -278,6 +281,17 @@ export default function AuditPage() {
                             <Label htmlFor="post-text-3">Texte de publication 3</Label>
                             <Textarea id="post-text-3" value={postTexts[2]} onChange={(e) => handleTextChange(2, e.target.value)} rows={3} placeholder="Collez votre texte ici..."/>
                         </div>
+                        <Separator />
+                        <div className="space-y-2">
+                            <Label htmlFor="additional-context">Informations supplémentaires (optionnel)</Label>
+                            <Textarea 
+                                id="additional-context" 
+                                value={additionalContext} 
+                                onChange={(e) => setAdditionalContext(e.target.value)} 
+                                rows={4} 
+                                placeholder="Donnez plus de contexte à l'IA : votre public cible, vos concurrents, une question spécifique..."
+                            />
+                        </div>
                     </CardContent>
                 );
             case 4:
@@ -290,6 +304,7 @@ export default function AuditPage() {
                             <p><strong>Objectif :</strong> {goal}</p>
                             <p><strong>Images sélectionnées :</strong> {selectedImages.size}</p>
                             <p><strong>Textes fournis :</strong> {postTexts.filter(t => t.trim() !== '').length}</p>
+                            {additionalContext.trim() && <p><strong>Contexte ajouté :</strong> Oui</p>}
                         </div>
                          <Button onClick={handleSubmit} disabled={isSubmitting || totalAiTickets < AUDIT_COST} className="w-full mt-6" size="lg">
                             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}

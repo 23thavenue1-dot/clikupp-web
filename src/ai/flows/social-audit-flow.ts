@@ -34,6 +34,9 @@ const socialAuditPrompt = ai.definePrompt({
         {{#each post_texts}}
         - "{{this}}"
         {{/each}}
+        {{#if additionalContext}}
+        - Contexte supplémentaire fourni par l'utilisateur : "{{additionalContext}}"
+        {{/if}}
 
         En te basant UNIQUEMENT sur ces informations, fournis un rapport complet structuré précisément comme suit :
 

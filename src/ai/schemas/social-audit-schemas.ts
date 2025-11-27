@@ -7,6 +7,7 @@ export const SocialAuditInputSchema = z.object({
   goal: z.string().describe("L'objectif principal de l'utilisateur."),
   image_urls: z.array(z.string()).describe("Un tableau de data URIs des images sélectionnées pour l'analyse."),
   post_texts: z.array(z.string()).describe("Un tableau des textes de publications fournis par l'utilisateur."),
+  additionalContext: z.string().optional().describe("Un contexte textuel supplémentaire fourni par l'utilisateur pour guider l'analyse."),
 });
 export type SocialAuditInput = z.infer<typeof SocialAuditInputSchema>;
 
