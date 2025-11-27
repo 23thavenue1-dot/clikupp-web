@@ -154,25 +154,6 @@ export function Navbar() {
                     <p>Mes Galeries</p>
                   </TooltipContent>
                 </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <UnsavedChangesLink href="/dashboard" passHref>
-                      <Button variant="ghost" size="icon" aria-label="Tableau de bord" className="relative">
-                        <LayoutDashboard className="h-5 w-5" />
-                        {hasNewAchievements && (
-                          <span className="absolute top-2 right-2 flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                          </span>
-                        )}
-                      </Button>
-                    </UnsavedChangesLink>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Tableau de Bord</p>
-                  </TooltipContent>
-                </Tooltip>
                 
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -267,6 +248,18 @@ export function Navbar() {
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuGroup>
+                        <DropdownMenuItem asChild>
+                          <UnsavedChangesLink href="/dashboard" className="relative">
+                            <LayoutDashboard className="mr-2 h-4 w-4" />
+                            <span>Tableau de bord</span>
+                            {hasNewAchievements && (
+                              <span className="absolute top-1/2 -translate-y-1/2 right-2 flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                              </span>
+                            )}
+                          </UnsavedChangesLink>
+                        </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <UnsavedChangesLink href="/settings">
                             <Settings className="mr-2 h-4 w-4" />
