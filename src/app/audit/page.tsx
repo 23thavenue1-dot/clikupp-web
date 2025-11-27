@@ -1,22 +1,43 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy } from 'firebase/firestore';
+import type { ImageMetadata } from '@/lib/firestore';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Loader2, ArrowLeft, Check } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+const MAX_IMAGES = 9;
 
 export default function AuditPage() {
     const { user, isUserLoading } = useUser();
+    const firestore = useFirestore();
     const router = useRouter();
 
+    const [step, setStep] = useState(1);
     const [platform, setPlatform] = useState('');
     const [goal, setGoal] = useState('');
+
+    const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
+    const [postTexts, setPostTexts] = useState(['', '', '']);
+
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const imagesQuery = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return query(collection(firestore, `users/${user.uid}/images`), orderBy('uploadTimestamp', 'desc'));
+    }, [user, firestore]);
+    const { data: images, isLoading: areImagesLoading } = useCollection<ImageMetadata>(imagesQuery);
 
     if (isUserLoading) {
         return (
@@ -30,26 +51,42 @@ export default function AuditPage() {
         router.push('/login?redirect=/audit');
         return null;
     }
+    
+    const totalSteps = 4;
+    const progress = (step / totalSteps) * 100;
 
-    const canProceed = platform && goal;
+    const toggleImageSelection = (imageId: string) => {
+        setSelectedImages(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(imageId)) {
+                newSet.delete(imageId);
+            } else {
+                if (newSet.size < MAX_IMAGES) {
+                    newSet.add(imageId);
+                }
+            }
+            return newSet;
+        });
+    };
 
-    return (
-        <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-            <div className="w-full max-w-2xl mx-auto space-y-8">
-                <header className="text-center">
-                    <h1 className="text-4xl font-bold tracking-tight">Coach Stratégique AI</h1>
-                    <p className="text-muted-foreground mt-2">
-                        Recevez une analyse complète et un plan d'action personnalisé pour votre profil de réseau social.
-                    </p>
-                </header>
+    const handleTextChange = (index: number, value: string) => {
+        const newTexts = [...postTexts];
+        newTexts[index] = value;
+        setPostTexts(newTexts);
+    };
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Étape 1 : Le Contexte</CardTitle>
-                        <CardDescription>
-                            Dites-nous quel profil analyser et quel est votre objectif principal.
-                        </CardDescription>
-                    </CardHeader>
+    const nextStep = () => setStep(prev => Math.min(prev + 1, totalSteps));
+    const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
+    
+    const canGoToStep2 = platform && goal;
+    const canGoToStep3 = selectedImages.size >= 1;
+    const canGoToStep4 = postTexts.some(text => text.trim() !== '');
+
+
+    const renderStepContent = () => {
+        switch (step) {
+            case 1:
+                return (
                     <CardContent className="space-y-6">
                         <div className="space-y-2">
                             <Label htmlFor="platform">Plateforme du réseau social</Label>
@@ -83,11 +120,154 @@ export default function AuditPage() {
                             </Select>
                         </div>
                     </CardContent>
-                    <CardFooter>
-                        <Button disabled={!canProceed || isSubmitting} className="w-full">
+                );
+            case 2:
+                return (
+                     <CardContent>
+                        <div className="bg-muted/50 border-l-4 border-primary p-4 rounded-r-lg mb-6">
+                            <h4 className="font-semibold">Conseil d'expert</h4>
+                            <p className="text-sm text-muted-foreground">
+                                Pour une analyse optimale, sélectionnez entre 6 et {MAX_IMAGES} publications qui représentent le mieux votre style actuel. <br/>
+                                <strong>Astuce :</strong> Incluez une capture d'écran de votre grille de profil ('feed') pour que l'IA puisse analyser l'harmonie globale.
+                            </p>
+                        </div>
+                        {areImagesLoading ? (
+                             <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                                {[...Array(8)].map((_, i) => <div key={i} className="aspect-square bg-muted rounded-md animate-pulse"></div>)}
+                            </div>
+                        ) : (
+                            <ScrollArea className="h-72">
+                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 pr-4">
+                                    {images?.map(image => (
+                                        <div 
+                                            key={image.id}
+                                            onClick={() => toggleImageSelection(image.id)}
+                                            className={cn("relative aspect-square rounded-lg overflow-hidden cursor-pointer group transition-all", selectedImages.has(image.id) && "ring-2 ring-primary ring-offset-2")}
+                                        >
+                                            <Image
+                                                src={image.directUrl}
+                                                alt={image.originalName || 'Image'}
+                                                fill
+                                                sizes="(max-width: 768px) 50vw, 25vw"
+                                                className="object-cover"
+                                                unoptimized
+                                            />
+                                             <div className="absolute inset-0 bg-black/30 group-hover:bg-black/50 transition-colors" />
+                                             {selectedImages.has(image.id) && (
+                                                <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-1">
+                                                    <Check className="h-4 w-4" />
+                                                </div>
+                                             )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </ScrollArea>
+                        )}
+                    </CardContent>
+                );
+            case 3:
+                return (
+                     <CardContent className="space-y-4">
+                         <div className="bg-muted/50 border-l-4 border-primary p-4 rounded-r-lg">
+                            <h4 className="font-semibold">Conseil d'expert</h4>
+                            <p className="text-sm text-muted-foreground">
+                                Copiez-collez le texte de 2 ou 3 publications récentes et variées (une description courte, une longue, un appel à l'action...).
+                            </p>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="post-text-1">Texte de publication 1</Label>
+                            <Textarea id="post-text-1" value={postTexts[0]} onChange={(e) => handleTextChange(0, e.target.value)} rows={3} placeholder="Collez votre texte ici..."/>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="post-text-2">Texte de publication 2</Label>
+                            <Textarea id="post-text-2" value={postTexts[1]} onChange={(e) => handleTextChange(1, e.target.value)} rows={3} placeholder="Collez votre texte ici..."/>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="post-text-3">Texte de publication 3</Label>
+                            <Textarea id="post-text-3" value={postTexts[2]} onChange={(e) => handleTextChange(2, e.target.value)} rows={3} placeholder="Collez votre texte ici..."/>
+                        </div>
+                    </CardContent>
+                );
+            case 4:
+                 return (
+                    <CardContent className="text-center">
+                        <h3 className="text-xl font-semibold">Prêt à lancer l'analyse ?</h3>
+                        <p className="text-muted-foreground mt-2">L'IA va maintenant analyser votre identité visuelle et rédactionnelle pour vous fournir un rapport complet.</p>
+                        <div className="mt-6 p-4 bg-muted rounded-lg text-left text-sm space-y-2">
+                            <p><strong>Plateforme :</strong> {platform}</p>
+                            <p><strong>Objectif :</strong> {goal}</p>
+                            <p><strong>Images sélectionnées :</strong> {selectedImages.size}</p>
+                            <p><strong>Textes fournis :</strong> {postTexts.filter(t => t.trim() !== '').length}</p>
+                        </div>
+                         <Button disabled={isSubmitting} className="w-full mt-6" size="lg">
                             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                            Étape suivante
+                            Lancer l'analyse (5 Tickets IA)
                         </Button>
+                    </CardContent>
+                );
+            default:
+                return null;
+        }
+    };
+    
+    const getStepTitle = () => {
+        switch (step) {
+            case 1: return "Le Contexte";
+            case 2: return `Identité Visuelle (${selectedImages.size}/${MAX_IMAGES})`;
+            case 3: return "Identité Rédactionnelle";
+            case 4: return "Récapitulatif & Lancement";
+            default: return "";
+        }
+    };
+    
+    const getStepDescription = () => {
+         switch (step) {
+            case 1: return "Dites-nous quel profil analyser et quel est votre objectif principal.";
+            case 2: return "Sélectionnez les images qui définissent votre style actuel.";
+            case 3: return "Fournissez des exemples de textes de vos publications.";
+            case 4: return "Vérifiez vos sélections avant de démarrer l'analyse IA.";
+            default: return "";
+        }
+    };
+
+    return (
+        <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+            <div className="w-full max-w-2xl mx-auto space-y-8">
+                <header className="text-center">
+                    <h1 className="text-4xl font-bold tracking-tight">Coach Stratégique</h1>
+                    <p className="text-muted-foreground mt-2">
+                        Recevez une analyse complète et un plan d'action personnalisé pour votre profil de réseau social.
+                    </p>
+                </header>
+
+                <Card>
+                    <CardHeader>
+                        <Progress value={progress} className="mb-4" />
+                        <CardTitle>{getStepTitle()}</CardTitle>
+                        <CardDescription>{getStepDescription()}</CardDescription>
+                    </CardHeader>
+                    
+                    {renderStepContent()}
+                    
+                    <CardFooter className="flex justify-between border-t pt-6">
+                        <Button variant="ghost" onClick={prevStep} disabled={step === 1 || isSubmitting}>
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Précédent
+                        </Button>
+                        {step < totalSteps ? (
+                            <Button 
+                                onClick={nextStep} 
+                                disabled={
+                                    (step === 1 && !canGoToStep2) ||
+                                    (step === 2 && !canGoToStep3) ||
+                                    (step === 3 && !canGoToStep4)
+                                }
+                            >
+                                Suivant
+                            </Button>
+                        ) : (
+                           <div></div> // Placeholder to keep spacing
+                        )}
                     </CardFooter>
                 </Card>
             </div>
