@@ -4,9 +4,9 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, useFirebase } from '@/firebase';
-import { collection, query, orderBy, doc } from 'firebase/firestore';
+import { collection, query, orderBy, doc, addDoc } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile } from '@/lib/firestore';
-import { socialAuditFlow } from '@/ai/flows/social-audit-flow';
+import { socialAuditFlow, type SocialAuditOutput } from '@/ai/flows/social-audit-flow';
 import { decrementAiTicketCount } from '@/lib/firestore';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, ArrowLeft, Check, ShoppingCart } from 'lucide-react';
+import { Loader2, ArrowLeft, Check, ShoppingCart, ClipboardList } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -265,9 +265,9 @@ export default function AuditPage() {
                 return (
                      <CardContent className="space-y-4">
                          <div className="bg-muted/50 border-l-4 border-primary p-4 rounded-r-lg">
-                            <h4 className="font-semibold">Conseil d'expert (Optionnel)</h4>
+                            <h4 className="font-semibold">Informations additionnelles (Optionnel)</h4>
                             <p className="text-sm text-muted-foreground">
-                                Copiez-collez le texte de 2 ou 3 publications récentes et variées (une description courte, une longue, un appel à l'action...).
+                                Si vous le souhaitez, copiez-collez le texte de 2 ou 3 publications récentes et/ou ajoutez un contexte pour guider l'IA.
                             </p>
                         </div>
                         <div className="space-y-2">
@@ -284,13 +284,13 @@ export default function AuditPage() {
                         </div>
                         <Separator />
                         <div className="space-y-2">
-                            <Label htmlFor="additional-context">Informations supplémentaires (optionnel)</Label>
+                            <Label htmlFor="additional-context">Contexte supplémentaire pour l'IA</Label>
                             <Textarea 
                                 id="additional-context" 
                                 value={additionalContext} 
                                 onChange={(e) => setAdditionalContext(e.target.value)} 
                                 rows={4} 
-                                placeholder="Donnez plus de contexte à l'IA : votre public cible, vos concurrents, une question spécifique..."
+                                placeholder="Ex: Je suis photographe et je cherche à attirer plus de clients pour des mariages. Je trouve mes photos trop sombres..."
                             />
                         </div>
                     </CardContent>
@@ -338,7 +338,7 @@ export default function AuditPage() {
          switch (step) {
             case 1: return "Dites-nous quel profil analyser et quel est votre objectif principal.";
             case 2: return "Sélectionnez les images qui définissent votre style actuel.";
-            case 3: return "Fournissez des exemples de textes de vos publications.";
+            case 3: return "Fournissez des exemples de textes pour affiner l'analyse.";
             case 4: return "Vérifiez vos sélections avant de démarrer l'analyse IA.";
             default: return "";
         }
@@ -346,13 +346,23 @@ export default function AuditPage() {
 
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-            <div className="w-full max-w-2xl mx-auto space-y-8">
+            <div className="w-full max-w-2xl mx-auto space-y-6">
                 <header className="text-center">
                     <h1 className="text-4xl font-bold tracking-tight">Coach Stratégique</h1>
                     <p className="text-muted-foreground mt-2">
                         Recevez une analyse complète et un plan d'action personnalisé pour votre profil de réseau social.
                     </p>
                 </header>
+
+                <div className="text-center">
+                    <Button variant="outline" asChild>
+                        {/* Ce lien sera fonctionnel dans une prochaine étape */}
+                        <Link href="#">
+                            <ClipboardList className="mr-2 h-4 w-4" />
+                            Voir mes analyses précédentes
+                        </Link>
+                    </Button>
+                </div>
 
                 <Card>
                     <CardHeader>
