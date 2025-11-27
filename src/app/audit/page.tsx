@@ -4,7 +4,7 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, useFirebase } from '@/firebase';
-import { collection, query, orderBy, doc, addDoc } from 'firebase/firestore';
+import { collection, query, orderBy, addDoc } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile } from '@/lib/firestore';
 import { socialAuditFlow, type SocialAuditOutput } from '@/ai/flows/social-audit-flow';
 import { decrementAiTicketCount } from '@/lib/firestore';
@@ -24,17 +24,6 @@ import { Separator } from '@/components/ui/separator';
 
 const MAX_IMAGES = 9;
 const AUDIT_COST = 5;
-
-// Helper pour lire un fichier en tant que Data URL
-const readFileAsDataURL = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-};
-
 
 export default function AuditPage() {
     const { user, isUserLoading } = useUser();
@@ -65,7 +54,6 @@ export default function AuditPage() {
     }, [user, firestore]);
     const { data: images, isLoading: areImagesLoading } = useCollection<ImageMetadata>(imagesQuery);
     
-    // Nouvelle requête pour récupérer les audits
     const auditsQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
         return query(collection(firestore, `users/${user.uid}/audits`));
@@ -133,16 +121,9 @@ export default function AuditPage() {
         setIsSubmitting(true);
 
         try {
-            // 1. Récupérer les URLs complètes des images sélectionnées
             const selectedImageObjects = images?.filter(img => selectedImages.has(img.id)) || [];
-            
-            // 2. Convertir les images en data URIs (si nécessaire, ici on utilise directUrl)
-            // Note: Pour une analyse fiable, il faudrait s'assurer que les URLs sont accessibles.
-            // L'idéal serait de les convertir en data URI côté client si elles ne le sont pas déjà.
-            // Pour l'instant, on suppose que les directUrl de Firebase Storage sont publiquement accessibles.
             const imageUrls = selectedImageObjects.map(img => img.directUrl);
 
-            // 3. Appeler le flow Genkit
             const result = await socialAuditFlow({
                 platform,
                 goal,
@@ -151,20 +132,28 @@ export default function AuditPage() {
                 additionalContext: additionalContext.trim() || undefined,
             });
 
-            // 4. Décrémenter les tickets
             for (let i = 0; i < AUDIT_COST; i++) {
                 await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             }
+            
+            // SAUVEGARDE DU RAPPORT
+            const auditsCollectionRef = collection(firestore, `users/${user.uid}/audits`);
+            const auditDataToSave = {
+                ...result,
+                userId: user.uid,
+                createdAt: new Date(),
+                platform,
+                goal,
+            };
+            const docRef = await addDoc(auditsCollectionRef, auditDataToSave);
             
             toast({
                 title: 'Analyse terminée !',
                 description: `Votre rapport est prêt. ${AUDIT_COST} tickets IA ont été utilisés.`,
             });
             
-            // TODO: Rediriger vers la page des résultats et y passer les données `result`.
-            // Pour l'instant, on affiche en console et on redirige.
-            console.log("Rapport d'audit IA:", result);
-            router.push('/'); // Redirection temporaire
+            // REDIRECTION VERS LA PAGE DE RÉSULTATS
+            router.push(`/audit/resultats/${docRef.id}`);
 
         } catch (error) {
             console.error("Erreur lors de l'audit IA:", error);
@@ -184,7 +173,7 @@ export default function AuditPage() {
     
     const canGoToStep2 = platform && goal;
     const canGoToStep3 = selectedImages.size >= 1;
-    const canGoToStep4 = true; // Étape 3 est maintenant optionnelle
+    const canGoToStep4 = true; 
 
 
     const renderStepContent = () => {
@@ -232,7 +221,7 @@ export default function AuditPage() {
                             <h4 className="font-semibold">Conseil d'expert</h4>
                             <p className="text-sm text-muted-foreground">
                                 Pour une analyse optimale, sélectionnez entre 6 et {MAX_IMAGES} publications qui représentent le mieux votre style actuel. <br/>
-                                <strong>Astuces :</strong> Incluez une capture d'écran de votre <strong>grille de profil ('feed')</strong> pour l'harmonie globale, et une autre de votre <strong>description de profil</strong> pour l'analyse textuelle.
+                                <strong>Astuces :</strong> Incluez une capture de votre <strong>grille de profil ('feed')</strong>, ainsi qu'une autre de la <strong>description de votre profil</strong>.
                             </p>
                         </div>
                         {areImagesLoading ? (
