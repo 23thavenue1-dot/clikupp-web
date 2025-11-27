@@ -157,25 +157,6 @@ export function Navbar() {
                 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <UnsavedChangesLink href="/secret-messages" passHref>
-                      <Button variant="ghost" size="icon" aria-label="Tips de Créateur" className="relative">
-                        <Mail className="h-5 w-5" />
-                        {hasUnreadMsgs && (
-                          <span className="absolute top-2 right-2 flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                          </span>
-                        )}
-                      </Button>
-                    </UnsavedChangesLink>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Tips de Créateur</p>
-                  </TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
                     <UnsavedChangesLink href="/shop" passHref>
                       <Button variant="ghost" size="icon" aria-label="Boutique">
                         <ShoppingCart className="h-5 w-5" />
@@ -260,6 +241,18 @@ export function Navbar() {
                             )}
                           </UnsavedChangesLink>
                         </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                           <UnsavedChangesLink href="/secret-messages" className="relative">
+                               <Mail className="mr-2 h-4 w-4" />
+                               <span>Tips de créateur</span>
+                               {hasUnreadMsgs && (
+                                   <span className="absolute top-1/2 -translate-y-1/2 right-2 flex h-2 w-2">
+                                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                       <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                   </span>
+                               )}
+                           </UnsavedChangesLink>
+                       </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <UnsavedChangesLink href="/settings">
                             <Settings className="mr-2 h-4 w-4" />
