@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import {
@@ -77,6 +76,14 @@ export interface UserProfile {
   gracePeriodEndDate: Timestamp | null;
 }
 
+// NOUVEAU: Entité pour les profils de marque
+export interface BrandProfile {
+  id: string;
+  userId: string;
+  name: string;
+  avatarUrl?: string;
+  createdAt: Timestamp;
+}
 
 // Ce type représente la structure de données attendue pour un document d'image dans Firestore.
 // Il est crucial qu'il corresponde au schéma dans backend.json et aux règles de sécurité.
@@ -941,6 +948,36 @@ export async function updateCustomPrompt(firestore: Firestore, userId: string, u
         throw error;
     }
 }
-    
 
+/**
+ * Crée un nouveau profil de marque pour l'utilisateur.
+ * @param firestore L'instance Firestore.
+ * @param userId L'ID de l'utilisateur.
+ * @param name Le nom du profil de marque.
+ * @param avatarUrl (Optionnel) L'URL de l'avatar/logo.
+ */
+export async function createBrandProfile(firestore: Firestore, userId: string, name: string, avatarUrl: string = ''): Promise<DocumentReference> {
+    const brandProfilesCollectionRef = collection(firestore, 'users', userId, 'brandProfiles');
+
+    const dataToSave = {
+        userId,
+        name,
+        avatarUrl,
+        createdAt: serverTimestamp(),
+    };
+
+    try {
+        const docRef = await addDoc(brandProfilesCollectionRef, dataToSave);
+        await updateDoc(docRef, { id: docRef.id });
+        return docRef;
+    } catch (error) {
+        const permissionError = new FirestorePermissionError({
+            path: brandProfilesCollectionRef.path,
+            operation: 'create',
+            requestResourceData: dataToSave,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        throw error;
+    }
+}
     
