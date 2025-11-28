@@ -4,23 +4,7 @@ Ce document rassemble des idées et des propositions pour rendre la page d'accue
 
 ---
 
-### Proposition 1 : Raccourcis d'Actions sur les Images (Simple et Efficace)
-
-**Le problème :** Actuellement, il faut au moins 2 clics (menu "..." > option) pour accéder à une fonctionnalité IA. C'est lent et peu visible.
-
-**La solution :** Remplacer le menu "..." par deux boutons d'action clairs et distincts qui apparaissent directement au survol de chaque image dans la galerie.
-
-1.  **Un bouton "Éditer avec l'IA" (`Sparkles`) :** Ce bouton mènerait directement à la page d'édition (`/edit/[imageId]`). C'est l'action la plus "spectaculaire", elle mérite son propre bouton.
-2.  **Un bouton "Modifier la description" (`Pencil` ou `FileText`) :** Ce bouton ouvrirait directement la fenêtre de dialogue pour modifier le titre, la description et générer du contenu avec l'IA.
-
-**Avantages :**
-*   **Visibilité Immédiate :** Les utilisateurs voient instantanément ce qu'ils peuvent faire.
-*   **Accès en un clic :** Le flux de travail est beaucoup plus rapide.
-*   **Implémentation simple :** Cela ne nécessite qu'une modification du composant `ImageList.tsx`.
-
----
-
-### Proposition 2 : Un "Hub de Création" sur la Page d'Accueil (Plus Ambitieux)
+### Proposition 1 : Un "Hub de Création" sur la Page d'Accueil (Plus Ambitieux)
 
 **Le problème :** L'application est encore très orientée "stockage". On téléverse, puis on voit une liste.
 
@@ -40,7 +24,7 @@ Imaginez :
 
 ---
 
-### Proposition 3 : L'Assistant Proactif (Vision à long terme)
+### Proposition 2 : L'Assistant Proactif (Vision à long terme)
 
 **Le problème :** L'utilisateur doit encore décider quoi faire.
 
@@ -59,6 +43,4 @@ Imaginez :
 
 Il est suggéré de commencer par la **Proposition 1**.
 
-Elle est **simple à mettre en œuvre**, son **impact sur l'expérience utilisateur sera immédiat et très positif**, et elle ne bouleverse pas la structure actuelle de la page. C'est une amélioration nette, sans risque.
-
-La **Proposition 2** est excellente et représente l'étape logique suivante pour rendre l'application vraiment unique.
+Elle est **excellente** et représente l'étape logique suivante pour rendre l'application vraiment unique.

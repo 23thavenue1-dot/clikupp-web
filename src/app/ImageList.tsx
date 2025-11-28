@@ -528,7 +528,7 @@ export function ImageList() {
                                                     isSelectionMode && "cursor-pointer"
                                                 )}
                                             >
-                                                <div className={cn("block aspect-square w-full relative overflow-hidden", selectedImages.has(image.id) && "ring-2 ring-primary ring-offset-2 rounded-lg")}>
+                                                <Link href={`/image/${image.id}`} className={cn("block aspect-square w-full relative overflow-hidden", selectedImages.has(image.id) && "ring-2 ring-primary ring-offset-2 rounded-lg")}>
                                                     {isSelectionMode ? (
                                                         <div className="absolute top-2 left-2 z-10 bg-background rounded-full p-1 border">
                                                             <div className={cn(
@@ -563,31 +563,6 @@ export function ImageList() {
                                                     />
                                                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
                                                     
-                                                    {!isSelectionMode && (
-                                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
-                                                            <div className="flex gap-2">
-                                                                <Tooltip>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Link href={`/edit/${image.id}`} passHref>
-                                                                            <Button variant="secondary" size="icon" className="h-10 w-10">
-                                                                                <Sparkles size={20} />
-                                                                            </Button>
-                                                                        </Link>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent><p>Éditer avec l'IA</p></TooltipContent>
-                                                                </Tooltip>
-                                                                <Tooltip>
-                                                                    <TooltipTrigger asChild>
-                                                                         <Button variant="secondary" size="icon" className="h-10 w-10" onClick={(e) => openEditDialog(e, image)}>
-                                                                            <Wand2 size={20} />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent><p>Modifier la description</p></TooltipContent>
-                                                                </Tooltip>
-                                                            </div>
-                                                        </div>
-                                                    )}
-
                                                     <div className="absolute top-2 right-2 z-10">
                                                         <DropdownMenu>
                                                             <DropdownMenuTrigger asChild>
@@ -606,17 +581,21 @@ export function ImageList() {
                                                                     <span>{isPinned ? 'Désépingler' : 'Épingler'}</span>
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuSeparator />
+                                                                <DropdownMenuItem asChild>
+                                                                    <Link href={`/edit/${image.id}`} passHref>
+                                                                        <Sparkles className="mr-2 h-4 w-4" />
+                                                                        <span>Éditer avec l'IA</span>
+                                                                    </Link>
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={(e) => openEditDialog(e, image)}>
+                                                                    <Wand2 className="mr-2 h-4 w-4" />
+                                                                    <span>Modifier la description</span>
+                                                                </DropdownMenuItem>
                                                                 <DropdownMenuItem onClick={(e) => openAddToGalleryDialog(e, image)}>
                                                                     <CopyPlus className="mr-2 h-4 w-4" />
                                                                     <span>Ajouter à la galerie</span>
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuSeparator />
-                                                                <DropdownMenuItem asChild>
-                                                                    <Link href={`/image/${image.id}`} onClick={(e) => e.stopPropagation()}>
-                                                                        <Share2 className="mr-2 h-4 w-4" />
-                                                                        <span>Détails et Partage</span>
-                                                                    </Link>
-                                                                </DropdownMenuItem>
                                                                 <DropdownMenuItem onClick={(e) => handleDownload(e, image)} disabled={isDownloading === image.id}>
                                                                     {isDownloading === image.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                                                                     <span>Télécharger</span>
@@ -643,7 +622,7 @@ export function ImageList() {
                                                             </p>
                                                         )}
                                                     </div>
-                                                </div>
+                                                </Link>
                                                     
                                                 <div className="p-3 bg-card flex-grow flex flex-col gap-1">
                                                     {image.title && (
