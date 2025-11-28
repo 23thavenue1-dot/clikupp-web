@@ -18,10 +18,12 @@
     *   **Galerie Personnelle :** Toutes les images sont affichées dans une galerie privée où l'utilisateur peut les gérer.
     *   **Organisation par Galeries (Albums) :** Les utilisateurs peuvent créer des galeries personnalisées, y ajouter des images (individuellement ou par sélection multiple) et les retirer, offrant une organisation complète de leur bibliothèque visuelle.
     *   **Téléchargement Facile et Partage Simplifié :** Chaque image peut être téléchargée, et une page dédiée permet de copier en un clic son contenu (titre, description, hashtags) ainsi que ses liens de partage (URL, BBCode, HTML).
+    *   **Génération d'images par IA :** Un module permet de créer des images de zéro à partir d'une simple description textuelle.
 
 *   **Fonctionnalités IA Intégrées :**
     *   **Analyse et Description :** L'IA peut générer des titres, descriptions et hashtags pertinents pour une image.
     *   **Édition d'Image par le Langage Naturel :** L'utilisateur peut demander des modifications complexes simplement en les décrivant.
+    *   **Coach Stratégique IA :** Un assistant d'audit de profil qui analyse votre contenu (images, textes) et vous fournit un rapport stratégique complet (identité visuelle, axes d'amélioration, plan d'action) pour atteindre vos objectifs sur les réseaux sociaux.
 
 *   **Système de Gamification et de Progression :**
     *   **Niveaux et Expérience (XP) :** Les utilisateurs gagnent des points d'expérience pour débloquer des niveaux et des badges.
@@ -30,7 +32,7 @@
 
 *   **Modèle Économique "Freemium" et Boutique Intégrée :**
     *   **Système de Tickets Équitable :** Chaque utilisateur reçoit des **tickets de téléversement** et des **tickets IA** gratuits quotidiennement.
-    *   **Boutique Complète :** Une boutique fonctionnelle permet aux utilisateurs d'acheter des **packs de tickets** (achats uniques) ou de souscrire à des **abonnements** mensuels ("Créateur", "Pro", "Maître") pour augmenter leurs quotas de tickets et leur espace de stockage.
+    *   **Boutique Complète :** Une boutique fonctionnelle permet aux utilisateurs d'acheter des **packs de tickets** (achats uniques) ou de souscrire à des **abonnements** mensuels ("Créateur", "Pro", "Maître", et des plans de stockage seul) pour augmenter leurs quotas de tickets et leur espace de stockage.
     *   **Gestion des Abonnements :** Les utilisateurs peuvent gérer leur abonnement directement depuis leurs paramètres via un portail client sécurisé.
 
 *   **Politique de Stockage Juste et Transparente :**
