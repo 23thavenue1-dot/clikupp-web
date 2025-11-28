@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -687,7 +688,7 @@ export default function AuditPage() {
                 <AlertDialogHeader>
                     <AlertDialogTitle>Supprimer le profil "{deletingProfile?.name}" ?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Cette action est irréversible. Les analyses associées à ce profil ne seront pas supprimées.
+                        Cette action est irréversible. Toutes les analyses associées à ce profil seront également supprimées.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {
@@ -1004,18 +1005,31 @@ export async function updateBrandProfile(firestore: Firestore, userId: string, p
 }
 
 /**
- * Supprime un profil de marque.
- * TODO: Décider de la stratégie pour les audits orphelins.
+ * Supprime un profil de marque et tous les audits associés.
  * @param firestore L'instance Firestore.
  * @param userId L'ID de l'utilisateur.
  * @param profileId L'ID du profil de marque à supprimer.
  */
 export async function deleteBrandProfile(firestore: Firestore, userId: string, profileId: string): Promise<void> {
     const profileDocRef = doc(firestore, `users/${userId}/brandProfiles/${profileId}`);
+    
     try {
-        await deleteDoc(profileDocRef);
-        // Note : pour l'instant, les audits associés deviennent orphelins.
-        // Une version plus avancée pourrait les supprimer en cascade ici.
+        // Étape 1 : Supprimer tous les audits associés à ce profil de marque
+        const auditsCollectionRef = collection(firestore, 'users', userId, 'audits');
+        const auditsQuery = query(auditsCollectionRef, where('brandProfileId', '==', profileId));
+        const auditsSnapshot = await getDocs(auditsQuery);
+        
+        const batch = writeBatch(firestore);
+        auditsSnapshot.forEach(auditDoc => {
+            batch.delete(auditDoc.ref);
+        });
+        
+        // Étape 2 : Ajouter la suppression du profil de marque au batch
+        batch.delete(profileDocRef);
+        
+        // Étape 3 : Exécuter toutes les opérations en une seule fois
+        await batch.commit();
+
     } catch (error) {
         const permissionError = new FirestorePermissionError({
             path: profileDocRef.path,
@@ -1025,6 +1039,7 @@ export async function deleteBrandProfile(firestore: Firestore, userId: string, p
         throw error;
     }
 }
+
 
 /**
  * Supprime un rapport d'audit.
