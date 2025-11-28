@@ -26,7 +26,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 
 const MAX_STYLE_IMAGES = 9;
-const MAX_SUBJECT_IMAGES = 3;
+const MAX_SUBJECT_IMAGES = 5;
 const AUDIT_COST = 5;
 
 export default function AuditPage() {
@@ -598,4 +598,3 @@ export default function AuditPage() {
         </div>
     );
 }
-
