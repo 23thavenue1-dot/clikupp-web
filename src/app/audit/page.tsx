@@ -25,7 +25,8 @@ import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 
-const MAX_IMAGES = 9;
+const MAX_STYLE_IMAGES = 9;
+const MAX_SUBJECT_IMAGES = 3;
 const AUDIT_COST = 5;
 
 export default function AuditPage() {
@@ -48,13 +49,16 @@ export default function AuditPage() {
     const [goal, setGoal] = useState('');
 
     // --- Step 3 States ---
-    const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
+    const [selectedStyleImages, setSelectedStyleImages] = useState<Set<string>>(new Set());
+    
+    // --- NOUVEAU: Step 4 States ---
+    const [selectedSubjectImages, setSelectedSubjectImages] = useState<Set<string>>(new Set());
 
-    // --- Step 4 States ---
+    // --- Step 5 States ---
     const [postTexts, setPostTexts] = useState(['', '', '']);
     const [additionalContext, setAdditionalContext] = useState('');
 
-    // --- Step 5 States ---
+    // --- Step 6 States ---
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const userDocRef = useMemoFirebase(() => {
@@ -121,16 +125,30 @@ export default function AuditPage() {
         return null;
     }
     
-    const totalSteps = 5;
+    const totalSteps = 6;
     const progress = (step / totalSteps) * 100;
 
-    const toggleImageSelection = (imageId: string) => {
-        setSelectedImages(prev => {
+    const toggleStyleImageSelection = (imageId: string) => {
+        setSelectedStyleImages(prev => {
             const newSet = new Set(prev);
             if (newSet.has(imageId)) {
                 newSet.delete(imageId);
             } else {
-                if (newSet.size < MAX_IMAGES) {
+                if (newSet.size < MAX_STYLE_IMAGES) {
+                    newSet.add(imageId);
+                }
+            }
+            return newSet;
+        });
+    };
+    
+    const toggleSubjectImageSelection = (imageId: string) => {
+        setSelectedSubjectImages(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(imageId)) {
+                newSet.delete(imageId);
+            } else {
+                if (newSet.size < MAX_SUBJECT_IMAGES) {
                     newSet.add(imageId);
                 }
             }
@@ -145,7 +163,7 @@ export default function AuditPage() {
     };
     
     const handleSubmit = async () => {
-        if (!user || !userProfile || !firestore || selectedImages.size === 0 || !selectedProfileId) return;
+        if (!user || !userProfile || !firestore || selectedStyleImages.size === 0 || !selectedProfileId) return;
 
         if (totalAiTickets < AUDIT_COST) {
             toast({
@@ -163,13 +181,17 @@ export default function AuditPage() {
         setIsSubmitting(true);
 
         try {
-            const selectedImageObjects = images?.filter(img => selectedImages.has(img.id)) || [];
-            const imageUrls = selectedImageObjects.map(img => img.directUrl);
+            const selectedStyleImageObjects = images?.filter(img => selectedStyleImages.has(img.id)) || [];
+            const styleImageUrls = selectedStyleImageObjects.map(img => img.directUrl);
+
+            const selectedSubjectImageObjects = images?.filter(img => selectedSubjectImages.has(img.id)) || [];
+            const subjectImageUrls = selectedSubjectImageObjects.map(img => img.directUrl);
 
             const result = await socialAuditFlow({
                 platform,
                 goal,
-                image_urls: imageUrls,
+                image_urls: styleImageUrls,
+                subject_image_urls: subjectImageUrls, // NOUVEAU
                 post_texts: postTexts.filter(t => t.trim() !== ''),
                 additionalContext: additionalContext.trim() || undefined,
             });
@@ -178,12 +200,11 @@ export default function AuditPage() {
                 await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             }
             
-            // SAUVEGARDE DU RAPPORT
             const auditsCollectionRef = collection(firestore, `users/${user.uid}/audits`);
             const auditDataToSave = {
                 ...result,
                 userId: user.uid,
-                brandProfileId: selectedProfileId, // Lien vers le profil
+                brandProfileId: selectedProfileId,
                 createdAt: new Date(),
                 platform,
                 goal,
@@ -195,7 +216,6 @@ export default function AuditPage() {
                 description: `Votre rapport est prêt. ${AUDIT_COST} tickets IA ont été utilisés.`,
             });
             
-            // REDIRECTION VERS LA PAGE DE RÉSULTATS
             router.push(`/audit/resultats/${docRef.id}`);
 
         } catch (error) {
@@ -216,8 +236,9 @@ export default function AuditPage() {
     
     const canGoToStep2 = selectedProfileId;
     const canGoToStep3 = platform && goal;
-    const canGoToStep4 = selectedImages.size >= 1;
-    const canGoToStep5 = true; 
+    const canGoToStep4 = selectedStyleImages.size >= 1;
+    const canGoToStep5 = true; // L'étape 4 est optionnelle
+    const canGoToStep6 = true;
 
 
     const renderStepContent = () => {
@@ -342,8 +363,8 @@ export default function AuditPage() {
                         <div className="bg-muted/50 border-l-4 border-primary p-4 rounded-r-lg mb-6">
                             <h4 className="font-semibold">Conseil d'expert</h4>
                             <p className="text-sm text-muted-foreground">
-                                Pour une analyse optimale, sélectionnez entre 6 et {MAX_IMAGES} publications qui représentent le mieux votre style actuel. <br/>
-                                <strong>Astuces :</strong> Incluez une capture de votre <strong>grille de profil ('feed')</strong>, ainsi qu'une autre de la <strong>description de votre profil</strong>.
+                                Pour une analyse de style optimale, sélectionnez entre 6 et {MAX_STYLE_IMAGES} publications.
+                                <br/><strong>Astuces :</strong> Incluez une capture de votre <strong>grille de profil ('feed')</strong> et de votre <strong>description de profil</strong>.
                             </p>
                         </div>
                         {areImagesLoading ? (
@@ -356,8 +377,8 @@ export default function AuditPage() {
                                     {images?.map(image => (
                                         <div 
                                             key={image.id}
-                                            onClick={() => toggleImageSelection(image.id)}
-                                            className={cn("relative aspect-square rounded-lg overflow-hidden cursor-pointer group transition-all", selectedImages.has(image.id) && "ring-2 ring-primary ring-offset-2")}
+                                            onClick={() => toggleStyleImageSelection(image.id)}
+                                            className={cn("relative aspect-square rounded-lg overflow-hidden cursor-pointer group transition-all", selectedStyleImages.has(image.id) && "ring-2 ring-primary ring-offset-2")}
                                         >
                                             <Image
                                                 src={image.directUrl}
@@ -368,7 +389,7 @@ export default function AuditPage() {
                                                 unoptimized
                                             />
                                              <div className="absolute inset-0 bg-black/30 group-hover:bg-black/50 transition-colors" />
-                                             {selectedImages.has(image.id) && (
+                                             {selectedStyleImages.has(image.id) && (
                                                 <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-1">
                                                     <Check className="h-4 w-4" />
                                                 </div>
@@ -380,7 +401,51 @@ export default function AuditPage() {
                         )}
                     </CardContent>
                 );
-            case 4:
+            case 4: // Nouvelle étape
+                return (
+                     <CardContent>
+                        <div className="bg-muted/50 border-l-4 border-primary p-4 rounded-r-lg mb-6">
+                            <h4 className="font-semibold">💡 Astuce Pro : Pour des générations d'images personnalisées</h4>
+                            <p className="text-sm text-muted-foreground">
+                                Sélectionnez jusqu'à {MAX_SUBJECT_IMAGES} portraits clairs (visage et/ou corps) du sujet principal. 
+                                Cela permettra à l'IA d'apprendre son apparence pour vous proposer des créations vraiment sur-mesure à la fin du rapport !
+                            </p>
+                        </div>
+                        {areImagesLoading ? (
+                             <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                                {[...Array(8)].map((_, i) => <div key={i} className="aspect-square bg-muted rounded-md animate-pulse"></div>)}
+                            </div>
+                        ) : (
+                            <ScrollArea className="h-72">
+                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 pr-4">
+                                    {images?.map(image => (
+                                        <div 
+                                            key={image.id}
+                                            onClick={() => toggleSubjectImageSelection(image.id)}
+                                            className={cn("relative aspect-square rounded-lg overflow-hidden cursor-pointer group transition-all", selectedSubjectImages.has(image.id) && "ring-2 ring-primary ring-offset-2")}
+                                        >
+                                            <Image
+                                                src={image.directUrl}
+                                                alt={image.originalName || 'Image'}
+                                                fill
+                                                sizes="(max-width: 768px) 50vw, 25vw"
+                                                className="object-cover"
+                                                unoptimized
+                                            />
+                                             <div className="absolute inset-0 bg-black/30 group-hover:bg-black/50 transition-colors" />
+                                             {selectedSubjectImages.has(image.id) && (
+                                                <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-1">
+                                                    <Check className="h-4 w-4" />
+                                                </div>
+                                             )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </ScrollArea>
+                        )}
+                    </CardContent>
+                );
+            case 5:
                 return (
                      <CardContent className="space-y-4">
                          <div className="bg-muted/50 border-l-4 border-primary p-4 rounded-r-lg">
@@ -414,7 +479,7 @@ export default function AuditPage() {
                         </div>
                     </CardContent>
                 );
-            case 5:
+            case 6:
                  const selectedProfile = brandProfiles?.find(p => p.id === selectedProfileId);
                  return (
                     <CardContent className="text-center">
@@ -424,7 +489,8 @@ export default function AuditPage() {
                             <p><strong>Profil de Marque :</strong> {selectedProfile?.name || 'N/A'}</p>
                             <p><strong>Plateforme :</strong> {platform}</p>
                             <p><strong>Objectif :</strong> {goal}</p>
-                            <p><strong>Images sélectionnées :</strong> {selectedImages.size}</p>
+                            <p><strong>Images de Style :</strong> {selectedStyleImages.size}</p>
+                            <p><strong>Images du Sujet :</strong> {selectedSubjectImages.size}</p>
                             <p><strong>Textes fournis :</strong> {postTexts.filter(t => t.trim() !== '').length}</p>
                             {additionalContext.trim() && <p><strong>Contexte ajouté :</strong> Oui</p>}
                         </div>
@@ -449,9 +515,10 @@ export default function AuditPage() {
         switch (step) {
             case 1: return "Sélection du Profil";
             case 2: return "Le Contexte";
-            case 3: return `Identité Visuelle (${selectedImages.size}/${MAX_IMAGES})`;
-            case 4: return "Identité Rédactionnelle (Optionnel)";
-            case 5: return "Récapitulatif & Lancement";
+            case 3: return `Identité Visuelle (${selectedStyleImages.size}/${MAX_STYLE_IMAGES})`;
+            case 4: return `Identité du Sujet (${selectedSubjectImages.size}/${MAX_SUBJECT_IMAGES})`;
+            case 5: return "Identité Rédactionnelle (Optionnel)";
+            case 6: return "Récapitulatif & Lancement";
             default: return "";
         }
     };
@@ -461,8 +528,9 @@ export default function AuditPage() {
             case 1: return "Pour qui est cette analyse ? Choisissez un profil ou créez-en un nouveau.";
             case 2: return "Dites-nous quel profil analyser et quel est votre objectif principal.";
             case 3: return "Sélectionnez les images qui définissent votre style actuel.";
-            case 4: return "Fournissez des exemples de textes pour affiner l'analyse.";
-            case 5: return "Vérifiez vos sélections avant de démarrer l'analyse IA.";
+            case 4: return "Optionnel : ajoutez des portraits de référence pour une génération d'image personnalisée.";
+            case 5: return "Fournissez des exemples de textes pour affiner l'analyse de votre ton.";
+            case 6: return "Vérifiez vos sélections avant de démarrer l'analyse IA.";
             default: return "";
         }
     };
@@ -515,7 +583,8 @@ export default function AuditPage() {
                                     (step === 1 && !canGoToStep2) ||
                                     (step === 2 && !canGoToStep3) ||
                                     (step === 3 && !canGoToStep4) ||
-                                    (step === 4 && !canGoToStep5)
+                                    (step === 4 && !canGoToStep5) ||
+                                    (step === 5 && !canGoToStep6)
                                 }
                             >
                                 Suivant
