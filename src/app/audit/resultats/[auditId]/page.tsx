@@ -131,8 +131,10 @@ export default function AuditResultPage() {
     };
     
     const handleUndoGeneration = () => {
-        if (historyIndex > -1) {
+        if (historyIndex > 0) {
             setHistoryIndex(prev => prev - 1);
+        } else if (historyIndex === 0) {
+             setHistoryIndex(-1); // Revenir à l'état initial
         }
     };
 
@@ -163,8 +165,7 @@ export default function AuditResultPage() {
             });
 
             toast({ title: "Image sauvegardée !", description: "Votre nouvelle création a été ajoutée à votre galerie principale." });
-            setGeneratedImageHistory([]);
-            setHistoryIndex(-1);
+            
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: (error as Error).message });
         } finally {
