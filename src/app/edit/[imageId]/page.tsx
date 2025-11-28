@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -13,7 +12,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { editImage } from '@/ai/flows/edit-image-flow';
+import { editImage } from '@/ai/flows/generate-image-flow';
 import { decrementAiTicketCount, saveImageMetadata, saveCustomPrompt, deleteCustomPrompt, updateCustomPrompt, updateImageDescription } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
@@ -168,7 +167,7 @@ export default function EditImagePage() {
             const result = await editImage({ imageUrl: baseImageUrl, prompt: currentPrompt });
             
             const newHistoryItem: ImageHistoryItem = {
-                imageUrl: result.newImageUrl,
+                imageUrl: result.imageUrl,
                 prompt: currentPrompt,
                 title: generatedTitle, // On conserve les titres/descriptions précédents
                 description: generatedDescription,
@@ -226,7 +225,10 @@ export default function EditImagePage() {
         setIsGeneratingDescription(true);
         try {
             // L'URL de l'image à décrire
-            const imageUrlToProcess = imageToDescribe.imageUrl || (imageToDescribe as ImageMetadata).directUrl;
+            const imageUrlToProcess = currentHistoryItem?.imageUrl || originalImage?.directUrl;
+            if (!imageUrlToProcess) {
+                throw new Error("Aucune URL d'image disponible pour la description.");
+            }
 
             const result = await generateImageDescription({ imageUrl: imageUrlToProcess, platform: platform });
             
@@ -253,41 +255,40 @@ export default function EditImagePage() {
     };
 
     const handleSaveAiCreation = async () => {
-        const imageToSave = currentHistoryItem || originalImage;
-        if (!imageToSave || !user || !firebaseApp || !firestore) return;
+        const imageToSave = currentHistoryItem; // On ne sauvegarde que les nouvelles images
+        if (!imageToSave || !user || !firebaseApp || !firestore) {
+            // Si on clique sur enregistrer sans avoir généré d'image, on met à jour la description de l'originale
+            if (originalImage) {
+                 await updateImageDescription(firestore, user.uid, originalImage.id, {
+                    title: generatedTitle,
+                    description: generatedDescription,
+                    hashtags: generatedHashtags,
+                }, false); // false car la description n'est pas forcément générée par IA
+                toast({ title: "Description mise à jour !", description: "La description de l'image originale a été modifiée." });
+                router.push('/');
+            }
+            return;
+        };
         
         setIsSaving(true);
 
         try {
-            const isNewImage = !!currentHistoryItem;
+            const storage = getStorage(firebaseApp);
+            const blob = await dataUriToBlob(imageToSave.imageUrl);
+            const newFileName = `ai-edited-${Date.now()}.png`;
+            const imageFile = new File([blob], newFileName, { type: blob.type });
+
+            const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `IA: ${imageToSave.prompt}`, () => {});
             
-            if (isNewImage) {
-                // Cas 1 : Sauvegarder une NOUVELLE image générée
-                const storage = getStorage(firebaseApp);
-                const blob = await dataUriToBlob(imageToSave.imageUrl);
-                const newFileName = `ai-edited-${Date.now()}.png`;
-                const imageFile = new File([blob], newFileName, { type: blob.type });
+            await saveImageMetadata(firestore, user, { 
+                ...metadata,
+                title: generatedTitle,
+                description: generatedDescription,
+                hashtags: generatedHashtags,
+                generatedByAI: true
+            });
+            toast({ title: "Nouvelle création enregistrée !", description: "Votre nouvelle image et sa description ont été ajoutées à votre galerie." });
 
-                const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `IA: ${imageToSave.prompt}`, () => {});
-                
-                await saveImageMetadata(firestore, user, { 
-                    ...metadata,
-                    title: generatedTitle,
-                    description: generatedDescription,
-                    hashtags: generatedHashtags,
-                    generatedByAI: true
-                });
-                toast({ title: "Nouvelle création enregistrée !", description: "Votre nouvelle image et sa description ont été ajoutées à votre galerie." });
-
-            } else {
-                 // Cas 2 : Mettre à jour la description de l'image ORIGINALE
-                await updateImageDescription(firestore, user.uid, originalImage.id, {
-                    title: generatedTitle,
-                    description: generatedDescription,
-                    hashtags: generatedHashtags,
-                }, false);
-                toast({ title: "Description mise à jour !", description: "La description de l'image originale a été modifiée." });
-            }
             router.push('/'); // Rediriger vers l'accueil après la sauvegarde
 
         } catch (error) {
