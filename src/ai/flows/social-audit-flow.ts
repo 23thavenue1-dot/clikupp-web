@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Flow Genkit pour l'audit de profil de réseau social par l'IA.
@@ -47,5 +48,7 @@ const socialAuditPrompt = ai.definePrompt({
         3.  **content_strategy**: Propose 3 idées de contenu variées et spécifiques (ex: "Essayer un carrousel avant/après", "Faire une vidéo des coulisses de votre travail", "Créer un post tutoriel") qui sont directement liées à son objectif.
         
         4.  **action_plan**: Crée un plan d'action simple et motivant sur 7 jours. Chaque jour doit avoir une seule action concrète à réaliser pour commencer à appliquer tes conseils. Par exemple : "Jour 1: Mettre à jour votre biographie.", "Jour 2: Poster une photo en utilisant la règle des tiers."
+
+        5. **creative_suggestion**: C'est l'étape la plus importante. Synthétise TOUTE ton analyse (identité visuelle, stratégie, objectif) en UNE SEULE suggestion de prompt pour générer une image. Le prompt doit être créatif, précis et directement utilisable pour créer une publication qui incarne tes recommandations.
     `,
 });

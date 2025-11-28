@@ -1,3 +1,4 @@
+
 // This file does not contain 'use server' and can be imported by both client and server components.
 
 import { z } from 'genkit';
@@ -28,5 +29,8 @@ export const SocialAuditOutputSchema = z.object({
     day: z.string().describe("Le jour du plan (ex: 'Jour 1', 'Jour 2')."),
     action: z.string().describe("L'action spécifique à réaliser ce jour-là."),
   })).describe("Un plan d'action simple sur 7 jours."),
+  creative_suggestion: z.object({
+    suggested_post_prompt: z.string().describe("Une instruction textuelle créative pour générer une image, basée sur l'analyse complète."),
+  }).describe("Suggestion créative pour une nouvelle publication."),
 });
 export type SocialAuditOutput = z.infer<typeof SocialAuditOutputSchema>;
