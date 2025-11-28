@@ -325,7 +325,8 @@ export default function AuditPage() {
                                     <SelectValue placeholder="Choisissez un objectif..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="Augmenter mon engagement et créer une communauté.">Augmenter l'engagement et créer une communauté.</SelectItem>
+                                    <SelectItem value="Augmenter mon audience et les interactions (abonnés, commentaires).">Augmenter l'audience et les interactions.</SelectItem>
+                                    <SelectItem value="Augmenter l'engagement et créer une communauté.">Augmenter l'engagement et créer une communauté.</SelectItem>
                                     <SelectItem value="Professionnaliser mon image de marque.">Professionnaliser l'image de marque.</SelectItem>
                                     <SelectItem value="Générer plus de ventes et attirer des prospects qualifiés.">Générer plus de ventes et attirer des prospects.</SelectItem>
                                     <SelectItem value="Définir une identité visuelle plus cohérente.">Définir une identité visuelle plus cohérente.</SelectItem>
@@ -529,4 +530,3 @@ export default function AuditPage() {
     );
 }
 
-    
