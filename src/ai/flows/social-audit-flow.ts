@@ -27,10 +27,16 @@ const socialAuditPrompt = ai.definePrompt({
         Un créateur de contenu te soumet son profil pour un audit. Voici ses informations :
         - Plateforme : {{platform}}
         - Son objectif principal : "{{goal}}"
-        - Une sélection de ses publications visuelles :
+        - Une sélection de ses publications pour analyse de STYLE :
         {{#each image_urls}}
         - {{media url=this}}
         {{/each}}
+        {{#if subject_image_urls}}
+        - Une sélection de photos de référence pour apprendre l'apparence du SUJET :
+        {{#each subject_image_urls}}
+        - {{media url=this}}
+        {{/each}}
+        {{/if}}
         - Exemples de ses textes de publication :
         {{#each post_texts}}
         - "{{this}}"
@@ -41,7 +47,7 @@ const socialAuditPrompt = ai.definePrompt({
 
         En te basant UNIQUEMENT sur ces informations, fournis un rapport complet structuré précisément comme suit :
 
-        1.  **visual_identity**: Analyse l'harmonie des couleurs, le style de composition, et l'ambiance générale. Résume cela en 3 à 5 mots-clés pertinents (ex: "minimaliste", "naturel", "contraste élevé") et un court paragraphe de synthèse.
+        1.  **visual_identity**: Analyse l'harmonie des couleurs, le style de composition, et l'ambiance générale des images de STYLE. Résume cela en 3 à 5 mots-clés pertinents (ex: "minimaliste", "naturel", "contraste élevé") et un court paragraphe de synthèse.
         
         2.  **strategic_analysis**: Identifie 2 ou 3 points forts clairs (ce qui fonctionne déjà bien) et 2 ou 3 axes d'amélioration concrets et bienveillants. Sois constructif.
         
@@ -49,6 +55,10 @@ const socialAuditPrompt = ai.definePrompt({
         
         4.  **action_plan**: Crée un plan d'action simple et motivant sur 7 jours. Chaque jour doit avoir une seule action concrète à réaliser pour commencer à appliquer tes conseils. Par exemple : "Jour 1: Mettre à jour votre biographie.", "Jour 2: Poster une photo en utilisant la règle des tiers."
 
-        5. **creative_suggestion**: C'est l'étape la plus importante. Synthétise TOUTE ton analyse (identité visuelle, stratégie, objectif) en UNE SEULE suggestion de prompt pour générer une image. Le prompt doit être créatif, précis et directement utilisable pour créer une publication qui incarne tes recommandations.
+        5. **creative_suggestion**: C'est l'étape la plus importante. Synthétise TOUTE ton analyse (identité visuelle, stratégie, objectif) en UNE SEULE suggestion de prompt pour générer une image.
+           {{#if subject_image_urls}}
+           Le prompt doit explicitement demander de recréer la personne présente dans les photos de référence du SUJET. Par exemple : "Photo de cette personne en train de...".
+           {{/if}}
+           Le prompt doit être créatif, précis et directement utilisable pour créer une publication qui incarne tes recommandations.
     `,
 });

@@ -6,7 +6,8 @@ import { z } from 'genkit';
 export const SocialAuditInputSchema = z.object({
   platform: z.string().describe('La plateforme du réseau social (ex: Instagram, TikTok).'),
   goal: z.string().describe("L'objectif principal de l'utilisateur."),
-  image_urls: z.array(z.string()).describe("Un tableau de data URIs des images sélectionnées pour l'analyse."),
+  image_urls: z.array(z.string()).describe("Un tableau de data URIs des images de style sélectionnées pour l'analyse."),
+  subject_image_urls: z.array(z.string()).optional().describe("Optionnel. Un tableau de data URIs de portraits clairs du sujet principal pour apprendre son apparence."),
   post_texts: z.array(z.string()).describe("Un tableau des textes de publications fournis par l'utilisateur."),
   additionalContext: z.string().optional().describe("Un contexte textuel supplémentaire fourni par l'utilisateur pour guider l'analyse."),
 });
