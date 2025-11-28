@@ -71,7 +71,10 @@ const STORAGE_LIMITS = {
     none: 200 * 1024 * 1024,         // 200 Mo
     creator: 10 * 1024 * 1024 * 1024,   // 10 Go
     pro: 50 * 1024 * 1024 * 1024,       // 50 Go
-    master: 250 * 1024 * 1024 * 1024    // 250 Go
+    master: 250 * 1024 * 1024 * 1024,    // 250 Go
+    storage_250: 250 * 1024 * 1024 * 1024, // 250 Go
+    storage_500: 500 * 1024 * 1024 * 1024, // 500 Go
+    storage_1000: 1000 * 1024 * 1024 * 1024 // 1 To
 };
 
 // Helper pour formater les octets
@@ -1031,4 +1034,3 @@ export function Uploader() {
     </>
   );
 }
-
