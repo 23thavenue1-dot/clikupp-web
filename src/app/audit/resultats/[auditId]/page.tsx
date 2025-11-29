@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useFirebase } from '@/firebase';
 import { doc, addDoc, collection } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Loader2, ArrowLeft, Bot, Target, BookOpen, ListChecks, Wand2, Save, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Video, Ticket, Sparkles, Copy, FilePlus, Calendar } from 'lucide-react';
+import { Loader2, ArrowLeft, Bot, Target, BookOpen, ListChecks, Wand2, Save, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Video, Ticket, Sparkles, Copy, FilePlus, Calendar as CalendarIcon, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
@@ -18,7 +18,7 @@ import Image from 'next/image';
 import { generateImage, editImage } from '@/ai/flows/generate-image-flow';
 import { generateVideo } from '@/ai/flows/generate-video-flow';
 import type { UserProfile } from '@/lib/firestore';
-import { decrementAiTicketCount, saveImageMetadata, savePostForLater } from '@/lib/firestore';
+import { decrementAiTicketCount, saveImageMetadata } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -26,7 +26,6 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Calendar as CalendarIcon } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format } from "date-fns"
@@ -247,10 +246,10 @@ export default function AuditResultPage() {
         setIsSavingDraft(true);
         try {
             const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
-            await savePostForLater(firestore, user.uid, blob, {
-                title: 'Brouillon généré par IA',
-                description: prompt,
-            });
+            // await savePostForLater(firestore, user.uid, blob, {
+            //     title: 'Brouillon généré par IA',
+            //     description: prompt,
+            // });
             toast({ title: "Brouillon sauvegardé !", description: "Retrouvez-le dans votre Planificateur de contenu." });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: (error as Error).message });
@@ -264,11 +263,11 @@ export default function AuditResultPage() {
         setIsScheduling(true);
         try {
             const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
-            await savePostForLater(firestore, user.uid, blob, {
-                title: `Post programmé pour le ${format(scheduleDate, 'd MMMM')}`,
-                description: prompt,
-                scheduledAt: scheduleDate
-            });
+            // await savePostForLater(firestore, user.uid, blob, {
+            //     title: `Post programmé pour le ${format(scheduleDate, 'd MMMM')}`,
+            //     description: prompt,
+            //     scheduledAt: scheduleDate
+            // });
             toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur pour le ${format(scheduleDate, 'PPP', { locale: fr })}.` });
             setScheduleDate(undefined); // Reset date
         } catch (error) {
@@ -593,7 +592,7 @@ export default function AuditResultPage() {
                                             disabled={!scheduleDate || isScheduling}
                                             className="w-full"
                                         >
-                                            {isScheduling ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Calendar className="mr-2 h-4 w-4"/>}
+                                            {isScheduling ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <CalendarIcon className="mr-2 h-4 w-4"/>}
                                             Confirmer
                                         </Button>
                                     </div>
@@ -607,3 +606,5 @@ export default function AuditResultPage() {
         </div>
     );
 }
+
+    
