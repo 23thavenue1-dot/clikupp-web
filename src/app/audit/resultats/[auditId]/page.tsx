@@ -3,13 +3,14 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, addDoc, collection } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Loader2, ArrowLeft, Bot, Target, BookOpen, ListChecks, Wand2, Save, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Video, Ticket } from 'lucide-react';
+import { Loader2, ArrowLeft, Bot, Target, BookOpen, ListChecks, Wand2, Save, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Video, Ticket, Sparkles, Copy, FilePlus, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
-import { type SocialAuditOutput } from '@/ai/schemas/social-audit-schemas';
+import { socialAuditFlow, type SocialAuditOutput } from '@/ai/flows/social-audit-flow';
+import type { SocialAuditInput } from '@/ai/schemas/social-audit-schemas';
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,19 +18,29 @@ import Image from 'next/image';
 import { generateImage, editImage } from '@/ai/flows/generate-image-flow';
 import { generateVideo } from '@/ai/flows/generate-video-flow';
 import type { UserProfile } from '@/lib/firestore';
-import { decrementAiTicketCount, saveImageMetadata } from '@/lib/firestore';
+import { decrementAiTicketCount, saveImageMetadata, savePostForLater } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Calendar as CalendarIcon } from "lucide-react"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { format } from "date-fns"
+import { fr } from "date-fns/locale"
 
 
 type AuditReport = SocialAuditOutput & {
     createdAt: any; // Timestamp
     platform: string;
     goal: string;
-    subjectImageUrls?: string[]; // Add subjectImageUrls here
+    subjectImageUrls?: string[];
+    image_urls?: string[];
+    post_texts?: string[];
+    additionalContext?: string;
 }
 
 // Helper pour convertir Data URI en Blob
@@ -64,6 +75,14 @@ export default function AuditResultPage() {
     const [generatedImageHistory, setGeneratedImageHistory] = useState<ImageHistoryItem[]>([]);
     const [historyIndex, setHistoryIndex] = useState(-1);
 
+    const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+    const [suggestionCount, setSuggestionCount] = useState("1");
+    const [creativeSuggestions, setCreativeSuggestions] = useState<SocialAuditOutput['creative_suggestions']>([]);
+    
+    const [isSavingDraft, setIsSavingDraft] = useState(false);
+    const [scheduleDate, setScheduleDate] = useState<Date | undefined>(undefined);
+    const [isScheduling, setIsScheduling] = useState(false);
+
     const auditDocRef = useMemoFirebase(() => {
         if (!user || !firestore || !auditId) return null;
         return doc(firestore, `users/${user.uid}/audits`, auditId);
@@ -78,8 +97,11 @@ export default function AuditResultPage() {
     const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
     useEffect(() => {
-        if (auditReport?.creative_suggestion?.suggested_post_prompt) {
-            setPrompt(auditReport.creative_suggestion.suggested_post_prompt);
+        if (auditReport?.creative_suggestions) {
+            setCreativeSuggestions(auditReport.creative_suggestions);
+            if (auditReport.creative_suggestions.length > 0) {
+                 setPrompt(auditReport.creative_suggestions[0].prompt);
+            }
         }
     }, [auditReport]);
     
@@ -91,6 +113,42 @@ export default function AuditResultPage() {
     }, [generatedImageHistory, historyIndex]);
 
     const totalAiTickets = userProfile ? (userProfile.aiTicketCount || 0) + (userProfile.subscriptionAiTickets || 0) + (userProfile.packAiTickets || 0) : 0;
+    
+    const handleGeneratePlan = async () => {
+        if (!auditReport || !user || !firestore || !userProfile) return;
+
+        const cost = parseInt(suggestionCount, 10);
+        if (totalAiTickets < cost) {
+            toast({ variant: 'destructive', title: 'Tickets IA insuffisants', description: `Cette action requiert ${cost} tickets.` });
+            return;
+        }
+
+        setIsGeneratingPlan(true);
+        try {
+            const input: SocialAuditInput = {
+                platform: auditReport.platform,
+                goal: auditReport.goal,
+                image_urls: auditReport.image_urls || [],
+                subject_image_urls: auditReport.subjectImageUrls,
+                post_texts: auditReport.post_texts || [],
+                additionalContext: auditReport.additionalContext,
+                suggestion_count: cost
+            };
+            
+            const result = await socialAuditFlow(input);
+            setCreativeSuggestions(result.creative_suggestions);
+
+            for (let i = 0; i < cost; i++) {
+                await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
+            }
+            toast({ title: 'Plan de contenu généré !', description: `${cost} idées ont été créées. ${cost} ticket(s) IA utilisé(s).` });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur de génération', description: (error as Error).message });
+        } finally {
+            setIsGeneratingPlan(false);
+        }
+    };
+
 
     const handleGenerateImage = async () => {
         if (!prompt || !user || !userProfile || !firestore || !auditReport) return;
@@ -105,18 +163,14 @@ export default function AuditResultPage() {
         }
     
         setIsGenerating(true);
-        setGeneratedVideoUrl(null); // Réinitialiser la vidéo si on génère une image
+        setGeneratedVideoUrl(null); 
     
         try {
             let result;
-            // Si des images de référence du sujet existent, on les utilise avec editImage.
             if (auditReport.subjectImageUrls && auditReport.subjectImageUrls.length > 0) {
-                // Pour l'instant, on prend la première image de référence comme base, mais on pourrait
-                // utiliser une logique plus complexe pour combiner les infos.
                 const baseImageUrl = auditReport.subjectImageUrls[0];
                 result = await editImage({ imageUrl: baseImageUrl, prompt });
             } else {
-                // Sinon, on génère de zéro.
                 result = await generateImage({ prompt, aspectRatio: aspectRatio });
             }
             
@@ -153,7 +207,7 @@ export default function AuditResultPage() {
         }
 
         setIsGeneratingVideo(true);
-        setGeneratedImageHistory([]); // Reset image history
+        setGeneratedImageHistory([]); 
         setHistoryIndex(-1);
 
         try {
@@ -177,45 +231,50 @@ export default function AuditResultPage() {
 
     
     const handleUndoGeneration = () => {
-        if (historyIndex > 0) {
+        if (historyIndex > -1) {
             setHistoryIndex(prev => prev - 1);
-        } else if (historyIndex === 0) {
-             setHistoryIndex(-1); // Revenir à l'état initial
         }
     };
 
     const handleRedoGeneration = () => {
         if (historyIndex < generatedImageHistory.length - 1) {
-            setHistoryIndex(prev => prev + 1);
+            setHistoryIndex(prev => prev - 1);
         }
     };
 
-
-    const handleSaveImage = async () => {
+    const handleSaveDraft = async () => {
         if (!currentHistoryItem || !prompt || !user || !firebaseApp || !firestore) return;
-        setIsSaving(true);
+        setIsSavingDraft(true);
         try {
-            const storage = getStorage(firebaseApp);
             const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
-            const newFileName = `ai-audit-generated-${Date.now()}.png`;
-            const imageFile = new File([blob], newFileName, { type: blob.type });
-
-            const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `Généré (Audit): ${prompt}`, () => {});
-            
-            await saveImageMetadata(firestore, user, { 
-                ...metadata,
-                title: `Généré par l'IA : ${auditReport?.platform}`,
+            await savePostForLater(firestore, user.uid, blob, {
+                title: 'Brouillon généré par IA',
                 description: prompt,
-                hashtags: auditReport?.visual_identity.keywords.map(k => `#${k.replace(/\s+/g, '')}`).join(' ') || '',
-                generatedByAI: true
             });
-
-            toast({ title: "Image sauvegardée !", description: "Votre nouvelle création a été ajoutée à votre galerie principale." });
-            
+            toast({ title: "Brouillon sauvegardé !", description: "Retrouvez-le dans votre Planificateur de contenu." });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: (error as Error).message });
         } finally {
-            setIsSaving(false);
+            setIsSavingDraft(false);
+        }
+    };
+
+    const handleSchedule = async () => {
+        if (!currentHistoryItem || !prompt || !user || !firebaseApp || !firestore || !scheduleDate) return;
+        setIsScheduling(true);
+        try {
+            const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
+            await savePostForLater(firestore, user.uid, blob, {
+                title: `Post programmé pour le ${format(scheduleDate, 'd MMMM')}`,
+                description: prompt,
+                scheduledAt: scheduleDate
+            });
+            toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur pour le ${format(scheduleDate, 'PPP', { locale: fr })}.` });
+            setScheduleDate(undefined); // Reset date
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur de programmation', description: (error as Error).message });
+        } finally {
+            setIsScheduling(false);
         }
     };
 
@@ -236,7 +295,7 @@ export default function AuditResultPage() {
         return (
             <div className="container mx-auto p-8 text-center">
                  <h1 className="text-2xl font-bold">Rapport introuvable</h1>
-                 <p className="text-muted-foreground">Le rapport d'analyse que vous cherchez n'existe pas ou vous n'y avez pas accès.</p>
+                 <p className="text-muted-foreground">Le rapport que vous cherchez n'existe pas ou vous n'y avez pas accès.</p>
                  <Button asChild className="mt-4">
                     <Link href="/audit">Retourner au Coach Stratégique</Link>
                  </Button>
@@ -354,14 +413,13 @@ export default function AuditResultPage() {
                     </CardContent>
                 </Card>
 
-                {/* --- NOUVEAU MODULE DE GÉNÉRATION --- */}
                 <Card className="bg-primary/5 border-primary/20">
                      <CardHeader className="flex flex-row items-start justify-between gap-4">
                         <div className="flex items-start gap-4">
                             <div className="p-3 bg-primary/10 rounded-lg text-primary"><Wand2 className="h-6 w-6"/></div>
                             <div>
                                 <CardTitle>Passez à l'action</CardTitle>
-                                <CardDescription>Utilisez la suggestion de l'IA pour générer votre prochaine publication.</CardDescription>
+                                <CardDescription>Générez vos futures publications à partir du plan de l'IA.</CardDescription>
                             </div>
                         </div>
                         <Badge variant="outline" className="flex items-center gap-2 text-sm font-semibold h-fit py-1.5 px-3">
@@ -370,17 +428,59 @@ export default function AuditResultPage() {
                         </Badge>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div>
-                            <label htmlFor="suggested-prompt" className="text-sm font-medium">Suggestion de l'IA pour votre prochaine image :</label>
-                            <Textarea 
-                                id="suggested-prompt"
-                                value={prompt}
-                                onChange={(e) => setPrompt(e.target.value)}
-                                rows={3}
-                                className="mt-2 bg-background"
-                                placeholder="Décrivez l'image à générer..."
-                            />
-                        </div>
+                        <Tabs defaultValue="single">
+                            <TabsList className="grid w-full grid-cols-2">
+                                <TabsTrigger value="single">Création Unique</TabsTrigger>
+                                <TabsTrigger value="plan">Plan de Contenu IA</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="single" className="pt-4">
+                                <Textarea 
+                                    id="suggested-prompt"
+                                    value={prompt}
+                                    onChange={(e) => setPrompt(e.target.value)}
+                                    rows={3}
+                                    className="mt-2 bg-background"
+                                    placeholder="Décrivez l'image à générer..."
+                                />
+                            </TabsContent>
+                            <TabsContent value="plan" className="pt-4 space-y-4">
+                                <div className="flex gap-2">
+                                    <Select value={suggestionCount} onValueChange={setSuggestionCount} disabled={isGeneratingPlan}>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="3">Générer 3 idées de posts</SelectItem>
+                                            <SelectItem value="7">Générer un plan sur 7 jours</SelectItem>
+                                            <SelectItem value="14">Générer un plan sur 14 jours</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <Button onClick={handleGeneratePlan} disabled={isGeneratingPlan || totalAiTickets < parseInt(suggestionCount, 10)}>
+                                        {isGeneratingPlan ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4"/>}
+                                        Générer
+                                    </Button>
+                                </div>
+                                 <ScrollArea className="h-60 border bg-background rounded-md p-2">
+                                    <div className="space-y-2 p-2">
+                                        {creativeSuggestions.map((suggestion, index) => (
+                                            <Card key={index} className="bg-muted/50">
+                                                <CardContent className="p-3 flex items-center justify-between gap-2">
+                                                    <p className="text-sm font-medium flex-1 truncate" title={suggestion.prompt}>
+                                                        <span className="font-bold">{suggestion.title}:</span> {suggestion.prompt}
+                                                    </p>
+                                                    <Button size="sm" variant="secondary" onClick={() => { setPrompt(suggestion.prompt); toast({ title: "Prompt chargé !", description: "Instruction prête pour la génération." }); }}>
+                                                        <Copy className="mr-2 h-4 w-4"/> Utiliser
+                                                    </Button>
+                                                </CardContent>
+                                            </Card>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
+                            </TabsContent>
+                        </Tabs>
+
+                        <Separator/>
+                        
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                            <Select value={aspectRatio} onValueChange={setAspectRatio} disabled={isGenerating || isGeneratingVideo}>
                                 <SelectTrigger>
@@ -396,10 +496,7 @@ export default function AuditResultPage() {
                             <Button 
                                 onClick={handleGenerateImage}
                                 disabled={isGenerating || isGeneratingVideo || !prompt.trim() || totalAiTickets <= 0}
-                                className={cn(
-                                    "w-full",
-                                    "bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
-                                )}
+                                className={cn("w-full","bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity")}
                             >
                                 {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <ImageIcon className="mr-2 h-4 w-4" />}
                                 Générer Image (1 Ticket)
@@ -408,10 +505,7 @@ export default function AuditResultPage() {
                          <Button 
                                 onClick={handleGenerateVideo}
                                 disabled={isGenerating || isGeneratingVideo || !prompt.trim() || totalAiTickets < 5}
-                                className={cn(
-                                    "w-full",
-                                    "bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
-                                )}
+                                className={cn("w-full","bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity")}
                                 variant="default"
                             >
                                 {isGeneratingVideo ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Video className="mr-2 h-4 w-4" />}
@@ -459,27 +553,52 @@ export default function AuditResultPage() {
                         </div>
 
                     </CardContent>
-                    {currentHistoryItem && (
-                        <CardFooter>
-                            <Button 
-                                onClick={handleSaveImage} 
-                                disabled={isSaving}
-                                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                    {(currentHistoryItem || generatedVideoUrl) && (
+                        <CardFooter className="flex flex-col sm:flex-row gap-2">
+                             <Button 
+                                onClick={handleSaveDraft}
+                                disabled={isSavingDraft || isScheduling || !currentHistoryItem}
+                                className="w-full"
+                                variant="secondary"
                             >
-                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
-                                Sauvegarder l'image
+                                {isSavingDraft ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <FilePlus className="mr-2 h-4 w-4" />}
+                                Enregistrer en brouillon
                             </Button>
-                        </CardFooter>
-                    )}
-                     {generatedVideoUrl && (
-                        <CardFooter>
-                            <Button 
-                                disabled={true} // La sauvegarde vidéo n'est pas implémentée
-                                className="w-full bg-green-600 hover:bg-green-700 text-white"
-                            >
-                                <Save className="mr-2 h-4 w-4" />
-                                Sauvegarder la vidéo (Bientôt)
-                            </Button>
+
+                             <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal",
+                                            !scheduleDate && "text-muted-foreground"
+                                        )}
+                                        disabled={isSavingDraft || isScheduling || !currentHistoryItem}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {scheduleDate ? format(scheduleDate, "PPP", { locale: fr }) : <span>Programmer pour plus tard</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                    <Calendar
+                                        mode="single"
+                                        selected={scheduleDate}
+                                        onSelect={setScheduleDate}
+                                        disabled={(date) => date < new Date() || date < new Date("1900-01-01")}
+                                        initialFocus
+                                    />
+                                     <div className="p-2 border-t">
+                                        <Button 
+                                            onClick={handleSchedule} 
+                                            disabled={!scheduleDate || isScheduling}
+                                            className="w-full"
+                                        >
+                                            {isScheduling ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Calendar className="mr-2 h-4 w-4"/>}
+                                            Confirmer
+                                        </Button>
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
                         </CardFooter>
                     )}
                 </Card>
