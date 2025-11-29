@@ -18,7 +18,7 @@ import Image from 'next/image';
 import { generateImage, editImage } from '@/ai/flows/generate-image-flow';
 import { generateVideo } from '@/ai/flows/generate-video-flow';
 import type { UserProfile } from '@/lib/firestore';
-import { decrementAiTicketCount, saveImageMetadata } from '@/lib/firestore';
+import { decrementAiTicketCount, saveImageMetadata, savePostForLater } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -238,7 +238,7 @@ export default function AuditResultPage() {
 
     const handleRedoGeneration = () => {
         if (historyIndex < generatedImageHistory.length - 1) {
-            setHistoryIndex(prev => prev - 1);
+            setHistoryIndex(prev => prev + 1);
         }
     };
 
@@ -247,10 +247,11 @@ export default function AuditResultPage() {
         setIsSavingDraft(true);
         try {
             const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
-            // await savePostForLater(firestore, user.uid, blob, {
-            //     title: 'Brouillon généré par IA',
-            //     description: prompt,
-            // });
+            await savePostForLater(firestore, user.uid, blob, {
+                title: 'Brouillon généré par IA',
+                description: prompt,
+                userId: user.uid,
+            });
             toast({ title: "Brouillon sauvegardé !", description: "Retrouvez-le dans votre Planificateur de contenu." });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: (error as Error).message });
@@ -264,11 +265,12 @@ export default function AuditResultPage() {
         setIsScheduling(true);
         try {
             const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
-            // await savePostForLater(firestore, user.uid, blob, {
-            //     title: `Post programmé pour le ${format(scheduleDate, 'd MMMM')}`,
-            //     description: prompt,
-            //     scheduledAt: scheduleDate
-            // });
+            await savePostForLater(firestore, user.uid, blob, {
+                title: `Post programmé pour le ${format(scheduleDate, 'd MMMM')}`,
+                description: prompt,
+                scheduledAt: scheduleDate,
+                userId: user.uid,
+            });
             toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur pour le ${format(scheduleDate, 'PPP', { locale: fr })}.` });
             setScheduleDate(undefined); // Reset date
         } catch (error) {
