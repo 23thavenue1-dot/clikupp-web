@@ -55,10 +55,10 @@ const socialAuditPrompt = ai.definePrompt({
         
         4.  **action_plan**: Crée un plan d'action simple et motivant sur 7 jours. Chaque jour doit avoir une seule action concrète à réaliser pour commencer à appliquer tes conseils. Par exemple : "Jour 1: Mettre à jour votre biographie.", "Jour 2: Poster une photo en utilisant la règle des tiers."
 
-        5. **creative_suggestion**: C'est l'étape la plus importante. Synthétise TOUTE ton analyse (identité visuelle, stratégie, objectif) en UNE SEULE suggestion de prompt pour générer une image.
+        5. **creative_suggestions**: C'est l'étape la plus importante. Synthétise TOUTE ton analyse (identité visuelle, stratégie, objectif) en une liste de **{{suggestion_count}}** suggestions de prompts pour générer des images. Chaque suggestion doit avoir un titre court et un prompt créatif.
            {{#if subject_image_urls}}
            Le prompt doit explicitement demander de recréer la personne présente dans les photos de référence du SUJET. Par exemple : "Photo de cette personne en train de...".
            {{/if}}
-           Le prompt doit être créatif, précis et directement utilisable pour créer une publication qui incarne tes recommandations.
+           Les prompts doivent être créatifs, variés, précis et directement utilisables pour créer une publication qui incarne tes recommandations. Varie les situations, les styles et les angles pour proposer un véritable plan de contenu.
     `,
 });
