@@ -30,6 +30,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { Calendar } from "@/components/ui/calendar"
+import { Label } from '@/components/ui/label';
 
 
 type AuditReport = SocialAuditOutput & {
@@ -433,6 +434,7 @@ export default function AuditResultPage() {
                                 <TabsTrigger value="plan">Plan de Contenu IA</TabsTrigger>
                             </TabsList>
                             <TabsContent value="single" className="pt-4 space-y-2">
+                                <Label>Votre instruction</Label>
                                 <Textarea 
                                     id="manual-prompt"
                                     value={prompt}
@@ -536,7 +538,7 @@ export default function AuditResultPage() {
                             )}
                              {!isGenerating && !isGeneratingVideo && generatedVideoUrl && (
                                 <video src={generatedVideoUrl} controls autoPlay loop className="w-full h-full object-contain rounded-lg" />
-                            )}
+                             )}
 
                              {!isGenerating && !isGeneratingVideo && !currentHistoryItem?.imageUrl && !generatedVideoUrl && (
                                 <div className="text-center text-muted-foreground p-4">
@@ -612,6 +614,8 @@ export default function AuditResultPage() {
         </div>
     );
 }
+
+    
 
     
 
