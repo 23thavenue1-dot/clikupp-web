@@ -22,6 +22,7 @@ import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 
 type AuditReport = SocialAuditOutput & {
@@ -395,7 +396,10 @@ export default function AuditResultPage() {
                             <Button 
                                 onClick={handleGenerateImage}
                                 disabled={isGenerating || isGeneratingVideo || !prompt.trim() || totalAiTickets <= 0}
-                                className="w-full"
+                                className={cn(
+                                    "w-full",
+                                    "bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
+                                )}
                             >
                                 {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <ImageIcon className="mr-2 h-4 w-4" />}
                                 Générer Image (1 Ticket)
@@ -404,8 +408,11 @@ export default function AuditResultPage() {
                          <Button 
                                 onClick={handleGenerateVideo}
                                 disabled={isGenerating || isGeneratingVideo || !prompt.trim() || totalAiTickets < 5}
-                                className="w-full"
-                                variant="outline"
+                                className={cn(
+                                    "w-full",
+                                    "bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity"
+                                )}
+                                variant="default"
                             >
                                 {isGeneratingVideo ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Video className="mr-2 h-4 w-4" />}
                                 {isGeneratingVideo ? 'Génération Vidéo...' : 'Générer Vidéo (5 Tickets)'}
