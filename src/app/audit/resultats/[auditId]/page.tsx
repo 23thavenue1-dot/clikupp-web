@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -213,7 +214,7 @@ export default function AuditResultPage() {
         try {
             const result = await generateVideo({
                 prompt: prompt,
-                aspectRatio: aspectRatio,
+                aspectRatio: videoAspectRatio,
                 durationSeconds: 5,
             });
             setGeneratedVideoUrl(result.videoUrl);
@@ -277,6 +278,32 @@ export default function AuditResultPage() {
             toast({ variant: 'destructive', title: 'Erreur de programmation', description: (error as Error).message });
         } finally {
             setIsScheduling(false);
+        }
+    };
+
+    const handleSaveToLibrary = async () => {
+        if (!currentHistoryItem || !user || !firebaseApp || !firestore) return;
+        setIsSaving(true);
+        try {
+            const storage = getStorage(firebaseApp);
+            const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
+            const newFileName = `ai-creation-${Date.now()}.png`;
+            const imageFile = new File([blob], newFileName, { type: blob.type });
+
+            const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `IA: ${currentHistoryItem.prompt}`, () => {});
+            
+            await saveImageMetadata(firestore, user, { 
+                ...metadata,
+                title: `Généré par IA: ${currentHistoryItem.prompt}`,
+                description: currentHistoryItem.prompt,
+                generatedByAI: true
+            });
+            toast({ title: "Sauvegardé dans la bibliothèque !", description: "Votre création a été ajoutée à votre galerie principale." });
+
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: "Impossible d'enregistrer l'image dans la bibliothèque." });
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -446,7 +473,7 @@ export default function AuditResultPage() {
                                     placeholder="Décrivez l'image à générer..."
                                 />
                                 <Button 
-                                    onClick={handleGenerateImage}
+                                    onClick={() => handleGenerateImage()}
                                     disabled={isGenerating || isGeneratingVideo || !prompt.trim() || totalAiTickets <= 0}
                                     className={cn("w-full","bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity")}
                                 >
@@ -498,7 +525,7 @@ export default function AuditResultPage() {
                                     <Label>Prompt sélectionné</Label>
                                     <Textarea value={prompt} onChange={e => setPrompt(e.target.value)} rows={3} placeholder="Chargez ou écrivez un prompt..."/>
                                     <Button 
-                                        onClick={handleGenerateImage}
+                                        onClick={() => handleGenerateImage()}
                                         disabled={isGenerating || isGeneratingVideo || !prompt.trim() || totalAiTickets <= 0}
                                         className={cn("w-full","bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity")}
                                     >
@@ -563,7 +590,16 @@ export default function AuditResultPage() {
 
                     </CardContent>
                     {(currentHistoryItem || generatedVideoUrl) && (
-                        <CardFooter className="flex flex-col sm:flex-row gap-2">
+                        <CardFooter className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                            <Button 
+                                onClick={handleSaveToLibrary}
+                                disabled={isSaving || isScheduling || !currentHistoryItem}
+                                className="w-full bg-green-600 hover:bg-green-700"
+                                variant="secondary"
+                            >
+                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                                Sauvegarder
+                            </Button>
                              <Button 
                                 onClick={handleSaveDraft}
                                 disabled={isSavingDraft || isScheduling || !currentHistoryItem}
@@ -620,5 +656,8 @@ export default function AuditResultPage() {
     
 
     
+
+    
+
 
     

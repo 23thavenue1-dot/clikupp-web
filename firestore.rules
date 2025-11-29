@@ -107,6 +107,11 @@ service cloud.firestore {
         allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
         allow delete: if isExistingOwner(userId);
       }
+
+      match /scheduledPosts/{postId} {
+        allow read, write: if isOwner(userId) && request.resource.data.userId == userId;
+        allow delete: if isOwner(userId);
+      }
     }
     
     // --- ADMIN ROLE ---
@@ -119,5 +124,6 @@ service cloud.firestore {
     }
   }
 }
+    
 
     

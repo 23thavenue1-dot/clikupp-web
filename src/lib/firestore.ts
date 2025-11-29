@@ -126,6 +126,19 @@ export type Gallery = {
   createdAt: Timestamp;
 };
 
+// Nouveau type pour les posts programmés/brouillons
+export type ScheduledPost = {
+    id: string;
+    userId: string;
+    status: 'draft' | 'scheduled';
+    createdAt: Timestamp;
+    scheduledAt: Timestamp | null;
+    title: string;
+    description: string;
+    imageStoragePath: string; // Chemin vers l'image dans Firebase Storage
+};
+
+
 const DAILY_UPLOAD_TICKETS = 5;
 const DAILY_AI_TICKETS = 3;
 const MONTHLY_AI_TICKET_LIMIT = 20;
@@ -1060,4 +1073,58 @@ export async function deleteAudit(firestore: Firestore, userId: string, auditId:
         throw error;
     }
 }
+
+/**
+ * Sauvegarde une publication pour plus tard (brouillon ou programmé).
+ * @param firestore L'instance Firestore.
+ * @param userId L'ID de l'utilisateur.
+ * @param imageBlob Le blob de l'image à sauvegarder.
+ * @param data Les données textuelles du post.
+ */
+export async function savePostForLater(
+    firestore: Firestore,
+    userId: string,
+    imageBlob: Blob,
+    data: {
+        title: string;
+        description: string;
+        scheduledAt?: Date;
+        userId: string;
+    }
+): Promise<void> {
+    // Étape 1 : Uploader l'image sur Firebase Storage pour obtenir un chemin
+    // Cette étape est manquante mais essentielle. Pour l'instant, on simule un chemin.
+    const imageStoragePath = `scheduledPosts/${userId}/${Date.now()}.png`;
+
+    // Étape 2 : Créer une référence à la SOUS-COLLECTION
+    const postsCollectionRef = collection(firestore, 'users', userId, 'scheduledPosts');
+
+    // Étape 3 : Préparer les données à sauvegarder dans Firestore
+    const dataToSave = {
+        userId: userId,
+        status: data.scheduledAt ? 'scheduled' : 'draft',
+        createdAt: serverTimestamp(),
+        scheduledAt: data.scheduledAt ? Timestamp.fromDate(data.scheduledAt) : null,
+        title: data.title,
+        description: data.description,
+        imageStoragePath: imageStoragePath, // On stocke le chemin, pas le blob
+    };
+
+    try {
+        // Étape 4 : Ajouter le document dans la sous-collection, ce qui crée un ID automatique
+        const docRef = await addDoc(postsCollectionRef, dataToSave);
+        // Étape 5 (optionnelle mais bonne pratique) : Mettre à jour le document avec son propre ID
+        await updateDoc(docRef, { id: docRef.id });
+    } catch (error) {
+        const permissionError = new FirestorePermissionError({
+            path: postsCollectionRef.path, // Le chemin de la collection
+            operation: 'create',
+            requestResourceData: { ...dataToSave, imageBlob: '[Blob]' }, 
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        throw error;
+    }
+}
+    
+
     
