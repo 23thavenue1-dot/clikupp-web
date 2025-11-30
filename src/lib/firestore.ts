@@ -1083,7 +1083,6 @@ export async function deleteAudit(firestore: Firestore, userId: string, auditId:
  */
 export async function savePostForLater(
     firestore: Firestore,
-    storage: Storage,
     userId: string,
     imageBlob: Blob,
     data: {
@@ -1093,6 +1092,7 @@ export async function savePostForLater(
         userId: string;
     }
 ): Promise<void> {
+    const storage = getStorage();
     const imageStoragePath = `scheduledPosts/${userId}/${Date.now()}.png`;
     const storageRef = ref(storage, imageStoragePath);
 
@@ -1117,10 +1117,9 @@ export async function savePostForLater(
 
     } catch (error) {
         console.error("Erreur lors de la sauvegarde du post :", error);
-        // Émettre une erreur générique, car elle peut provenir de Storage ou de Firestore.
-        // Une gestion plus fine serait possible si nécessaire.
+        const postsCollectionRef = collection(firestore, 'users', userId, 'scheduledPosts');
         const permissionError = new FirestorePermissionError({
-            path: `users/${userId}/scheduledPosts`, // Correction: utiliser le chemin de la collection
+            path: postsCollectionRef.path,
             operation: 'create',
             requestResourceData: { ...data, imageBlob: '[Blob]' },
         });
