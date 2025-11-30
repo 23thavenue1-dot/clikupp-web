@@ -109,8 +109,10 @@ service cloud.firestore {
       }
 
       match /scheduledPosts/{postId} {
-        allow read, write: if isOwner(userId) && request.resource.data.userId == userId;
-        allow delete: if isOwner(userId);
+        allow read, list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.userId == userId;
+        allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+        allow delete: if isExistingOwner(userId);
       }
     }
     
