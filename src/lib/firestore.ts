@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -62,7 +63,7 @@ export interface UserProfile {
   packAiTickets: number;
   subscriptionUploadTickets: number;
   subscriptionAiTickets: number;
-  subscriptionTier: 'none' | 'creator' | 'pro' | 'master';
+  subscriptionTier: 'none' | 'creator' | 'pro' | 'master' | 'storage_250' | 'storage_500' | 'storage_1000';
   subscriptionRenewalDate: Timestamp | null;
   // Stripe
   stripeCustomerId?: string;
@@ -318,7 +319,7 @@ export async function toggleNoteCompletion(firestore: Firestore, userId: string,
 
 export async function deleteUserAccount(firestore: Firestore, storage: Storage, userId: string): Promise<void> {
     const { error } = await withErrorHandling(async () => {
-        const subcollections = ['images', 'notes', 'galleries'];
+        const subcollections = ['images', 'notes', 'galleries', 'audits', 'brandProfiles', 'scheduledPosts'];
         for (const sub of subcollections) {
             const snapshot = await getDocs(collection(firestore, 'users', userId, sub));
             const batch = writeBatch(firestore);
@@ -332,7 +333,11 @@ export async function deleteUserAccount(firestore: Firestore, storage: Storage, 
                 await Promise.all(listResult.items.map(itemRef => deleteObject(itemRef)));
             } catch (err) { console.warn(`Could not list/delete folder ${folderPath}`, err); }
         };
-        await Promise.all([deleteFolderContents(`users/${userId}`), deleteFolderContents(`avatars/${userId}`)]);
+        await Promise.all([
+            deleteFolderContents(`users/${userId}`), 
+            deleteFolderContents(`avatars/${userId}`),
+            deleteFolderContents(`scheduledPosts/${userId}`)
+        ]);
     }, { operation: 'deleteUserAccount', userId });
     if (error) throw error;
 }
@@ -493,10 +498,11 @@ export async function deleteAudit(firestore: Firestore, userId: string, auditId:
 
 export async function savePostForLater(firestore: Firestore, storage: Storage, userId: string, imageBlob: Blob, data: { title: string; description: string; scheduledAt?: Date; userId: string; }): Promise<void> {
     const { error } = await withErrorHandling(async () => {
-        const postsCollectionRef = collection(firestore, 'users', userId, 'scheduledPosts');
         const imageStoragePath = `scheduledPosts/${userId}/${Date.now()}.png`;
         const storageRef = ref(storage, imageStoragePath);
         await uploadBytes(storageRef, imageBlob);
+
+        const postsCollectionRef = collection(firestore, 'users', userId, 'scheduledPosts');
         const dataToSave = {
             userId,
             status: data.scheduledAt ? 'scheduled' : 'draft',
@@ -508,6 +514,17 @@ export async function savePostForLater(firestore: Firestore, storage: Storage, u
         };
         const docRef = await addDoc(postsCollectionRef, dataToSave);
         await updateDoc(docRef, { id: docRef.id });
-    }, { operation: 'savePostForLater', userId, context: { ...data, imageBlob: '[Blob]' } });
-    if (error) throw error;
+    }, { 
+        operation: 'savePostForLater', 
+        userId, 
+        context: { ...data, imageBlob: '[Blob]' } 
+    });
+
+    if (error) {
+        // Le wrapper a déjà notifié l'utilisateur, mais nous propageons l'erreur 
+        // pour que le composant appelant puisse gérer son état (ex: arrêter le loader).
+        throw error;
+    }
 }
+
+    
