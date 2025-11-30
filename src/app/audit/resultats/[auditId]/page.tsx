@@ -1,24 +1,21 @@
-
-
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useFirebase } from '@/firebase';
 import { doc, addDoc, collection } from 'firebase/firestore';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Loader2, ArrowLeft, Bot, Target, BookOpen, ListChecks, Wand2, Save, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Video, Ticket, Sparkles, Copy, FilePlus, Calendar as CalendarIcon, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { Separator } from '@/components/ui/separator';
-import { socialAuditFlow, type SocialAuditOutput } from '@/ai/flows/social-audit-flow';
-import type { SocialAuditInput } from '@/ai/schemas/social-audit-schemas';
-import { useState, useEffect, useMemo } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { Textarea } from '@/components/ui/textarea';
+import type { ImageMetadata, UserProfile, CustomPrompt } from '@/lib/firestore';
+import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
-import { generateImage, editImage } from '@/ai/flows/generate-image-flow';
+import Link from 'next/link';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Video, Ticket, Copy, FilePlus, Calendar as CalendarIcon, Trash2 } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { editImage } from '@/ai/flows/generate-image-flow';
 import { generateVideo } from '@/ai/flows/generate-video-flow';
-import type { UserProfile } from '@/lib/firestore';
 import { decrementAiTicketCount, saveImageMetadata, savePostForLater } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
@@ -31,9 +28,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { Calendar } from "@/components/ui/calendar"
-import { Label } from '@/components/ui/label';
 import { withErrorHandling } from '@/lib/async-wrapper';
-
+import { socialAuditFlow, type SocialAuditOutput } from '@/ai/flows/social-audit-flow';
+import type { SocialAuditInput } from '@/ai/schemas/social-audit-schemas';
+import { Separator } from '@/components/ui/separator';
 
 type AuditReport = SocialAuditOutput & {
     createdAt: any; // Timestamp
@@ -59,7 +57,7 @@ interface ImageHistoryItem {
 
 
 export default function AuditResultPage() {
-    const { user, isUserLoading, firebaseApp, storage } = useFirebase();
+    const { user, isUserLoading, firebaseApp } = useFirebase();
     const firestore = useFirestore();
     const router = useRouter();
     const params = useParams();
@@ -97,7 +95,7 @@ export default function AuditResultPage() {
         if (!user || !firestore) return null;
         return doc(firestore, `users/${user.uid}`);
     }, [user, firestore]);
-    const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+    const { data: userProfile, refetch: refetchUserProfile } = useDoc<UserProfile>(userDocRef);
 
     useEffect(() => {
         if (auditReport?.creative_suggestions) {
@@ -144,6 +142,7 @@ export default function AuditResultPage() {
             for (let i = 0; i < cost; i++) {
                 await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             }
+            refetchUserProfile();
             toast({ title: 'Plan de contenu généré !', description: `${cost} idées ont été créées. ${cost} ticket(s) IA utilisé(s).` });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur de génération', description: (error as Error).message });
@@ -188,6 +187,7 @@ export default function AuditResultPage() {
             setHistoryIndex(newHistory.length - 1);
             
             await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
+            refetchUserProfile();
             toast({ title: 'Image générée !', description: 'Un ticket IA a été utilisé.' });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur de génération', description: (error as Error).message });
@@ -224,6 +224,7 @@ export default function AuditResultPage() {
             for (let i = 0; i < VIDEO_COST; i++) {
                 await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             }
+            refetchUserProfile();
             toast({ title: 'Vidéo générée !', description: `${VIDEO_COST} tickets IA ont été utilisés.` });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur de génération vidéo', description: (error as Error).message });
@@ -246,8 +247,9 @@ export default function AuditResultPage() {
     };
 
     const handleSaveDraft = async () => {
-        if (!currentHistoryItem || !prompt || !user || !storage || !firestore) return;
+        if (!currentHistoryItem || !prompt || !user || !firebaseApp) return;
         setIsSavingDraft(true);
+        const storage = getStorage(firebaseApp);
         
         const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
         const { error } = await withErrorHandling(() => 
@@ -265,8 +267,9 @@ export default function AuditResultPage() {
     };
 
     const handleSchedule = async () => {
-        if (!currentHistoryItem || !prompt || !user || !storage || !firestore || !scheduleDate) return;
+        if (!currentHistoryItem || !prompt || !user || !firebaseApp || !scheduleDate) return;
         setIsScheduling(true);
+        const storage = getStorage(firebaseApp);
 
         const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
         const { error } = await withErrorHandling(() => 
@@ -290,12 +293,12 @@ export default function AuditResultPage() {
         setIsSaving(true);
         
         const { error } = await withErrorHandling(async () => {
-            const storageInstance = getStorage(firebaseApp);
+            const storage = getStorage(firebaseApp);
             const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
             const newFileName = `ai-creation-${Date.now()}.png`;
             const imageFile = new File([blob], newFileName, { type: blob.type });
 
-            const metadata = await uploadFileAndGetMetadata(storageInstance, user, imageFile, `IA: ${currentHistoryItem.prompt}`, () => {});
+            const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `IA: ${currentHistoryItem.prompt}`, () => {});
             
             await saveImageMetadata(firestore, user, { 
                 ...metadata,
@@ -354,7 +357,7 @@ export default function AuditResultPage() {
 
                 <Card>
                     <CardHeader className="flex flex-row items-start gap-4">
-                        <div className="p-3 bg-primary/10 rounded-lg text-primary"><Bot className="h-6 w-6"/></div>
+                        <div className="p-3 bg-primary/10 rounded-lg text-primary"><LucideIcons.Bot className="h-6 w-6"/></div>
                         <div>
                             <CardTitle>Identité Visuelle</CardTitle>
                             <CardDescription>La perception de votre style par l'IA.</CardDescription>
@@ -379,7 +382,7 @@ export default function AuditResultPage() {
                 
                 <Card>
                      <CardHeader className="flex flex-row items-start gap-4">
-                        <div className="p-3 bg-primary/10 rounded-lg text-primary"><Target className="h-6 w-6"/></div>
+                        <div className="p-3 bg-primary/10 rounded-lg text-primary"><LucideIcons.Target className="h-6 w-6"/></div>
                         <div>
                             <CardTitle>Analyse Stratégique</CardTitle>
                             <CardDescription>Vos points forts et axes d'amélioration.</CardDescription>
@@ -407,7 +410,7 @@ export default function AuditResultPage() {
 
                  <Card>
                     <CardHeader className="flex flex-row items-start gap-4">
-                        <div className="p-3 bg-primary/10 rounded-lg text-primary"><BookOpen className="h-6 w-6"/></div>
+                        <div className="p-3 bg-primary/10 rounded-lg text-primary"><LucideIcons.BookOpen className="h-6 w-6"/></div>
                         <div>
                             <CardTitle>Stratégie de Contenu</CardTitle>
                             <CardDescription>3 idées de publications pour atteindre votre objectif.</CardDescription>
@@ -425,7 +428,7 @@ export default function AuditResultPage() {
 
                  <Card>
                     <CardHeader className="flex flex-row items-start gap-4">
-                        <div className="p-3 bg-primary/10 rounded-lg text-primary"><ListChecks className="h-6 w-6"/></div>
+                        <div className="p-3 bg-primary/10 rounded-lg text-primary"><LucideIcons.ListChecks className="h-6 w-6"/></div>
                         <div>
                             <CardTitle>Plan d'Action sur 7 Jours</CardTitle>
                             <CardDescription>Un programme simple pour commencer dès aujourd'hui.</CardDescription>
@@ -656,4 +659,3 @@ export default function AuditResultPage() {
         </div>
     );
 }
-
