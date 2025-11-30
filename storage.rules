@@ -1,25 +1,23 @@
 rules_version = '2';
+
 service firebase.storage {
   match /b/{bucket}/o {
     
-    // Règle pour les images de galerie
+    // Règle principale pour le dossier "users" (galerie principale)
     match /users/{userId}/{allPaths=**} {
-      allow read: if true; // Tout le monde peut lire les images
-      allow write: if request.auth != null && request.auth.uid == userId; // Seul le propriétaire peut écrire
+      allow read: if true; 
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
 
     // Règle pour les photos de profil (avatars)
     match /avatars/{userId}/{fileName} {
-      allow read: if true; // Tout le monde peut voir les avatars
-      
-      // Seul le propriétaire peut écrire (changer son avatar).
+      allow read: if true;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // NOUVELLE RÈGLE : Règle pour les images des posts programmés
+    // Règle pour les images des posts programmés
     match /scheduledPosts/{userId}/{fileName} {
-        // Seul le propriétaire peut lire et écrire ses images de posts programmés.
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
