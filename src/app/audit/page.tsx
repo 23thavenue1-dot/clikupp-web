@@ -27,6 +27,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { withErrorHandling } from '@/lib/async-wrapper';
 
 
 const MAX_STYLE_IMAGES = 9;
@@ -77,7 +78,7 @@ export default function AuditPage() {
         if (!user || !firestore) return null;
         return doc(firestore, `users/${user.uid}`);
     }, [user, firestore]);
-    const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+    const { data: userProfile, isLoading: isProfileLoading, refetch: refetchUserProfile } = useDoc<UserProfile>(userDocRef);
 
     const imagesQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -121,49 +122,49 @@ export default function AuditPage() {
             return;
         }
         setIsCreatingProfile(true);
-        try {
-            const newProfileRef = await createBrandProfile(firestore, user.uid, newProfileName, newProfileAvatarUrl);
+        const { data: newProfileRef, error } = await withErrorHandling(() => 
+            createBrandProfile(firestore, user.uid, newProfileName, newProfileAvatarUrl)
+        );
+
+        if (!error && newProfileRef) {
             setSelectedProfileId(newProfileRef.id);
             setNewProfileName('');
             setNewProfileAvatarUrl('');
             setIsCreateProfileOpen(false);
             toast({ title: 'Profil créé', description: `Le profil "${newProfileName}" a été créé et sélectionné.` });
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de créer le profil." });
-        } finally {
-            setIsCreatingProfile(false);
         }
+        setIsCreatingProfile(false);
     };
     
     const handleUpdateProfile = async () => {
         if (!editingProfile || !user || !firestore || !editedName.trim()) return;
         setIsEditing(true);
-        try {
-            await updateBrandProfile(firestore, user.uid, editingProfile.id, { name: editedName });
+        const { error } = await withErrorHandling(() => 
+            updateBrandProfile(firestore, user.uid, editingProfile.id, { name: editedName })
+        );
+
+        if (!error) {
             toast({ title: "Profil mis à jour" });
             setEditingProfile(null);
-        } catch (error) {
-            toast({ variant: 'destructive', title: "Erreur", description: "Impossible de mettre à jour le profil." });
-        } finally {
-            setIsEditing(false);
         }
+        setIsEditing(false);
     };
     
     const handleDeleteProfile = async () => {
         if (!deletingProfile || !user || !firestore) return;
         setIsDeleting(true);
-        try {
-            await deleteBrandProfile(firestore, user.uid, deletingProfile.id);
+        const { error } = await withErrorHandling(() => 
+            deleteBrandProfile(firestore, user.uid, deletingProfile.id)
+        );
+
+        if (!error) {
             toast({ title: "Profil supprimé" });
             if (selectedProfileId === deletingProfile.id) {
                 setSelectedProfileId(null);
             }
             setDeletingProfile(null);
-        } catch (error) {
-            toast({ variant: 'destructive', title: "Erreur", description: "Impossible de supprimer le profil." });
-        } finally {
-            setIsDeleting(false);
         }
+        setIsDeleting(false);
     };
 
 
@@ -254,9 +255,9 @@ export default function AuditPage() {
             for (let i = 0; i < AUDIT_COST; i++) {
                 await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             }
+            refetchUserProfile();
             
             const auditsCollectionRef = collection(firestore, `users/${user.uid}/audits`);
-            // IMPORTANT: Save subject image URLs with the audit result
             const auditDataToSave = {
                 ...result,
                 userId: user.uid,
@@ -264,7 +265,7 @@ export default function AuditPage() {
                 createdAt: new Date(),
                 platform,
                 goal,
-                subjectImageUrls: subjectImageUrls, // Save for later use
+                subjectImageUrls: subjectImageUrls,
             };
             const docRef = await addDoc(auditsCollectionRef, auditDataToSave);
             
@@ -716,3 +717,4 @@ export default function AuditPage() {
         </>
     );
 }
+

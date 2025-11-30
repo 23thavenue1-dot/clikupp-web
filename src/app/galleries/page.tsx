@@ -25,6 +25,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { type Gallery, createGallery } from '@/lib/firestore';
 import { GalleryCard } from './GalleryCard';
+import { withErrorHandling } from '@/lib/async-wrapper';
 
 export default function GalleriesPage() {
   const { user, isUserLoading } = useUser();
@@ -56,17 +57,17 @@ export default function GalleriesPage() {
         return;
     }
     setIsSaving(true);
-    try {
-        await createGallery(firestore, user.uid, newGalleryName, newGalleryDescription);
+    const { error } = await withErrorHandling(() => 
+        createGallery(firestore, user.uid, newGalleryName, newGalleryDescription)
+    );
+
+    if (!error) {
         toast({ title: 'Galerie créée', description: `La galerie "${newGalleryName}" a été créée.` });
         setNewGalleryName('');
         setNewGalleryDescription('');
         setIsCreateDialogOpen(false);
-    } catch (error) {
-        toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de créer la galerie.' });
-    } finally {
-        setIsSaving(false);
     }
+    setIsSaving(false);
   };
 
   if (isUserLoading || !user) {
@@ -141,4 +142,5 @@ export default function GalleriesPage() {
     </div>
   );
 }
+
 

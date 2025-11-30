@@ -32,6 +32,7 @@ import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { Calendar } from "@/components/ui/calendar"
 import { Label } from '@/components/ui/label';
+import { withErrorHandling } from '@/lib/async-wrapper';
 
 
 type AuditReport = SocialAuditOutput & {
@@ -95,7 +96,7 @@ export default function AuditResultPage() {
         if (!user || !firestore) return null;
         return doc(firestore, `users/${user.uid}`);
     }, [user, firestore]);
-    const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+    const { data: userProfile, refetch: refetchUserProfile } = useDoc<UserProfile>(userDocRef);
 
     useEffect(() => {
         if (auditReport?.creative_suggestions) {
@@ -142,6 +143,7 @@ export default function AuditResultPage() {
             for (let i = 0; i < cost; i++) {
                 await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             }
+            refetchUserProfile();
             toast({ title: 'Plan de contenu généré !', description: `${cost} idées ont été créées. ${cost} ticket(s) IA utilisé(s).` });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur de génération', description: (error as Error).message });
@@ -186,6 +188,7 @@ export default function AuditResultPage() {
             setHistoryIndex(newHistory.length - 1);
             
             await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
+            refetchUserProfile();
             toast({ title: 'Image générée !', description: 'Un ticket IA a été utilisé.' });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur de génération', description: (error as Error).message });
@@ -222,6 +225,7 @@ export default function AuditResultPage() {
             for (let i = 0; i < VIDEO_COST; i++) {
                 await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             }
+            refetchUserProfile();
             toast({ title: 'Vidéo générée !', description: `${VIDEO_COST} tickets IA ont été utilisés.` });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur de génération vidéo', description: (error as Error).message });
@@ -246,51 +250,52 @@ export default function AuditResultPage() {
     const handleSaveDraft = async () => {
         if (!currentHistoryItem || !prompt || !user || !storage || !firestore) return;
         setIsSavingDraft(true);
-        try {
-            const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
-            await savePostForLater(firestore, storage, user.uid, blob, {
+        
+        const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
+        const { error } = await withErrorHandling(() => 
+            savePostForLater(firestore, storage, user.uid, blob, {
                 title: 'Brouillon généré par IA',
                 description: prompt,
-                userId: user.uid,
-            });
+            })
+        );
+        
+        if (!error) {
             toast({ title: "Brouillon sauvegardé !", description: "Retrouvez-le dans votre Planificateur de contenu." });
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: (error as Error).message });
-        } finally {
-            setIsSavingDraft(false);
         }
+        setIsSavingDraft(false);
     };
 
     const handleSchedule = async () => {
         if (!currentHistoryItem || !prompt || !user || !storage || !firestore || !scheduleDate) return;
         setIsScheduling(true);
-        try {
-            const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
-            await savePostForLater(firestore, storage, user.uid, blob, {
+
+        const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
+        const { error } = await withErrorHandling(() => 
+            savePostForLater(firestore, storage, user.uid, blob, {
                 title: `Post programmé pour le ${format(scheduleDate, 'd MMMM')}`,
                 description: prompt,
                 scheduledAt: scheduleDate,
-                userId: user.uid,
-            });
+            })
+        );
+
+        if (!error) {
             toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur pour le ${format(scheduleDate, 'PPP', { locale: fr })}.` });
-            setScheduleDate(undefined); // Reset date
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur de programmation', description: (error as Error).message });
-        } finally {
-            setIsScheduling(false);
+            setScheduleDate(undefined);
         }
+        setIsScheduling(false);
     };
 
     const handleSaveToLibrary = async () => {
         if (!currentHistoryItem || !user || !firebaseApp || !firestore) return;
         setIsSaving(true);
-        try {
-            const storage = getStorage(firebaseApp);
+        
+        const { error } = await withErrorHandling(async () => {
+            const storageInstance = getStorage(firebaseApp);
             const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
             const newFileName = `ai-creation-${Date.now()}.png`;
             const imageFile = new File([blob], newFileName, { type: blob.type });
 
-            const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `IA: ${currentHistoryItem.prompt}`, () => {});
+            const metadata = await uploadFileAndGetMetadata(storageInstance, user, imageFile, `IA: ${currentHistoryItem.prompt}`, () => {});
             
             await saveImageMetadata(firestore, user, { 
                 ...metadata,
@@ -298,13 +303,12 @@ export default function AuditResultPage() {
                 description: currentHistoryItem.prompt,
                 generatedByAI: true
             });
-            toast({ title: "Sauvegardé dans la bibliothèque !", description: "Votre création a été ajoutée à votre galerie principale." });
+        });
 
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: "Impossible d'enregistrer l'image dans la bibliothèque." });
-        } finally {
-            setIsSaving(false);
+        if (!error) {
+            toast({ title: "Sauvegardé dans la bibliothèque !", description: "Votre création a été ajoutée à votre galerie principale." });
         }
+        setIsSaving(false);
     };
 
     if (isUserLoading || isAuditLoading) {
@@ -661,5 +665,6 @@ export default function AuditResultPage() {
 
 
     
+
 
 

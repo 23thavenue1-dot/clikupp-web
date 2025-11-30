@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -16,6 +17,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { withErrorHandling } from '@/lib/async-wrapper';
 
 interface GalleryCardProps {
     gallery: Gallery;
@@ -60,15 +62,15 @@ export function GalleryCard({ gallery }: GalleryCardProps) {
     const handleDeleteGallery = async () => {
         if (!user || !firestore || !galleryToDelete) return;
         setIsDeleting(true);
-        try {
-            await deleteGallery(firestore, user.uid, galleryToDelete.id);
+        const { error } = await withErrorHandling(() => 
+            deleteGallery(firestore, user.uid, galleryToDelete.id)
+        );
+        
+        if (!error) {
             toast({ title: 'Galerie supprimée', description: `La galerie "${galleryToDelete.name}" a été supprimée.` });
-            setGalleryToDelete(null);
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de supprimer la galerie.' });
-        } finally {
-            setIsDeleting(false);
         }
+        setGalleryToDelete(null);
+        setIsDeleting(false);
     };
 
 
@@ -145,3 +147,4 @@ export function GalleryCard({ gallery }: GalleryCardProps) {
         </>
     );
 }
+

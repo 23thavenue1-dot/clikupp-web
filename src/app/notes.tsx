@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -31,6 +32,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { withErrorHandling } from '@/lib/async-wrapper';
 
 export function NotesSection() {
     const { user } = useUser();
@@ -56,15 +58,13 @@ export function NotesSection() {
     const handleSaveNote = async () => {
         if (!noteText.trim() || !user || !firestore) return;
         setIsSaving(true);
-        try {
-            await saveNote(firestore, user, noteText);
+        const { error } = await withErrorHandling(() => saveNote(firestore, user, noteText));
+        
+        if (!error) {
             setNoteText('');
             toast({ title: "Note enregistrée", description: "Votre note a été ajoutée avec succès." });
-        } catch (error) {
-            toast({ variant: 'destructive', title: "Erreur", description: "Impossible d'enregistrer la note." });
-        } finally {
-            setIsSaving(false);
         }
+        setIsSaving(false);
     };
     
     const startEditing = (note: Note) => {
@@ -80,15 +80,15 @@ export function NotesSection() {
     const handleUpdateNote = async () => {
         if (!editingNoteId || !editingNoteText.trim() || !user || !firestore) return;
         setIsUpdating(true);
-        try {
-            await updateNote(firestore, user.uid, editingNoteId, editingNoteText);
+        const { error } = await withErrorHandling(() => 
+            updateNote(firestore, user.uid, editingNoteId, editingNoteText)
+        );
+
+        if (!error) {
             toast({ title: "Note modifiée", description: "Votre note a été mise à jour." });
             cancelEditing();
-        } catch (error) {
-            toast({ variant: 'destructive', title: "Erreur", description: "Impossible de modifier la note." });
-        } finally {
-            setIsUpdating(false);
         }
+        setIsUpdating(false);
     };
     
     const openDeleteDialog = (note: Note) => {
@@ -98,24 +98,23 @@ export function NotesSection() {
     const handleDeleteNote = async () => {
         if (!noteToDelete || !user || !firestore) return;
         setIsDeleting(true);
-        try {
-            await deleteNote(firestore, user.uid, noteToDelete.id);
+        const { error } = await withErrorHandling(() => 
+            deleteNote(firestore, user.uid, noteToDelete.id)
+        );
+        
+        if (!error) {
             toast({ title: "Note supprimée", description: "La note a été supprimée." });
-            setNoteToDelete(null);
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de supprimer la note.' });
-        } finally {
-            setIsDeleting(false);
         }
+        setNoteToDelete(null);
+        setIsDeleting(false);
     };
     
     const handleToggleCompletion = async (note: Note) => {
         if (!user || !firestore) return;
-        try {
-            await toggleNoteCompletion(firestore, user.uid, note.id, !note.completed);
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de mettre à jour la tâche.' });
-        }
+        await withErrorHandling(() =>
+            toggleNoteCompletion(firestore, user.uid, note.id, !note.completed)
+        );
+        // Pas de notification pour cette action rapide
     };
 
 
@@ -243,3 +242,4 @@ export function NotesSection() {
         </Card>
     );
 }
+

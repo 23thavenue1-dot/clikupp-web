@@ -59,6 +59,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { withErrorHandling } from '@/lib/async-wrapper';
 
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
@@ -74,7 +75,7 @@ export function ImageList() {
         if (!user || !firestore) return null;
         return doc(firestore, `users/${user.uid}`);
     }, [user, firestore]);
-    const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+    const { data: userProfile, refetch: refetchUserProfile } = useDoc<UserProfile>(userDocRef);
 
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [isDownloading, setIsDownloading] = useState<string | null>(null);
@@ -110,7 +111,7 @@ export function ImageList() {
         return query(collection(firestore, `users/${user.uid}/images`), orderBy('uploadTimestamp', 'desc'));
     }, [user, firestore]);
 
-    const { data: images, isLoading } = useCollection<ImageMetadata>(imagesQuery);
+    const { data: images, isLoading, refetch: refetchImages } = useCollection<ImageMetadata>(imagesQuery);
 
     const galleriesQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -179,53 +180,41 @@ export function ImageList() {
         
         setIsDeleting(imageToDelete.id);
 
-        try {
-            await deleteImageMetadata(firestore, user.uid, imageToDelete.id);
-            toast({ title: "Image supprimée", description: "L'image a été supprimée avec succès." });
+        const { error } = await withErrorHandling(() => 
+            deleteImageMetadata(firestore, user.uid, imageToDelete.id)
+        );
 
-        } catch (error) {
-            console.error("Erreur lors de la suppression de l'image:", error);
-            toast({
-                variant: 'destructive',
-                title: 'Erreur',
-                description: "Une erreur est survenue lors de la suppression de l'image."
-            });
-        } finally {
-            setIsDeleting(null);
-            setShowDeleteAlert(false);
-            setImageToDelete(null);
+        if (!error) {
+            toast({ title: "Image supprimée", description: "L'image a été supprimée avec succès." });
         }
+        // Les erreurs sont gérées par le handler global
+
+        setIsDeleting(null);
+        setShowDeleteAlert(false);
+        setImageToDelete(null);
     };
 
     const handleMultiDelete = async () => {
         if (selectedImages.size === 0 || !user || !firestore || !firebaseApp) return;
     
-        setIsDeleting('multi'); // Indicate that a multi-delete operation is in progress
+        setIsDeleting('multi');
     
-        try {
-            const imageIdsToDelete = Array.from(selectedImages);
-            await deleteMultipleImages(firestore, getStorage(firebaseApp), user.uid, imageIdsToDelete);
-    
+        const imageIdsToDelete = Array.from(selectedImages);
+        const { error } = await withErrorHandling(() => 
+            deleteMultipleImages(firestore, getStorage(firebaseApp), user.uid, imageIdsToDelete)
+        );
+        
+        if (!error) {
             toast({
                 title: `${imageIdsToDelete.length} image(s) supprimée(s)`,
                 description: "Les images sélectionnées ont été définitivement supprimées.",
             });
-    
-            // Reset selection mode
             setIsSelectionMode(false);
             setSelectedImages(new Set());
-    
-        } catch (error) {
-            console.error("Erreur lors de la suppression multiple :", error);
-            toast({
-                variant: 'destructive',
-                title: 'Erreur de suppression',
-                description: "Une erreur est survenue. Certaines images n'ont peut-être pas été supprimées."
-            });
-        } finally {
-            setIsDeleting(null);
-            setShowMultiDeleteAlert(false);
         }
+
+        setIsDeleting(null);
+        setShowMultiDeleteAlert(false);
     };
 
     const handleDownload = async (e: React.MouseEvent, image: ImageMetadata) => {
@@ -274,7 +263,7 @@ export function ImageList() {
     };
 
     const handleGenerateDescription = async (platform: Platform) => {
-        if (!imageToEdit || !user || !userProfile) return;
+        if (!imageToEdit || !user || !userProfile || !firestore) return;
 
         if (totalAiTickets <= 0) {
             toast({
@@ -295,11 +284,11 @@ export function ImageList() {
             const result = await generateImageDescription({ imageUrl: imageToEdit.directUrl, platform: platform });
             setCurrentTitle(result.title);
             setCurrentDescription(result.description);
-            // On ajoute le # directement ici
             setHashtagsString(result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' '));
             setWasGeneratedByAI(true);
             
             await decrementAiTicketCount(firestore, user.uid, userProfile, 'description');
+            refetchUserProfile();
             
             toast({ title: "Contenu généré !", description: `Publication pour ${platform} prête. Un ticket IA a été utilisé.` });
         } catch (error) {
@@ -318,33 +307,31 @@ export function ImageList() {
             description: currentDescription,
             hashtags: hashtagsString
         };
+        
+        const { error } = await withErrorHandling(() => 
+            updateImageDescription(firestore, user.uid, imageToEdit.id, dataToSave, wasGeneratedByAI)
+        );
 
-        try {
-            await updateImageDescription(firestore, user.uid, imageToEdit.id, dataToSave, wasGeneratedByAI);
+        if (!error) {
             toast({ title: 'Description enregistrée', description: 'Les informations de l\'image ont été mises à jour.' });
             setShowEditDialog(false);
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible d\'enregistrer les informations.' });
-        } finally {
-            setIsSavingDescription(false);
+            refetchImages();
         }
+        setIsSavingDescription(false);
     };
 
     const handleSaveToGalleries = async () => {
         if (!user || !firestore || !galleries || (!imageToAddToGallery && selectedImages.size === 0)) return;
         setIsSavingToGallery(true);
     
-        try {
+        const { error } = await withErrorHandling(async () => {
             if (imageToAddToGallery) { // Cas image unique
-                // This logic is now complex, better to just call addMultipleImagesToGalleries
                 await addMultipleImagesToGalleries(firestore, user.uid, [imageToAddToGallery.id], Array.from(selectedGalleries));
 
-                // Also need to handle removing from galleries it was deselected from
                 const originalGalleries = galleries.filter(g => g.imageIds.includes(imageToAddToGallery.id)).map(g => g.id);
                 const galleriesToRemoveFrom = originalGalleries.filter(gId => !selectedGalleries.has(gId));
                 if (galleriesToRemoveFrom.length > 0) {
-                     const removePromises = galleriesToRemoveFrom.map(gId => addMultipleImagesToGalleries(firestore, user.uid, [imageToAddToGallery.id], [], true, [gId]));
-                     await Promise.all(removePromises);
+                     await addMultipleImagesToGalleries(firestore, user.uid, [imageToAddToGallery.id], [], true, galleriesToRemoveFrom);
                 }
 
             } else if (selectedImages.size > 0) { // Cas sélection multiple
@@ -352,16 +339,15 @@ export function ImageList() {
                     await addMultipleImagesToGalleries(firestore, user.uid, Array.from(selectedImages), Array.from(selectedGalleries));
                 }
             }
-            
+        });
+
+        if (!error) {
             toast({ title: 'Galeries mises à jour', description: 'Les images ont bien été ajoutées aux galeries sélectionnées.' });
             setShowAddToGalleryDialog(false);
             setIsSelectionMode(false);
             setSelectedImages(new Set());
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de mettre à jour les galeries.' });
-        } finally {
-            setIsSavingToGallery(false);
         }
+        setIsSavingToGallery(false);
     };
 
     const handleGallerySelectionChange = (galleryId: string) => {
@@ -379,16 +365,16 @@ export function ImageList() {
     const handleCreateGalleryOnTheFly = async () => {
         if (!newGalleryName.trim() || !user || !firestore) return;
         setIsCreatingGallery(true);
-        try {
-            const newGalleryRef = await createGallery(firestore, user.uid, newGalleryName);
+        const { data: newGalleryRef, error } = await withErrorHandling(() => 
+            createGallery(firestore, user.uid, newGalleryName)
+        );
+        
+        if (!error && newGalleryRef) {
             setSelectedGalleries(prev => new Set(prev).add(newGalleryRef.id));
             setNewGalleryName('');
             toast({ title: "Galerie créée", description: `"${newGalleryName}" a été créée et sélectionnée.`});
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de créer la galerie.' });
-        } finally {
-            setIsCreatingGallery(false);
         }
+        setIsCreatingGallery(false);
     }
 
     const handleToggleSelectionMode = () => {
@@ -414,14 +400,14 @@ export function ImageList() {
 
         const isCurrentlyPinned = userProfile.pinnedImageIds?.includes(image.id) ?? false;
         
-        try {
-            await toggleGlobalImagePin(firestore, user.uid, image.id, !isCurrentlyPinned);
+        const { error } = await withErrorHandling(() => 
+            toggleGlobalImagePin(firestore, user.uid, image.id, !isCurrentlyPinned)
+        );
+        
+        if (!error) {
             toast({
                 title: isCurrentlyPinned ? 'Image désépinglée' : 'Image épinglée globalement',
             });
-            // No need to call refetch, useDoc handles it.
-        } catch (error) {
-             toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de modifier l'épingle." });
         }
     };
 
@@ -867,3 +853,4 @@ export function ImageList() {
         </TooltipProvider>
     );
 }
+
