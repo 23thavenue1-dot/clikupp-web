@@ -1093,6 +1093,7 @@ export async function savePostForLater(
         userId: string;
     }
 ): Promise<void> {
+    const postsCollectionRef = collection(firestore, 'users', userId, 'scheduledPosts');
     const imageStoragePath = `scheduledPosts/${userId}/${Date.now()}.png`;
     const storageRef = ref(storage, imageStoragePath);
 
@@ -1101,7 +1102,6 @@ export async function savePostForLater(
         await uploadBytes(storageRef, imageBlob);
 
         // Étape 2 : Sauvegarder les métadonnées dans Firestore
-        const postsCollectionRef = collection(firestore, 'users', userId, 'scheduledPosts');
         const dataToSave = {
             userId: userId,
             status: data.scheduledAt ? 'scheduled' : 'draft',
@@ -1117,7 +1117,6 @@ export async function savePostForLater(
 
     } catch (error) {
         console.error("Erreur lors de la sauvegarde du post :", error);
-        const postsCollectionRef = collection(firestore, 'users', userId, 'scheduledPosts');
         const permissionError = new FirestorePermissionError({
             path: postsCollectionRef.path,
             operation: 'create',
