@@ -3,20 +3,11 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Règle pour la galerie principale des utilisateurs
-    match /users/{userId}/{allPaths=**} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // Règle pour les avatars des utilisateurs
-    match /avatars/{userId}/{allPaths=**} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // Règle pour les images des brouillons et posts programmés
-    match /scheduledPosts/{userId}/{allPaths=**} {
+    // Règle globale et unifiée pour tous les dossiers liés à un utilisateur.
+    // L'utilisateur authentifié peut lire tous les fichiers mais ne peut écrire
+    // que dans un dossier qui porte son propre ID d'utilisateur.
+    // Cela couvre /users/{userId}, /avatars/{userId}, /scheduledPosts/{userId}, etc.
+    match /{folder}/{userId}/{allPaths=**} {
       allow read: if true;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
