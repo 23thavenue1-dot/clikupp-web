@@ -2,16 +2,16 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { doc, collection, query, orderBy } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
 import { Loader2 } from 'lucide-react';
-import { NotesSection } from './notes';
 import { Uploader } from './uploader';
 import { ImageList } from './ImageList';
 import { type UserProfile, checkAndRefillTickets } from '@/lib/firestore';
 import { LandingPage } from './landing-page';
+import { CreationHub } from '@/components/CreationHub';
 
 
 export default function Home() {
@@ -26,9 +26,13 @@ export default function Home() {
 
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
+  const imagesQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(collection(firestore, `users/${user.uid}/images`), orderBy('uploadTimestamp', 'desc'));
+  }, [user, firestore]);
+  const { data: images, isLoading: areImagesLoading } = useCollection(imagesQuery);
+
   useEffect(() => {
-    // La logique de recharge est maintenant centralisée dans une fonction
-    // pour plus de robustesse et de clarté.
     if (userProfile && firestore && userDocRef) {
       checkAndRefillTickets(firestore, userDocRef, userProfile);
     }
@@ -46,34 +50,31 @@ export default function Home() {
   if (!user) {
     return <LandingPage />;
   }
+  
+  const lastImage = images && images.length > 0 ? images[0] : null;
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <div className="w-full max-w-3xl mx-auto space-y-6">
+      <div className="w-full max-w-4xl mx-auto space-y-8">
         
-        <header className="flex justify-between items-center">
-          <div className="text-center flex-grow">
-            <h1 className="text-4xl font-headline font-bold">
-              Page d'accueil
+        <header className="text-center">
+            <h1 className="text-4xl font-headline font-bold tracking-tight">
+              Bienvenue, {userProfile?.displayName || user.email?.split('@')[0]}
             </h1>
             <p className="text-muted-foreground mt-2">
-              Bienvenue sur votre application.
+              Que souhaitez-vous créer aujourd'hui ?
             </p>
-          </div>
         </header>
 
         <div className="transition-transform transition-shadow duration-200 ease-out hover:shadow-xl hover:-translate-y-0.5 hover:border-primary border border-transparent rounded-lg">
           <Uploader />
         </div>
+        
+        {lastImage && !areImagesLoading && (
+          <CreationHub lastImage={lastImage} />
+        )}
 
-        <div className="transition-transform transition-shadow duration-200 ease-out hover:shadow-xl hover:-translate-y-0.5 hover:border-primary border border-transparent rounded-lg">
-          <ImageList />
-        </div>
-
-        <div className="transition-transform transition-shadow duration-200 ease-out hover:shadow-xl hover:-translate-y-0.5 hover:border-primary border border-transparent rounded-lg">
-          <NotesSection />
-        </div>
-
+        <ImageList />
       </div>
     </div>
   );
