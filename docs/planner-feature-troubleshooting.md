@@ -23,10 +23,15 @@ Ce document est dédié au suivi de la résolution du problème empêchant la sa
 
 - **Diagnostic :** L'instance `storage` était `undefined` lors de l'appel à `savePostForLater`. Le hook `useStorage()` était utilisé dans la page, mais il n'existait pas.
 - **Action corrective :** Remplacement de `useStorage` par le hook principal `useFirebase` qui fournit l'ensemble des services, y compris `storage`.
-- **Résultat :** Le problème a évolué vers une erreur de permission, ce qui est un excellent progrès car cela signifie que la logique de code est maintenant correcte.
+- **Résultat :** Le problème a évolué vers une erreur de permission `storage/unauthorized`. C'est un progrès, car cela pointe vers les règles de sécurité.
 
-#### Hypothèse 3 : Règle de Sécurité Manquante (LA CAUSE RACINE)
+#### Hypothèse 3 : Règle de Sécurité Storage manquante (Analyse incorrecte)
 
-- **Diagnostic :** La console Firebase a remonté une erreur `storage/unauthorized`. Cela indique sans le moindre doute que les règles de sécurité de Firebase Storage (`storage.rules`) n'autorisent pas l'écriture à l'emplacement `scheduledPosts/{userId}/{fileName}`.
-- **Action corrective :** Ajouter une nouvelle règle dans `storage.rules` pour permettre à un utilisateur authentifié d'écrire dans son propre dossier de brouillons.
-- **Prochaine étape :** Vérifier si cette correction résout l'erreur et permet enfin la sauvegarde et la programmation des posts.
+- **Diagnostic erroné :** J'ai cru que l'erreur `storage/unauthorized` était la cause finale et j'ai tenté de modifier `storage.rules`.
+- **Résultat :** L'erreur a persisté, mais a changé pour une erreur de permission Firestore, indiquant que le problème de Storage était soit résolu, soit masqué par un autre.
+
+#### Hypothèse 4 : Règle de Sécurité Firestore (LA VRAIE CAUSE RACINE)
+
+- **Diagnostic final :** La nouvelle erreur est `Missing or insufficient permissions: Firestore Security Rules`. Le log montre clairement que l'opération `create` sur le chemin `/users/{userId}/scheduledPosts` est refusée.
+- **Action corrective :** Modifier `firestore.rules` pour séparer explicitement la règle `create` des règles `update` et `delete` pour la sous-collection `scheduledPosts`, en la rendant moins restrictive tout en restant sécurisée.
+- **Prochaine étape :** Vérifier si cette correction finale résout le problème.

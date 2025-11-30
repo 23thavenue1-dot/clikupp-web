@@ -1,4 +1,3 @@
-
 /**
  * @file Firebase Security Rules for Firestore.
  * @description This ruleset enforces a strict user-ownership model for user profiles, images, and notes,
@@ -129,3 +128,4 @@ service cloud.firestore {
     
 
     
+
