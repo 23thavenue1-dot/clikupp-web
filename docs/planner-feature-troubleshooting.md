@@ -25,13 +25,8 @@ Ce document est dédié au suivi de la résolution du problème empêchant la sa
 - **Action corrective :** Remplacement de `useStorage` par le hook principal `useFirebase` qui fournit l'ensemble des services, y compris `storage`.
 - **Résultat :** Le problème a évolué vers une erreur de permission `storage/unauthorized`. C'est un progrès, car cela pointe vers les règles de sécurité.
 
-#### Hypothèse 3 : Règle de Sécurité Storage manquante (Analyse incorrecte)
+#### Hypothèse 3 : Règle de Sécurité Storage incorrecte (LA VRAIE CAUSE RACINE)
 
-- **Diagnostic erroné :** J'ai cru que l'erreur `storage/unauthorized` était la cause finale et j'ai tenté de modifier `storage.rules` à plusieurs reprises.
-- **Résultat :** L'erreur a persisté, mais a changé pour une erreur de permission **Firestore**, indiquant que le problème de Storage était soit résolu, soit masqué par un autre, plus prioritaire. L'erreur `storage/unauthorized` n'est plus d'actualité.
-
-#### Hypothèse 4 : Règle de Sécurité Firestore (LA VRAIE CAUSE RACINE)
-
-- **Diagnostic final :** La nouvelle erreur est `Missing or insufficient permissions: Firestore Security Rules`. Le log montre clairement que l'opération `create` sur le chemin `/users/{userId}/scheduledPosts` est refusée.
-- **Action corrective :** Modifier `firestore.rules` pour séparer explicitement la règle `create` des règles `update` et `delete` pour la sous-collection `scheduledPosts`, en la rendant moins restrictive pour la création tout en restant sécurisée.
-- **Prochaine étape :** Vérifier si cette correction finale résout le problème.
+- **Diagnostic final :** L'erreur `storage/unauthorized` persiste malgré les tentatives de correction. L'analyse des règles `storage.rules` a révélé une structure de règles incorrecte avec plusieurs blocs `match` au même niveau, créant une ambiguïté.
+- **Action corrective :** Refonte complète de `storage.rules` pour utiliser une seule règle unifiée avec un wildcard `{folder}` qui couvre explicitement les cas `users`, `avatars` et `scheduledPosts`. Cela garantit que toute écriture dans un dossier utilisateur est correctement validée par une seule règle claire et sans conflit.
+- **Prochaine étape :** Vérifier si cette nouvelle structure de règles résout définitivement l'erreur de permission.
