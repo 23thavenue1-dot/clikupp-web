@@ -186,13 +186,6 @@ export default function ImageDetailPage() {
                             Retour à la galerie
                         </Link>
                     </Button>
-                    <Button
-                        onClick={() => copyToClipboard(fullTextToCopy, 'details-all', 'Contenu complet copié !')}
-                        disabled={!fullTextToCopy}
-                    >
-                        {copiedField === 'details-all' ? <Check className="mr-2" /> : <CopyPlus className="mr-2" />}
-                        Tout Copier
-                    </Button>
                 </div>
                
                 <Card>
@@ -206,71 +199,11 @@ export default function ImageDetailPage() {
                                 unoptimized
                             />
                         </div>
-                        <div className="relative">
-                            <CardTitle className="text-3xl break-words pr-10">{image.title || 'Sans titre'}</CardTitle>
-                             {image.title && (
-                                <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8" onClick={() => copyToClipboard(image.title!, 'details-title', 'Titre copié !')}>
-                                    {copiedField === 'details-title' ? <Check className="text-green-500" /> : <Copy size={16} />}
-                                </Button>
-                            )}
-                        </div>
+                        <CardTitle className="text-3xl break-words">{image.title || 'Sans titre'}</CardTitle>
                         <CardDescription>
                             Téléversée {formatDistanceToNow(image.uploadTimestamp.toDate(), { addSuffix: true, locale: fr })}
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                         <Separator/>
-                         <div className="space-y-4">
-                            <div className="relative">
-                                <Label className="text-muted-foreground">Description</Label>
-                                <p className="text-base whitespace-pre-wrap pr-8">{image.description || 'Aucune description'}</p>
-                                {image.description && (
-                                    <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8" onClick={() => copyToClipboard(image.description!, 'details-desc', 'Description copiée !')}>
-                                        {copiedField === 'details-desc' ? <Check className="text-green-500" /> : <Copy size={16} />}
-                                    </Button>
-                                )}
-                            </div>
-
-                             <div className="relative">
-                                <Label className="text-muted-foreground">Hashtags</Label>
-                                <p className="text-base text-primary pr-8 break-words">{image.hashtags || 'Aucun hashtag'}</p>
-                                {image.hashtags && (
-                                    <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8" onClick={() => copyToClipboard(image.hashtags!, 'details-tags', 'Hashtags copiés !')}>
-                                        {copiedField === 'details-tags' ? <Check className="text-green-500" /> : <Copy size={16} />}
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
-                        
-                         <Separator/>
-
-                        <div className="space-y-4">
-                             <div className="relative">
-                                <Label className="text-muted-foreground">Lien direct (URL)</Label>
-                                <p className="text-sm pr-8 truncate">{image.directUrl}</p>
-                                <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8" onClick={() => copyToClipboard(image.directUrl, 'direct', 'Lien copié !')}>
-                                    {copiedField === 'direct' ? <Check className="text-green-500"/> : <Copy size={16} />}
-                                </Button>
-                            </div>
-
-                             <div className="relative">
-                                <Label className="text-muted-foreground">Pour forum (BBCode)</Label>
-                                <p className="text-sm pr-8 truncate">{image.bbCode}</p>
-                                <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8" onClick={() => copyToClipboard(image.bbCode, 'bbcode', 'BBCode copié !')}>
-                                    {copiedField === 'bbcode' ? <Check className="text-green-500"/> : <Copy size={16} />}
-                                </Button>
-                            </div>
-
-                             <div className="relative">
-                                <Label className="text-muted-foreground">Pour site web (HTML)</Label>
-                                <p className="text-sm pr-8 truncate">{image.htmlCode}</p>
-                                <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-8 w-8" onClick={() => copyToClipboard(image.htmlCode, 'html', 'Code HTML copié !')}>
-                                    {copiedField === 'html' ? <Check className="text-green-500"/> : <Copy size={16} />}
-                                </Button>
-                            </div>
-                        </div>
-
-                    </CardContent>
                 </Card>
 
                 {/* --- Section Outils IA --- */}
@@ -395,6 +328,75 @@ export default function ImageDetailPage() {
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
+                
+                {/* --- Section Partage & Export --- */}
+                <Card>
+                     <CardHeader>
+                        <CardTitle>Partage & Export</CardTitle>
+                        <CardDescription>Copiez le contenu de votre publication et les liens de partage.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="p-4 border rounded-lg bg-muted/30 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-base font-semibold">Contenu de la publication</Label>
+                                 <Button
+                                    onClick={() => copyToClipboard(fullTextToCopy, 'details-all', 'Contenu complet copié !')}
+                                    disabled={!fullTextToCopy}
+                                    size="sm"
+                                >
+                                    {copiedField === 'details-all' ? <Check className="mr-2" /> : <CopyPlus className="mr-2" />}
+                                    Tout Copier
+                                </Button>
+                            </div>
+                            <Separator />
+                            <div className="relative">
+                                <Label className="text-muted-foreground text-xs">Titre</Label>
+                                <p className="text-sm font-medium pr-8">{image.title || 'N/A'}</p>
+                            </div>
+                            <div className="relative">
+                                <Label className="text-muted-foreground text-xs">Description</Label>
+                                <p className="text-sm whitespace-pre-wrap pr-8">{image.description || 'N/A'}</p>
+                            </div>
+                             <div className="relative">
+                                <Label className="text-muted-foreground text-xs">Hashtags</Label>
+                                <p className="text-sm text-primary pr-8 break-words">{image.hashtags || 'N/A'}</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                             <div className="relative">
+                                <Label className="text-muted-foreground">Lien direct (URL)</Label>
+                                <div className="flex items-center gap-2">
+                                    <Input value={image.directUrl} readOnly className="text-xs"/>
+                                    <Button variant="ghost" size="icon" className="flex-shrink-0" onClick={() => copyToClipboard(image.directUrl, 'direct', 'Lien copié !')}>
+                                        {copiedField === 'direct' ? <Check className="text-green-500"/> : <Copy size={16} />}
+                                    </Button>
+                                </div>
+                            </div>
+
+                             <div className="relative">
+                                <Label className="text-muted-foreground">Pour forum (BBCode)</Label>
+                                 <div className="flex items-center gap-2">
+                                    <Input value={image.bbCode} readOnly className="text-xs"/>
+                                    <Button variant="ghost" size="icon" className="flex-shrink-0" onClick={() => copyToClipboard(image.bbCode, 'bbcode', 'BBCode copié !')}>
+                                        {copiedField === 'bbcode' ? <Check className="text-green-500"/> : <Copy size={16} />}
+                                    </Button>
+                                </div>
+                            </div>
+
+                             <div className="relative">
+                                <Label className="text-muted-foreground">Pour site web (HTML)</Label>
+                                 <div className="flex items-center gap-2">
+                                    <Input value={image.htmlCode} readOnly className="text-xs"/>
+                                    <Button variant="ghost" size="icon" className="flex-shrink-0" onClick={() => copyToClipboard(image.htmlCode, 'html', 'Code HTML copié !')}>
+                                        {copiedField === 'html' ? <Check className="text-green-500"/> : <Copy size={16} />}
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </CardContent>
+                </Card>
             </div>
         </div>
     );
