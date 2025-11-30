@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import {
@@ -22,7 +21,7 @@ import {
   getDoc,
   arrayRemove,
 } from 'firebase/firestore';
-import { getStorage, ref, listAll, deleteObject, Storage } from 'firebase/storage';
+import { getStorage, ref, listAll, deleteObject, Storage, uploadBytes } from 'firebase/storage';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import type { User } from 'firebase/auth';
@@ -601,8 +600,8 @@ export async function deleteUserAccount(firestore: Firestore, storage: Storage, 
 
     const deleteFolderContents = async (folderRef:any) => {
         try {
-            const listResults = await listAll(folderRef);
-            const deletePromises = listResults.items.map(itemRef => deleteObject(itemRef));
+            const listResult = await listAll(folderRef);
+            const deletePromises = listResult.items.map(itemRef => deleteObject(itemRef));
             await Promise.all(deletePromises);
         } catch (error) {
              console.warn(`Impossible de lister ou supprimer le contenu du dossier ${folderRef.fullPath}:`, error);
@@ -1077,12 +1076,14 @@ export async function deleteAudit(firestore: Firestore, userId: string, auditId:
 /**
  * Sauvegarde une publication pour plus tard (brouillon ou programmé).
  * @param firestore L'instance Firestore.
+ * @param storage L'instance de Firebase Storage.
  * @param userId L'ID de l'utilisateur.
  * @param imageBlob Le blob de l'image à sauvegarder.
  * @param data Les données textuelles du post.
  */
 export async function savePostForLater(
     firestore: Firestore,
+    storage: Storage,
     userId: string,
     imageBlob: Blob,
     data: {
@@ -1092,37 +1093,38 @@ export async function savePostForLater(
         userId: string;
     }
 ): Promise<void> {
-    // Étape 1 : Uploader l'image sur Firebase Storage pour obtenir un chemin
-    // Cette étape est manquante mais essentielle. Pour l'instant, on simule un chemin.
     const imageStoragePath = `scheduledPosts/${userId}/${Date.now()}.png`;
-
-    const postsCollectionRef = collection(firestore, 'users', userId, 'scheduledPosts');
-
-    const dataToSave = {
-        userId: userId,
-        status: data.scheduledAt ? 'scheduled' : 'draft',
-        createdAt: serverTimestamp(),
-        scheduledAt: data.scheduledAt ? Timestamp.fromDate(data.scheduledAt) : null,
-        title: data.title,
-        description: data.description,
-        imageStoragePath: imageStoragePath,
-    };
+    const storageRef = ref(storage, imageStoragePath);
 
     try {
+        // Étape 1 : Uploader l'image sur Firebase Storage
+        await uploadBytes(storageRef, imageBlob);
+
+        // Étape 2 : Sauvegarder les métadonnées dans Firestore
+        const postsCollectionRef = collection(firestore, 'users', userId, 'scheduledPosts');
+        const dataToSave = {
+            userId: userId,
+            status: data.scheduledAt ? 'scheduled' : 'draft',
+            createdAt: serverTimestamp(),
+            scheduledAt: data.scheduledAt ? Timestamp.fromDate(data.scheduledAt) : null,
+            title: data.title,
+            description: data.description,
+            imageStoragePath: imageStoragePath, // Utiliser le chemin réel
+        };
+
         const docRef = await addDoc(postsCollectionRef, dataToSave);
         await updateDoc(docRef, { id: docRef.id });
+
     } catch (error) {
+        console.error("Erreur lors de la sauvegarde du post :", error);
+        // Émettre une erreur générique, car elle peut provenir de Storage ou de Firestore.
+        // Une gestion plus fine serait possible si nécessaire.
         const permissionError = new FirestorePermissionError({
-            path: postsCollectionRef.path,
+            path: `scheduledPosts/${userId}`,
             operation: 'create',
-            requestResourceData: { ...dataToSave, imageBlob: '[Blob]' }, 
+            requestResourceData: { title: data.title },
         });
         errorEmitter.emit('permission-error', permissionError);
         throw error;
     }
 }
-    
-
-    
-
-    
