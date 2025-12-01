@@ -68,7 +68,7 @@ Cela me permet d'identifier instantanément le fichier, la ligne et la fonction 
 
 ---
 
-## 5. La Technique de l'Auto-Correction de Prompt (Comment me faire corriger un prompt)
+## 5. La Technique de l'Auto-Correction de Prompt
 
 C'est une technique très puissante pour améliorer nos instructions, surtout si une fonctionnalité ne se comporte pas comme prévu.
 
@@ -81,6 +81,20 @@ C'est une technique très puissante pour améliorer nos instructions, surtout si
     4.  Vous pourrez alors le valider, le modifier, puis me le donner pour que je génère le code corrigé.
 
 C'est la méthode la plus efficace pour déboguer : nous ne corrigeons pas seulement le code, nous corrigeons l'instruction qui a produit le code.
+
+---
+
+## 6. Construisons Ensemble : La Puissance des Petites Étapes
+
+Pour les fonctionnalités complexes, la meilleure approche est souvent itérative. Plutôt que de demander une cathédrale en une seule fois, demandez d'abord les fondations.
+
+-   **Approche moins efficace :** "Crée un système complet de gestion de galeries avec ajout, suppression, épinglage et partage."
+-   **Approche très efficace (en plusieurs étapes) :**
+    1.  "D'abord, affiche simplement les galeries existantes sous forme de cartes."
+    2.  *(Une fois que cela fonctionne)* "Maintenant, rendons ces cartes cliquables et créons la page de détail pour une galerie."
+    3.  *(Une fois que cela fonctionne)* "Ok, sur la page de détail, ajoutons le bouton pour retirer une image de la galerie."
+
+Cette méthode nous permet de valider chaque étape, de corriger les problèmes au plus tôt et de construire des fonctionnalités robustes brique par brique.
 
 ---
 
