@@ -68,13 +68,19 @@ Cela me permet d'identifier instantanément le fichier, la ligne et la fonction 
 
 ---
 
-## 5. Comment me faire corriger un prompt
+## 5. La Technique de l'Auto-Correction de Prompt (Comment me faire corriger un prompt)
 
-Une technique très puissante est de me demander d'améliorer vos propres instructions.
+C'est une technique très puissante pour améliorer nos instructions, surtout si une fonctionnalité ne se comporte pas comme prévu.
 
--   **Exemple :** *"Voici mon prompt : 'Fais des règles Firestore pour ma collection messages'. Améliore-le pour qu’il soit plus clair, plus précis et plus efficace pour que tu puisses me donner la meilleure réponse."*
+-   **Votre requête :** *"Ce que tu as fait ne fonctionne pas. Peux-tu consulter notre guide `docs/guide-collaboration-ia.md` et me proposer un prompt optimisé pour que je te redemande la fonctionnalité correctement ?"*
 
-Je vous renverrai une version optimisée du prompt, que vous pourrez réutiliser.
+-   **Ce que je ferai :**
+    1.  J'analyserai la demande qui a mené au bug.
+    2.  J'utiliserai notre template (Contexte, Objectif, Contraintes...) pour construire une nouvelle requête, plus claire et sans ambiguïté.
+    3.  Je vous soumettrai ce prompt amélioré.
+    4.  Vous pourrez alors le valider, le modifier, puis me le donner pour que je génère le code corrigé.
+
+C'est la méthode la plus efficace pour déboguer : nous ne corrigeons pas seulement le code, nous corrigeons l'instruction qui a produit le code.
 
 ---
 
