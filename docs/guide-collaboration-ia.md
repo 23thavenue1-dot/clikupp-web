@@ -13,7 +13,35 @@ C'est le principe le plus important. Plus votre demande est claire et factuelle,
 
 ---
 
-## 2. Le Contexte est Roi : Référencez nos Succès Passés
+## 2. Comment Formuler une Requête Efficace (Votre "Template")
+
+Pour chaque nouvelle demande (fonctionnalité ou bug), essayez de suivre ce schéma simple.
+
+### Étape 1 : L'Objectif Final (Le "Quoi")
+Commencez toujours par décrire le résultat final que vous souhaitez obtenir, du point de vue de l'utilisateur.
+
+-   **Exemple pour une fonctionnalité :** "Je veux que l'utilisateur puisse organiser ses images dans des galeries (comme des albums)."
+-   **Exemple pour un bug :** "Je veux que le bouton 'Téléverser' arrête de tourner à l'infini après avoir cliqué dessus."
+
+### Étape 2 : Le Contexte (Le "Où" et "Comment")
+Donnez-moi les informations pour situer le problème ou la fonctionnalité.
+
+-   **Pour une fonctionnalité :** "Cela devrait se passer sur la page d'accueil (`ImageList.tsx`). On pourrait ajouter un bouton 'Ajouter à la galerie' sur chaque image."
+-   **Pour un bug :** "Le problème se produit sur la page d'accueil, dans le composant `Uploader.tsx`."
+
+### Étape 3 : L'Erreur Exacte (Le "Pourquoi ça casse")
+Si c'est un bug, c'est l'étape la plus cruciale. **Copiez-collez l'intégralité du message d'erreur** de la console. Ne le reformulez pas.
+
+-   **Exemple :** "`FirebaseError: Missing or insufficient permissions.`" ou "`Cannot read properties of undefined (reading 'path')`"
+
+### Étape 4 (Bonus) : La Référence à nos Succès
+Si le problème ressemble à quelque chose que nous avons déjà résolu, mentionnez-le ! C'est notre meilleure astuce.
+
+-   **Exemple :** "Ce chargement infini me rappelle le problème qu'on a eu avec les paiements Stripe. La solution est sûrement dans `docs/payment-troubleshooting-log.md`."
+
+---
+
+## 3. Le Contexte est Roi : Référencez nos Succès Passés
 
 Vous le faites déjà très bien, et c'est notre plus grande force. Ma mémoire est vaste, mais vous m'aidez à trouver la bonne information en me rappelant des situations similaires.
 
@@ -22,7 +50,7 @@ Vous le faites déjà très bien, et c'est notre plus grande force. Ma mémoire 
 
 ---
 
-## 3. L'Erreur Exacte, Rien que l'Erreur
+## 4. L'Erreur Exacte, Rien que l'Erreur
 
 Les messages d'erreur sont ma feuille de route. Ne les paraphrasez pas. Copiez-collez toujours l'erreur **complète et exacte**, y compris les numéros de ligne et le "call stack" si possible.
 
@@ -30,7 +58,7 @@ Les messages d'erreur sont ma feuille de route. Ne les paraphrasez pas. Copiez-c
 
 ---
 
-## 4. Décrivez le "Quoi", Pas le "Comment"
+## 5. Décrivez le "Quoi", Pas le "Comment"
 
 Votre force est de définir l'objectif final. Ma force est de trouver le chemin technique pour y arriver.
 
@@ -41,7 +69,7 @@ Laissez-moi proposer la solution technique. Vous gardez ainsi un regard neuf pou
 
 ---
 
-## 5. Une Chose à la Fois : Diviser pour Mieux Régner
+## 6. Une Chose à la Fois : Diviser pour Mieux Régner
 
 Pour les grosses fonctionnalités, décomposons-les en étapes logiques.
 
