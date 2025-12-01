@@ -68,21 +68,40 @@ C'est la méthode la plus efficace pour déboguer : nous ne corrigeons pas seule
 
 ---
 
-## 4. La Méthode Infaillible pour le Débogage
+## 4. Le Prompt de Débogage Parfait : La Méthode Infaillible
 
-C'est le réflexe le plus important pour résoudre un bug.
+C'est le réflexe le plus important pour résoudre un bug. Pour me signaler un problème, la structure idéale est la suivante.
 
--   **La Règle :** TOUJOURS fournir le message d'erreur **complet et exact** que vous voyez dans la console du terminal ou dans la console de votre navigateur.
+### Structure du Prompt de Débogage :
 
--   **Pourquoi c'est crucial :** Un message d'erreur est ma carte au trésor. Il me dit précisément :
-    -   **Quel** est le problème (ex: `TypeError`, `FirebaseError`).
-    -   **Où** il se trouve (le nom du fichier et le numéro de la ligne).
-    -   **Pourquoi** il se produit (la description de l'erreur).
+```
+OBJECTIF :
+(Qu'est-ce que vous essayiez de faire ?)
+
+ÉTAPES DE REPRODUCTION :
+(Listez précisément les actions que vous avez effectuées. Ex: 1. Je suis allé sur la page X. 2. J'ai cliqué sur le bouton Y. 3. J'ai rempli le champ Z.)
+
+RÉSULTAT INATTENDU (L'ERREUR) :
+(Copiez-collez ici le message d'erreur COMPLET et EXACT que vous voyez dans la console du navigateur ou du terminal.)
+
+FICHIERS PERTINENTS (si vous les connaissez) :
+(Listez les fichiers qui vous semblent liés au problème.)
+```
+
+### Pourquoi c'est crucial :
+
+Un message d'erreur est ma carte au trésor. Il me dit précisément :
+*   **Quel** est le problème (ex: `TypeError`, `FirebaseError`).
+*   **Où** il se trouve (le nom du fichier et le numéro de la ligne).
+*   **Pourquoi** il se produit (la description de l'erreur).
 
 -   **Moins efficace :** "Ça ne marche pas quand je clique." ou "J'ai une erreur de permission."
--   **Très efficace :** "Quand je clique sur le bouton, j'obtiens cette erreur dans la console : `FirebaseError: Missing or insufficient permissions. Detected at function 'savePostForLater' in file 'src/lib/firestore.ts:123'`"
+-   **Très efficace :**
+    **OBJECTIF :** Sauvegarder mon image en brouillon.
+    **ÉTAPES :** 1. J'ai cliqué sur "Générer". 2. J'ai cliqué sur "Enregistrer en brouillon".
+    **ERREUR :** `FirebaseError: Missing or insufficient permissions. Detected at function 'savePostForLater' in file 'src/lib/firestore.ts:123'`
 
-En me donnant l'erreur exacte, vous ne me demandez pas de deviner dans le noir, vous me donnez un plan précis pour trouver et corriger la faille.
+En me donnant ce plan précis, vous ne me demandez pas de deviner dans le noir ; vous me donnez un itinéraire direct pour trouver et corriger la faille.
 
 ---
 
