@@ -9,10 +9,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, createGallery, addMultipleImagesToGalleries, toggleGlobalImagePin, deleteMultipleImages } from '@/lib/firestore';
+import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, createGallery, addMultipleImagesToGalleries, toggleGlobalImagePin, deleteMultipleImages, savePostForLater } from '@/lib/firestore';
 import { format, formatDistanceToNow, addMonths, startOfMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, CopyPlus, Ticket, PlusCircle, X, BoxSelect, Sparkles, Save, Download, MoreHorizontal, PinOff, Pin, ShoppingCart } from 'lucide-react';
+import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, CopyPlus, Ticket, PlusCircle, X, BoxSelect, Sparkles, Save, Download, MoreHorizontal, PinOff, Pin, ShoppingCart, FilePlus, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -60,6 +60,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { withErrorHandling } from '@/lib/async-wrapper';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
@@ -104,6 +106,9 @@ export function ImageList() {
 
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
+
+    const [isSavingDraft, setIsSavingDraft] = useState(false);
+    const [isScheduling, setIsScheduling] = useState(false);
 
 
     const imagesQuery = useMemoFirebase(() => {
@@ -410,6 +415,46 @@ export function ImageList() {
             });
         }
     };
+    
+    const handleSaveDraft = async (e: React.MouseEvent, image: ImageMetadata) => {
+        e.preventDefault();
+        if (!user || !firebaseApp) return;
+        setIsSavingDraft(true);
+        const storage = getStorage(firebaseApp);
+        
+        const { error } = await withErrorHandling(() => 
+            savePostForLater(firestore, storage, user.uid, {
+                title: image.title,
+                description: image.description || '',
+                imageSource: image,
+            })
+        );
+        
+        if (!error) {
+            toast({ title: "Brouillon sauvegardé !", description: "Retrouvez-le dans votre Planificateur de contenu." });
+        }
+        setIsSavingDraft(false);
+    };
+
+    const handleSchedule = async (date: Date, image: ImageMetadata) => {
+        if (!user || !firebaseApp || !date) return;
+        setIsScheduling(true);
+        const storage = getStorage(firebaseApp);
+
+        const { error } = await withErrorHandling(() => 
+            savePostForLater(firestore, storage, user.uid, {
+                title: image.title,
+                description: image.description || '',
+                scheduledAt: date,
+                imageSource: image
+            })
+        );
+
+        if (!error) {
+            toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur pour le ${format(date, 'PPP', { locale: fr })}.` });
+        }
+        setIsScheduling(false);
+    };
 
     const monthlyLimitReached = !!(userProfile && userProfile.aiTicketMonthlyCount >= 20 && totalAiTickets <= 0);
     const nextRefillDate = userProfile?.aiTicketMonthlyReset ? format(addMonths(startOfMonth(userProfile.aiTicketMonthlyReset.toDate()), 1), "d MMMM", { locale: fr }) : 'prochain mois';
@@ -581,6 +626,27 @@ export function ImageList() {
                                                                     <CopyPlus className="mr-2 h-4 w-4" />
                                                                     <span>Ajouter à la galerie</span>
                                                                 </DropdownMenuItem>
+                                                                <DropdownMenuSeparator />
+                                                                <DropdownMenuItem onClick={(e) => handleSaveDraft(e, image)} disabled={isSavingDraft}>
+                                                                    {isSavingDraft ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <FilePlus className="mr-2 h-4 w-4" />}
+                                                                    <span>Enregistrer en brouillon</span>
+                                                                </DropdownMenuItem>
+                                                                <Popover>
+                                                                    <PopoverTrigger asChild>
+                                                                         <DropdownMenuItem onSelect={(e) => e.preventDefault()} disabled={isScheduling}>
+                                                                            {isScheduling ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <CalendarIcon className="mr-2 h-4 w-4" />}
+                                                                            <span>Programmer...</span>
+                                                                        </DropdownMenuItem>
+                                                                    </PopoverTrigger>
+                                                                    <PopoverContent className="w-auto p-0" onClick={(e) => e.stopPropagation()}>
+                                                                        <Calendar
+                                                                            mode="single"
+                                                                            onSelect={(date) => date && handleSchedule(date, image)}
+                                                                            disabled={(date) => date < new Date() || isScheduling}
+                                                                            initialFocus
+                                                                        />
+                                                                    </PopoverContent>
+                                                                </Popover>
                                                                 <DropdownMenuSeparator />
                                                                 <DropdownMenuItem onClick={(e) => handleDownload(e, image)} disabled={isDownloading === image.id}>
                                                                     {isDownloading === image.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
@@ -853,4 +919,3 @@ export function ImageList() {
         </TooltipProvider>
     );
 }
-

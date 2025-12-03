@@ -20,7 +20,7 @@ import {
   getDoc,
   arrayRemove,
 } from 'firebase/firestore';
-import { getStorage, ref, listAll, deleteObject, Storage, uploadBytes } from 'firebase/storage';
+import { getStorage, ref, listAll, deleteObject, Storage, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { User } from 'firebase/auth';
 import { isBefore, startOfDay, startOfMonth } from 'date-fns';
 import { withErrorHandling } from '@/lib/async-wrapper';
@@ -495,28 +495,57 @@ export async function deleteAudit(firestore: Firestore, userId: string, auditId:
     if (error) throw error;
 }
 
-export async function savePostForLater(firestore: Firestore, storage: Storage, userId: string, imageBlob: Blob, data: { title: string; description: string; scheduledAt?: Date; userId: string; }): Promise<void> {
+type SavePostOptions = {
+    title?: string;
+    description: string;
+    scheduledAt?: Date;
+    imageSource: Blob | ImageMetadata;
+};
+
+export async function savePostForLater(
+    firestore: Firestore,
+    storage: Storage,
+    userId: string,
+    options: SavePostOptions
+): Promise<void> {
+    const { imageSource, title, description, scheduledAt } = options;
+
     const { error } = await withErrorHandling(async () => {
-        const imageStoragePath = `scheduledPosts/${userId}/${Date.now()}.png`;
-        const storageRef = ref(storage, imageStoragePath);
-        await uploadBytes(storageRef, imageBlob);
+        let imageStoragePath: string;
+
+        // Si la source est un Blob, on l'uploade.
+        if (imageSource instanceof Blob) {
+            imageStoragePath = `scheduledPosts/${userId}/${Date.now()}.png`;
+            const storageRef = ref(storage, imageStoragePath);
+            await uploadBytes(storageRef, imageSource);
+        } 
+        // Si c'est une métadonnée, on réutilise le chemin existant.
+        else if (imageSource.storagePath) {
+            imageStoragePath = imageSource.storagePath;
+        } 
+        // Sinon, c'est une erreur.
+        else {
+            throw new Error("La source de l'image est invalide (ni Blob, ni métadonnée avec un chemin de stockage).");
+        }
 
         const postsCollectionRef = collection(firestore, 'users', userId, 'scheduledPosts');
         const dataToSave = {
             userId,
-            status: data.scheduledAt ? 'scheduled' : 'draft',
+            status: scheduledAt ? 'scheduled' : 'draft',
             createdAt: serverTimestamp(),
-            scheduledAt: data.scheduledAt ? Timestamp.fromDate(data.scheduledAt) : null,
-            title: data.title,
-            description: data.description,
+            scheduledAt: scheduledAt ? Timestamp.fromDate(scheduledAt) : null,
+            title: title || (scheduledAt ? `Post du ${format(scheduledAt, 'd MMM')}`: 'Brouillon'),
+            description: description,
             imageStoragePath,
         };
+        
         const docRef = await addDoc(postsCollectionRef, dataToSave);
         await updateDoc(docRef, { id: docRef.id });
+
     }, { 
         operation: 'savePostForLater', 
         userId, 
-        requestResourceData: { ...data, imageBlob: '[Blob]' }
+        requestResourceData: { title, description, scheduledAt, imageSourceType: imageSource instanceof Blob ? 'Blob' : 'Metadata' }
     });
 
     if (error) {
