@@ -252,49 +252,71 @@ export default function AuditResultPage() {
         }
     };
 
-    const handleSaveDraft = async () => {
-        if (!currentHistoryItem || !prompt || !user || !firebaseApp) return;
-        setIsSavingDraft(true);
-        const storage = getStorage(firebaseApp);
+    // Nouvelle fonction de sauvegarde en 2 étapes
+    const saveGeneratedImageAndPlan = async (isDraft: boolean, date?: Date) => {
+        if (!currentHistoryItem || !prompt || !user || !firebaseApp || !firestore) return;
         
-        const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
-        const { error } = await withErrorHandling(() => 
-            savePostForLater(firestore, storage, user.uid, {
-                title: 'Brouillon généré par IA',
+        const setLoading = isDraft ? setIsSavingDraft : setIsScheduling;
+        setLoading(true);
+
+        try {
+            // --- ÉTAPE 1: Sauvegarder l'image générée dans la bibliothèque ---
+            const storage = getStorage(firebaseApp);
+            const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
+            const newFileName = `ai-creation-${Date.now()}.png`;
+            const imageFile = new File([blob], newFileName, { type: blob.type });
+
+            const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `IA: ${currentHistoryItem.prompt}`, () => {});
+            
+            const newImageDocRef = await saveImageMetadata(firestore, user, { 
+                ...metadata,
+                title: `Généré par IA: ${currentHistoryItem.prompt}`,
+                description: currentHistoryItem.prompt,
+                generatedByAI: true
+            });
+
+            // Récupérer les données complètes de la nouvelle image
+            const newImageSnap = await getDoc(newImageDocRef);
+            if (!newImageSnap.exists()) {
+                throw new Error("L'image nouvellement créée est introuvable.");
+            }
+            const newImageMetadata = newImageSnap.data() as ImageMetadata;
+            
+            // --- ÉTAPE 2: Utiliser la nouvelle image pour créer le brouillon/post ---
+            await savePostForLater(firestore, storage, user.uid, {
+                title: isDraft ? 'Brouillon généré par IA' : `Post programmé pour le ${format(date!, 'd MMMM')}`,
                 description: prompt,
-                imageSource: blob,
+                scheduledAt: isDraft ? undefined : date,
+                imageSource: newImageMetadata, // On passe l'objet métadonnées complet
                 auditId: auditId,
-            })
-        );
-        
-        if (!error) {
-            toast({ title: "Brouillon sauvegardé !", description: "Retrouvez-le dans votre Planificateur de contenu." });
+            });
+
+            if (isDraft) {
+                toast({ title: "Brouillon sauvegardé !", description: "Retrouvez-le dans votre Planificateur de contenu." });
+            } else {
+                toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur pour le ${format(date!, 'PPP', { locale: fr })}.` });
+                setScheduleDate(undefined);
+            }
+
+        } catch (error) {
+            const appError = withErrorHandling(() => { throw error; }); // Wrapper pour le logging
+            toast({
+                variant: 'destructive',
+                title: `Erreur lors de la ${isDraft ? 'sauvegarde du brouillon' : 'programmation'}`,
+                description: (error as Error).message || "Une erreur est survenue."
+            });
+        } finally {
+            setLoading(false);
         }
-        setIsSavingDraft(false);
     };
 
-    const handleSchedule = async () => {
-        if (!currentHistoryItem || !prompt || !user || !firebaseApp || !scheduleDate) return;
-        setIsScheduling(true);
-        const storage = getStorage(firebaseApp);
-
-        const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
-        const { error } = await withErrorHandling(() => 
-            savePostForLater(firestore, storage, user.uid, {
-                title: `Post programmé pour le ${format(scheduleDate, 'd MMMM')}`,
-                description: prompt,
-                scheduledAt: scheduleDate,
-                imageSource: blob,
-                auditId: auditId,
-            })
-        );
-
-        if (!error) {
-            toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur pour le ${format(scheduleDate, 'PPP', { locale: fr })}.` });
-            setScheduleDate(undefined);
+    const handleSaveDraft = () => saveGeneratedImageAndPlan(true);
+    const handleSchedule = () => {
+        if (scheduleDate) {
+            saveGeneratedImageAndPlan(false, scheduleDate);
         }
-        setIsScheduling(false);
     };
+
 
     const handleSaveToLibrary = async () => {
         if (!currentHistoryItem || !user || !firebaseApp || !firestore) return;
@@ -603,7 +625,7 @@ export default function AuditResultPage() {
                         <CardFooter className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                             <Button 
                                 onClick={handleSaveToLibrary}
-                                disabled={isSaving || isScheduling || !currentHistoryItem}
+                                disabled={isSaving || isScheduling || isSavingDraft || !currentHistoryItem}
                                 className="w-full bg-green-600 hover:bg-green-700"
                                 variant="secondary"
                             >
@@ -612,7 +634,7 @@ export default function AuditResultPage() {
                             </Button>
                              <Button 
                                 onClick={handleSaveDraft}
-                                disabled={isSavingDraft || isScheduling || !currentHistoryItem}
+                                disabled={isSavingDraft || isScheduling || isSaving || !currentHistoryItem}
                                 className="w-full"
                                 variant="secondary"
                             >
@@ -628,7 +650,7 @@ export default function AuditResultPage() {
                                             "w-full justify-start text-left font-normal",
                                             !scheduleDate && "text-muted-foreground"
                                         )}
-                                        disabled={isSavingDraft || isScheduling || !currentHistoryItem}
+                                        disabled={isSavingDraft || isScheduling || isSaving || !currentHistoryItem}
                                     >
                                         <CalendarIcon className="mr-2 h-4 w-4" />
                                         {scheduleDate ? format(scheduleDate, "PPP", { locale: fr }) : <span>Programmer pour plus tard</span>}
