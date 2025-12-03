@@ -182,18 +182,20 @@ export async function checkAndRefillTickets(firestore: Firestore, userDocRef: Do
   }
 }
 
-export async function saveImageMetadata(firestore: Firestore, user: User, metadata: Omit<ImageMetadata, 'id' | 'userId' | 'uploadTimestamp' | 'likeCount'>): Promise<void> {
-  const { error } = await withErrorHandling(async () => {
+export async function saveImageMetadata(firestore: Firestore, user: User, metadata: Omit<ImageMetadata, 'id' | 'userId' | 'uploadTimestamp' | 'likeCount'>): Promise<DocumentReference> {
+  const { data: docRef, error } = await withErrorHandling(async () => {
     const imagesCollectionRef = collection(firestore, 'users', user.uid, 'images');
     const userDocRef = doc(firestore, 'users', user.uid);
     const dataToSave = { ...metadata, userId: user.uid, uploadTimestamp: serverTimestamp(), likeCount: 0 };
-    const docRef = await addDoc(imagesCollectionRef, dataToSave);
+    const newDocRef = await addDoc(imagesCollectionRef, dataToSave);
     await Promise.all([
-      updateDoc(docRef, { id: docRef.id }),
+      updateDoc(newDocRef, { id: newDocRef.id }),
       updateDoc(userDocRef, { storageUsed: increment(metadata.fileSize || 0) })
     ]);
+    return newDocRef;
   }, { operation: 'saveImageMetadata', userId: user.uid });
-  if (error) throw error;
+  if (error || !docRef) throw error || new Error("Failed to save image metadata");
+  return docRef;
 }
 
 export async function decrementTicketCount(firestore: Firestore, userId: string, profile: UserProfile): Promise<void> {
