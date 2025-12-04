@@ -408,7 +408,13 @@ export default function ImageDetailPage() {
                         <CardTitle>Partage Rapide</CardTitle>
                         <CardDescription>Partagez votre création en un clic sur vos réseaux sociaux.</CardDescription>
                     </CardHeader>
-                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                         <Button asChild variant="outline" className="h-12 border-pink-500 text-pink-600 hover:bg-pink-500/10 hover:text-pink-600">
+                            <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer">
+                                <Instagram className="mr-2 h-5 w-5" />
+                                Ouvrir Instagram
+                            </a>
+                        </Button>
                         <Button asChild variant="outline" className="h-12 border-[#1877F2] text-[#1877F2] hover:bg-[#1877F2]/10 hover:text-[#1877F2]">
                             <a href={facebookUrl} target="_blank" rel="noopener noreferrer">
                                 <Facebook className="mr-2 h-5 w-5 fill-current" />
@@ -421,10 +427,16 @@ export default function ImageDetailPage() {
                                 Partager sur X (Twitter)
                             </a>
                         </Button>
+                         <Button asChild variant="outline" className="h-12 border-black text-black dark:border-white dark:text-white hover:bg-black/10 dark:hover:bg-white/10">
+                            <a href="https://www.tiktok.com" target="_blank" rel="noopener noreferrer">
+                                <VenetianMask className="mr-2 h-5 w-5" />
+                                Ouvrir TikTok
+                            </a>
+                        </Button>
                     </CardContent>
                      <CardFooter>
                         <p className="text-xs text-muted-foreground">
-                            Note : Pour des raisons techniques, le partage rapide pré-remplit le texte, mais vous devrez téléverser l'image manuellement sur le réseau social.
+                            Note : Pour des raisons techniques, le partage rapide pré-remplit le texte si possible. Vous devrez peut-être ajouter l'image manuellement.
                         </p>
                     </CardFooter>
                 </Card>

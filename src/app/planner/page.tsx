@@ -7,7 +7,7 @@ import { collection, query, orderBy } from 'firebase/firestore';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Calendar, Edit, FileText, Clock, Trash2, MoreHorizontal, Share2, Facebook, MessageSquare } from 'lucide-react';
+import { Loader2, Calendar, Edit, FileText, Clock, Trash2, MoreHorizontal, Share2, Facebook, MessageSquare, Instagram, VenetianMask } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -46,7 +46,13 @@ function ShareDialog({ post, imageUrl }: { post: ScheduledPost, imageUrl: string
                     Choisissez une plateforme pour partager votre post. Le texte et le lien de l'image seront préparés pour vous.
                 </DialogDescription>
             </DialogHeader>
-            <div className="py-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="py-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                 <Button asChild variant="outline" className="h-12 border-pink-500 text-pink-600 hover:bg-pink-500/10 hover:text-pink-600">
+                    <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer">
+                        <Instagram className="mr-2 h-5 w-5" />
+                        Ouvrir Instagram
+                    </a>
+                </Button>
                 <Button asChild variant="outline" className="h-12 border-[#1877F2] text-[#1877F2] hover:bg-[#1877F2]/10 hover:text-[#1877F2]">
                     <a href={facebookShareUrl} target="_blank" rel="noopener noreferrer">
                         <Facebook className="mr-2 h-5 w-5 fill-current" />
@@ -57,6 +63,12 @@ function ShareDialog({ post, imageUrl }: { post: ScheduledPost, imageUrl: string
                     <a href={twitterShareUrl} target="_blank" rel="noopener noreferrer">
                         <MessageSquare className="mr-2 h-5 w-5" />
                         Partager sur X (Twitter)
+                    </a>
+                </Button>
+                <Button asChild variant="outline" className="h-12 border-black text-black dark:border-white dark:text-white hover:bg-black/10 dark:hover:bg-white/10">
+                    <a href="https://www.tiktok.com" target="_blank" rel="noopener noreferrer">
+                        <VenetianMask className="mr-2 h-5 w-5" />
+                        Ouvrir TikTok
                     </a>
                 </Button>
             </div>
@@ -129,10 +141,12 @@ function PostCard({ post, storage, onDelete }: { post: ScheduledPost, storage: F
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => setIsShareOpen(true)}>
-                                    <Share2 className="mr-2 h-4 w-4" />
-                                    Partager maintenant
-                                </DropdownMenuItem>
+                                <DialogTrigger asChild>
+                                    <DropdownMenuItem>
+                                        <Share2 className="mr-2 h-4 w-4" />
+                                        Partager maintenant
+                                    </DropdownMenuItem>
+                                </DialogTrigger>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={handleEdit} disabled={!post.auditId}>
                                     <Edit className="mr-2 h-4 w-4" />
