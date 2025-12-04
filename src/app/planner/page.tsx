@@ -7,7 +7,7 @@ import { collection, query, orderBy } from 'firebase/firestore';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Calendar, Edit, FileText, Clock, Trash2, MoreHorizontal } from 'lucide-react';
+import { Loader2, Calendar, Edit, FileText, Clock, Trash2, MoreHorizontal, Share2, Facebook, MessageSquare } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -20,6 +20,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { FirebaseStorage } from 'firebase/storage';
@@ -27,10 +28,50 @@ import { useToast } from '@/hooks/use-toast';
 import { deleteScheduledPost } from '@/lib/firestore';
 import { withErrorHandling } from '@/lib/async-wrapper';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
+
+
+function ShareDialog({ post, imageUrl }: { post: ScheduledPost, imageUrl: string | null }) {
+    if (!imageUrl) return null;
+
+    const fullText = `${post.title}\n\n${post.description}`.trim();
+    const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(fullText)}&url=${encodeURIComponent(imageUrl)}`;
+    const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(imageUrl)}`;
+
+    return (
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Partager maintenant</DialogTitle>
+                <DialogDescription>
+                    Choisissez une plateforme pour partager votre post. Le texte et le lien de l'image seront préparés pour vous.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Button asChild variant="outline" className="h-12 border-[#1877F2] text-[#1877F2] hover:bg-[#1877F2]/10 hover:text-[#1877F2]">
+                    <a href={facebookShareUrl} target="_blank" rel="noopener noreferrer">
+                        <Facebook className="mr-2 h-5 w-5 fill-current" />
+                        Partager sur Facebook
+                    </a>
+                </Button>
+                <Button asChild variant="outline" className="h-12 border-[#1DA1F2] text-[#1DA1F2] hover:bg-[#1DA1F2]/10 hover:text-[#1DA1F2]">
+                    <a href={twitterShareUrl} target="_blank" rel="noopener noreferrer">
+                        <MessageSquare className="mr-2 h-5 w-5" />
+                        Partager sur X (Twitter)
+                    </a>
+                </Button>
+            </div>
+             <p className="text-xs text-muted-foreground text-center">
+                Note : Vous devrez peut-être ajouter l'image manuellement sur le réseau social.
+            </p>
+        </DialogContent>
+    );
+}
+
 
 function PostCard({ post, storage, onDelete }: { post: ScheduledPost, storage: FirebaseStorage | null, onDelete: (post: ScheduledPost) => void }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isImageLoading, setIsImageLoading] = useState(true);
+    const [isShareOpen, setIsShareOpen] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
@@ -61,60 +102,68 @@ function PostCard({ post, storage, onDelete }: { post: ScheduledPost, storage: F
     };
 
     return (
-        <Card className="flex flex-col overflow-hidden transition-all hover:shadow-md">
-            <div className="relative aspect-video bg-muted">
-                {isImageLoading ? (
-                    <div className="flex h-full w-full items-center justify-center">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                    </div>
-                ) : imageUrl ? (
-                    <Image src={imageUrl} alt={post.title} fill className="object-cover" />
-                ) : (
-                    <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                        <FileText className="h-8 w-8" />
-                    </div>
-                )}
-            </div>
-            <CardHeader>
-                <div className="flex items-center justify-between">
-                    <Badge variant={isScheduled ? "default" : "secondary"} className={cn(isScheduled && "bg-blue-600 text-white")}>
-                        {isScheduled ? 'Programmé' : 'Brouillon'}
-                    </Badge>
-                     <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                             <DropdownMenuItem onClick={handleEdit} disabled={!post.auditId}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Modifier
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Supprimer
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+        <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
+            <Card className="flex flex-col overflow-hidden transition-all hover:shadow-md">
+                <div className="relative aspect-video bg-muted">
+                    {isImageLoading ? (
+                        <div className="flex h-full w-full items-center justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        </div>
+                    ) : imageUrl ? (
+                        <Image src={imageUrl} alt={post.title} fill className="object-cover" />
+                    ) : (
+                        <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                            <FileText className="h-8 w-8" />
+                        </div>
+                    )}
                 </div>
-                <CardTitle className="mt-2 text-lg">{post.title}</CardTitle>
-                {isScheduled && (
-                    <CardDescription className="flex items-center gap-2 text-sm">
-                        <Clock className="h-4 w-4" />
-                        Pour le {format(post.scheduledAt.toDate(), "d MMMM yyyy 'à' HH:mm", { locale: fr })}
-                    </CardDescription>
-                )}
-            </CardHeader>
-            <CardContent className="flex-grow">
-                <p className="text-sm text-muted-foreground line-clamp-3">
-                    {post.description}
-                </p>
-            </CardContent>
-            <CardFooter className="text-xs text-muted-foreground">
-                Créé {formatDistanceToNow(post.createdAt.toDate(), { locale: fr, addSuffix: true })}
-            </CardFooter>
-        </Card>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <Badge variant={isScheduled ? "default" : "secondary"} className={cn(isScheduled && "bg-blue-600 text-white")}>
+                            {isScheduled ? 'Programmé' : 'Brouillon'}
+                        </Badge>
+                         <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => setIsShareOpen(true)}>
+                                    <Share2 className="mr-2 h-4 w-4" />
+                                    Partager maintenant
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={handleEdit} disabled={!post.auditId}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Modifier
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive">
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Supprimer
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                    <CardTitle className="mt-2 text-lg">{post.title}</CardTitle>
+                    {isScheduled && (
+                        <CardDescription className="flex items-center gap-2 text-sm">
+                            <Clock className="h-4 w-4" />
+                            Pour le {format(post.scheduledAt.toDate(), "d MMMM yyyy 'à' HH:mm", { locale: fr })}
+                        </CardDescription>
+                    )}
+                </CardHeader>
+                <CardContent className="flex-grow">
+                    <p className="text-sm text-muted-foreground line-clamp-3">
+                        {post.description}
+                    </p>
+                </CardContent>
+                <CardFooter className="text-xs text-muted-foreground">
+                    Créé {formatDistanceToNow(post.createdAt.toDate(), { locale: fr, addSuffix: true })}
+                </CardFooter>
+            </Card>
+            <ShareDialog post={post} imageUrl={imageUrl} />
+        </Dialog>
     );
 }
 
