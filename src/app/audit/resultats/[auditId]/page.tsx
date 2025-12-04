@@ -299,7 +299,7 @@ export default function AuditResultPage() {
             
             // --- Étape 3 : Utiliser la nouvelle image pour créer le brouillon/post ---
             await savePostForLater(firestore, storage, user.uid, {
-                title: isDraft ? 'Brouillon généré par IA' : `Post programmé pour le ${format(date!, 'd MMMM')}`,
+                title: isDraft ? 'Brouillon généré par IA' : `Post du ${format(date!, 'd MMMM')}`,
                 description: newDescription,
                 scheduledAt: isDraft ? undefined : date,
                 imageSource: newImageMetadata,
@@ -694,5 +694,7 @@ export default function AuditResultPage() {
         </div>
     );
 }
+
+    
 
     
