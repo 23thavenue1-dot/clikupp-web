@@ -22,63 +22,48 @@ Ce document rassemble plusieurs idées pour enrichir l'application en y intégra
 ### 1. Organisation par Galeries d'Images (Terminé)
 
 -   **L'idée :** Permettre aux utilisateurs de regrouper leurs images dans des "Galeries" (similaires à des albums ou des collections). L'utilisateur pourrait ajouter une ou plusieurs images à une galerie existante ou en créer une nouvelle à la volée.
--   **Avantages :**
-    -   **Organisation Puissante :** Répond à un besoin fondamental pour tous les types d'utilisateurs (projets, événements, thèmes).
-    -   **Valeur ajoutée :** Transforme Clikup d'un simple service de stockage en une véritable bibliothèque d'images organisée.
-    -   **Facilite le partage :** Permettrait à terme de partager une galerie entière.
--   **Public Cible :** Extrêmement utile pour les créateurs, les photographes et les développeurs. Très pratique pour l'utilisateur quotidien.
 -   **Statut :** Fonctionnalité implémentée et terminée.
     
-### 2. Liens vers la Boutique (À faire)
+### 2. Liens vers la Boutique (Terminé)
 
 -   **L'idée :** Rendre l'expérience d'achat plus fluide en ajoutant des raccourcis vers la boutique aux endroits pertinents. Quand un utilisateur n'a plus de tickets (upload ou IA), le message d'erreur devrait contenir un bouton "Recharger" qui le redirige directement vers la page `/shop`.
--   **Avantages :**
-    -   **Amélioration de l'expérience utilisateur :** Réduit la frustration et guide l'utilisateur vers la solution.
-    -   **Augmentation de la conversion :** Facilite l'acte d'achat en supprimant les étapes intermédiaires.
--   **Statut :** Idée notée, prête à être implémentée.
+-   **Statut :** Idée implémentée et terminée.
     
 ### 3. Optimisation des Performances (À faire)
 
 -   **L'idée :** Améliorer la vitesse et la fluidité de l'application, en particulier le chargement des images dans les galeries. Cela pourrait impliquer des techniques comme le "lazy loading" (chargement paresseux) ou la pagination.
--   **Avantages :**
-    -   **Meilleure expérience utilisateur :** Une application plus rapide est plus agréable à utiliser.
-    -   **Économie de ressources :** Ne charger que les images visibles permet de réduire la consommation de bande passante.
 -   **Statut :** Idée notée pour une future phase d'optimisation.
+
+### 4. Automatisation de la Publication (Long terme)
+-   **L'idée :** Mettre en œuvre la "Stratégie 3" de notre document `social-media-publishing-strategies.md` : permettre au planificateur de publier automatiquement le contenu sur les réseaux sociaux de l'utilisateur à l'heure prévue.
+-   **Avantages :** Expérience utilisateur ultime ("planifier et oublier"), valeur ajoutée maximale.
+-   **Statut :** Vision à long terme, complexe mais très stratégique.
 
 
 ---
 
 ## Idées d'Intégration de l'IA
 
-### 4. Titres et Descriptions Automatiques (Terminé)
+### 5. Titres et Descriptions Automatiques (Terminé)
 
--   **L'idée :** Au moment où un utilisateur téléverse une image, une IA (comme Gemini) analyse l'image et génère automatiquement un titre ou une description pertinente. Par exemple, pour une photo de chat, l'IA pourrait générer le nom "chat dormant sur un canapé".
--   **Avantages :**
-    -   **Gain de temps** pour l'utilisateur.
-    -   Rend la galerie d'images **consultable** (recherche par mot-clé).
-    -   Enrichit les données dans Firestore avec des métadonnées de qualité.
+-   **L'idée :** Au moment où un utilisateur téléverse une image, une IA (comme Gemini) analyse l'image et génère automatiquement un titre ou une description pertinente.
 -   **Statut :** Implémenté et fonctionnel via le système de tickets IA.
 
-### 5. Catégorisation et Taggage Intelligents (Terminé)
+### 6. Catégorisation et Taggage Intelligents (Terminé)
 
--   **L'idée :** L'IA va plus loin que la simple description. Elle analyse l'image et en extrait une liste de "tags" ou d'étiquettes : `animal`, `chat`, `intérieur`, `canapé`, `repos`.
--   **Avantages :**
-    -   Permet de créer des **albums ou des catégories automatiques**.
-    -   Améliore considérablement la recherche et le filtrage dans la galerie.
+-   **L'idée :** L'IA va plus loin que la simple description. Elle analyse l'image et en extrait une liste de "tags" ou d'étiquettes, générés sous forme de hashtags.
 -   **Statut :** Implémenté via la génération de hashtags dans le flow de description.
     
-### 6. Édition d'Image par le Langage (Terminé)
+### 7. Édition d'Image par le Langage (Terminé)
 
 -   **L'idée :** L'utilisateur peut téléverser une photo et donner des instructions en langage naturel, comme : "Change le ciel pour un coucher de soleil." ou "Enlève la voiture rouge en arrière-plan."
--   **Avantages :**
-    -   Fonctionnalité **spectaculaire et très moderne**.
-    -   Ouvre des possibilités créatives infinies pour l'utilisateur.
 -   **Statut :** Terminé. Le flow Genkit `editImageFlow`, la page d'édition et les suggestions sont fonctionnels.
 
-### 7. "Critique" ou Amélioration Photo par l'IA (À faire)
+### 8. Coach Stratégique / Audit de Profil (Terminé)
 
--   **L'idée :** Après l'upload, l'IA pourrait donner un conseil sur la photo. "Superbe photo ! La composition est excellente." ou "La lumière est un peu faible, vous pourriez essayer d'augmenter la luminosité.".
--   **Avantages :**
-    -   Crée une **expérience utilisateur engageante et ludique**.
-    -   Apporte une aide précieuse aux photographes amateurs.
--   **Statut :** Idée notée.
+-   **L'idée :** Permettre à un utilisateur de soumettre son profil de réseau social (via une sélection de contenus) à une analyse par IA afin d'obtenir un rapport complet et actionnable.
+-   **Statut :** Terminé. Le "Coach Stratégique" est une fonctionnalité majeure, de la sélection des images à la génération du rapport et à la création de posts planifiés.
+
+### 9. Génération de Vidéo (Terminé)
+-  **L'idée :** Permettre aux utilisateurs de générer de courtes vidéos à partir d'une simple instruction textuelle.
+- **Statut :** Terminé. Le flow `generateVideoFlow` est implémenté et accessible depuis l'Uploader, avec un coût de tickets IA dédié.

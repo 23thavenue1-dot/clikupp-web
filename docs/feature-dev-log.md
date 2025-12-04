@@ -16,69 +16,43 @@ Ce document sert de point de sauvegarde et de journal de bord pour les grandes �
 
 Le chemin vers la stabilité a été marqué par la résolution de plusieurs problèmes critiques qui ont ont renforcé la qualité du code.
 
-### Le Mystère de "Storage/Unauthorized"
+### L'Éradication des Bugs d'Interface et la Fiabilisation
 
-*   **Problème :** L'upload via Firebase Storage échouait systématiquement avec une erreur d'autorisation, malgré des règles de sécurité apparemment correctes.
-*   **Processus :** Grâce à une collaboration efficace et à l'analyse de captures d'écran, nous avons identifié une chaîne de deux erreurs distinctes.
+*   **Problème :** Plusieurs erreurs (`Invalid DOM property 'class'`, imports incorrects, boucles de rendu infinies) ont été détectées, causant des avertissements et des comportements instables.
 *   **Solution Appliquée :**
-    1.  **Correction de la Configuration (`firebase/config.ts`) :** La clé `storageBucket` était incorrecte. Nous l'avons corrigée pour pointer vers `[...].appspot.com` au lieu de `[...].firebasestorage.app`.
-    2.  **Alignement du Code (`lib/storage.ts`) et des Règles :** Le code tentait d'écrire dans un chemin (`uploads/`) qui n'était pas celui sécurisé par les règles (`users/`). Nous avons aligné le code sur les règles.
-*   **Résultat :** Le téléversement via Firebase Storage est devenu 100% fonctionnel et fiable.
+    1.  **Correction Systématique :** Nous avons passé en revue plusieurs fichiers pour remplacer les attributs `class` par `className` et corriger les mauvaises importations.
+    2.  **Optimisation avec `useCallback` et `useMemo` :** Les fonctions et les calculs de données ont été "mémorisés" pour stopper les boucles de rendu et optimiser les performances.
+*   **Résultat :** Une base de code propre, conforme aux standards React, et une application plus stable et performante.
 
-### La Finalisation du Système de Tickets
+### La Finalisation du Système de Tickets et de Stockage
 
 *   **Problème :** Bien que le décompte des tickets fonctionnait, l'affichage du compteur était instable et la recharge quotidienne manquait.
 *   **Solution Appliquée :**
     1.  **Fiabilisation de l'Affichage (`app/uploader.tsx`) :** Le composant de téléversement a été rendu autonome pour qu'il récupère lui-même les informations de l'utilisateur, garantissant un affichage du compteur toujours à jour.
-    2.  **Implémentation de la Recharge (`app/page.tsx`) :** La logique de recharge quotidienne a été ajoutée. Le compteur de l'utilisateur est maintenant réinitialisé à 5 tickets toutes les 24 heures.
-*   **Résultat :** Le système de tickets est désormais complet et autonome.
-
-### La Construction Robuste des Galeries d'Images
-
-*   **Objectif :** Mettre en place une fonctionnalité complète de gestion de galeries (albums).
-*   **Défis Rencontrés :**
-    1.  **Erreur 404 :** Après avoir rendu les galeries cliquables, la page de détail n'existait pas, causant une erreur 404.
-    2.  **Boucle de Rendu Infinie :** Sur la page de détail, un `useEffect` mal optimisé entraînait un chargement infini.
-*   **Solutions Appliquées :**
-    1.  **Création de la Page de Détail :** Mise en place d'une page dynamique `[galleryId]/page.tsx` pour afficher le contenu de chaque galerie.
-    2.  **Optimisation avec `useCallback` :** La fonction de récupération des données a été "mémorisée" avec `useCallback` pour stopper la boucle de rendu.
-    3.  **Améliorations UX :** Ajout de la possibilité de retirer et d'ajouter des images (y compris par sélection multiple) directement depuis l'interface de gestion de la galerie, pour une expérience utilisateur plus fluide.
-*   **Résultat :** Un système de galeries complet, stable et intuitif, permettant une organisation puissante des images.
-
-### L'Éradication des Bugs d'Interface
-
-*   **Problème :** Plusieurs erreurs "Invalid DOM property `class`. Did you mean `className`?" ont été détectées par Next.js, causant des avertissements dans la console et indiquant une mauvaise pratique en JSX.
-*   **Solution Appliquée :**
-    1.  **Correction Systématique :** Nous avons passé en revue plusieurs fichiers, notamment `dropdown-menu.tsx`, `card.tsx`, `ImageList.tsx` et `edit/[imageId]/page.tsx`, pour remplacer toutes les occurrences de l'attribut `class` par `className`.
-    2.  **Correction d'Importation :** Une erreur de build a été causée par une mauvaise importation (`useFirestore` importé depuis `lib/firestore` au lieu de `@/firebase`). Elle a été corrigée dans `edit/[imageId]/page.tsx`.
-*   **Résultat :** Une base de code plus propre, sans avertissements, et conforme aux standards de React/JSX.
-
-### Implémentation de la Fonctionnalité de Téléchargement
-
-*   **Objectif :** Permettre aux utilisateurs de télécharger leurs propres images sur leur appareil.
-*   **Développement :**
-    1.  **Ajout d'un bouton de téléchargement** dans un menu d'options sur chaque image pour une interface épurée.
-    2.  **Logique adaptative :** Le comportement a été adapté pour les appareils mobiles (ouverture dans un nouvel onglet) et les ordinateurs (téléchargement direct).
-    3.  **Amélioration du nommage** des fichiers téléchargés pour plus de clarté.
-    4.  **Ajout d'un retour visuel** (icône de chargement) et d'une gestion des erreurs pour une expérience utilisateur robuste.
-*   **Résultat :** Une fonctionnalité de téléchargement complète, stable et intuitive sur toutes les plateformes.
+    2.  **Implémentation de la Recharge (`app/page.tsx` & `functions/src/index.js`) :** La logique de recharge quotidienne a été ajoutée et fiabilisée, aussi bien pour les tickets d'upload que pour les tickets IA, avec la gestion d'une limite mensuelle. Un système de surveillance du stockage a aussi été mis en place.
+*   **Résultat :** Le système de tickets et de quotas est désormais complet et autonome.
 
 ### Le Parcours du Combattant : Intégration des Paiements Stripe
 
-*   **Objectif :** Implémenter une boutique fonctionnelle pour l'achat de packs de tickets.
-*   **Défis Rencontrés :**
-    1.  **`No such price` :** L'application utilisait des ID de prix fictifs. La solution a été d'utiliser les ID réels fournis par le tableau de bord Stripe.
-    2.  **Page Blanche et Conflits :** Les tentatives d'intégration via des webhooks personnalisés ou des déclencheurs Firestore ont échoué, car elles entraient en conflit ou n'étaient pas adaptées au fonctionnement de l'extension Stripe utilisée.
-    3.  **Absence de Crédit de Tickets :** Le principal problème était que, même après un paiement réussi, les tickets n'étaient pas crédités sur le compte de l'utilisateur.
+*   **Objectif :** Implémenter une boutique fonctionnelle pour l'achat de packs de tickets et d'abonnements.
+*   **Défis Rencontrés :** Erreurs "No such price", conflits d'extensions, et non-crédit des tickets après paiement.
 *   **Diagnostic Final et Solution Appliquée :**
-    1.  **Identification de l'Extension Obsolète :** Grâce à une analyse fine de la console Firebase, nous avons découvert que l'extension Stripe utilisée était une ancienne version non maintenue, ce qui était la cause racine des dysfonctionnements.
-    2.  **Migration vers la Nouvelle Extension :** La solution a été de désinstaller l'ancienne extension et d'installer la nouvelle version officielle `invertase/firestore-stripe-payments`.
-    3.  **Configuration Correcte :** Nous avons soigneusement configuré la nouvelle extension en renseignant les clés secrètes API et webhook directement dans ses paramètres, assurant une communication sécurisée avec Stripe.
-    4.  **Mise à jour du Code Client :** Le code de la boutique (`shop/page.tsx`) a été mis à jour pour utiliser le package NPM `@invertase/firestore-stripe-payments`, simplifiant et fiabilisant la création des sessions de paiement.
-*   **Résultat :** Un système de paiement propre, robuste et fonctionnel, basé sur des outils maintenus et des pratiques recommandées par Firebase.
+    1.  **Migration vers la Nouvelle Extension :** Identification et migration vers la version officielle et maintenue de l'extension Stripe pour Firebase.
+    2.  **Configuration Correcte :** Reconfiguration complète de l'extension avec les nouvelles clés API et secrets de webhook.
+    3.  **Simplification Radicale :** Mise à jour du code client (`shop/page.tsx`) et de la Cloud Function (`onPaymentSuccess`) pour passer les informations d'achat directement dans les métadonnées de la transaction, éliminant les appels API superflus et les sources d'erreur.
+    4.  **Portail Client :** Résolution d'une erreur de nommage pour rendre le bouton "Gérer mon abonnement" fonctionnel.
+*   **Résultat :** Un système de paiement propre, robuste et fonctionnel, basé sur les meilleures pratiques recommandées par Firebase et Stripe.
+
+### La Naissance du "Coach Stratégique" et du "Planificateur"
+
+*   **Objectif :** Transformer Clikup en un outil proactif pour les créateurs de contenu.
+*   **Développement :**
+    1.  **Assistant d'Audit IA :** Création d'un "wizard" guidant l'utilisateur pour analyser son profil social (objectifs, visuels, textes).
+    2.  **Génération de Rapport :** Le flow Genkit `socialAuditFlow` génère un rapport complet (identité visuelle, stratégie, plan d'action).
+    3.  **Planificateur de Contenu :** Les idées générées peuvent être sauvegardées en brouillon ou programmées, créant un véritable plan de contenu.
+    4.  **Publication Simplifiée :** Ajout de boutons "Partager maintenant" pour faciliter la publication manuelle vers les réseaux sociaux.
+*   **Résultat :** Une suite de fonctionnalités cohérentes qui positionnent Clikup comme un assistant de contenu intelligent, de l'analyse à la planification.
 
 ## 3. Prochaines Étapes : L'Innovation Continue
 
 Maintenant que la base technique est solide, sécurisée et maîtrisée, la voie est libre pour nous concentrer sur les fonctionnalités innovantes prévues dans notre feuille de route (`docs/roadmap.md`) et nos idées (`docs/idées.md`).
-
-Le prochain grand chapitre sera l'amélioration de l'expérience utilisateur et l'intégration de nouvelles fonctionnalités IA.

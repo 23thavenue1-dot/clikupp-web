@@ -16,12 +16,13 @@ Notre projet repose principalement sur Firebase et les services Google AI. La pl
 | **Cloud Firestore**     | Stockage des profils, métadonnées des images, notes.    | Lectures, écritures, suppressions de documents et stockage des données (Go). | **Modéré**           |
 | **Cloud Storage**       | **Stockage des fichiers images téléversés.**            | Stockage (Go/mois), bande passante (téléchargements), opérations (uploads). | **Élevé (principal)** |
 | **App Hosting**         | Hébergement de l'application Next.js elle-même.         | Heures d'instance, vCPU, mémoire.                                         | **Faible à Modéré**  |
+| **Cloud Functions**     | Logique serveur pour les paiements, la recharge de tickets, etc. | Invocations, temps de calcul (vCPU-sec), mémoire (Go-sec).               | **Modéré**           |
 
 ### b) Services d'Intelligence Artificielle (Google AI / Genkit)
 
 | Service                             | Usage dans Clikup                                    | Facturation                                                               | Impact sur les Coûts |
 | ----------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------- | -------------------- |
-| **Génération de Texte (Gemini)**    | Génération des titres, descriptions, hashtags.       | Basée sur le nombre de "tokens" (mots/caractères) en entrée et en sortie.   | **Modéré**   |
+| **Génération de Texte (Gemini)**    | Génération des titres, descriptions, audits.         | Basée sur le nombre de "tokens" (mots/caractères) en entrée et en sortie.   | **Modéré**   |
 | **Édition d'Image (Gemini)** | Retouche d'image via des prompts textuels.           | **Par image générée.** Le coût réel constaté est d'environ **0,0275 € par génération**.      | **Très Élevé**       |
 | **Génération de Vidéo (Veo)** | Création de clips vidéo à partir de texte. | **Par seconde de vidéo générée.** Coût estimé à environ **0,04 € / seconde**. | **Extrêmement Élevé** |
 
@@ -32,144 +33,71 @@ Notre projet repose principalement sur Firebase et les services Google AI. La pl
 
 ---
 
-## 2. Stratégies de Monétisation
+## 2. Stratégies de Monétisation (Implémentées)
 
-Notre modèle économique doit être attractif, compétitif et rentable. Nous proposons une approche hybride qui combine un modèle "Freemium" (un palier gratuit et plusieurs abonnements) avec des achats uniques (packs de tickets).
+Notre modèle économique, aujourd'hui fonctionnel, est une approche hybride qui combine un modèle "Freemium" avec des achats uniques.
 
 ### Piste 1 : Le Modèle "Freemium" - Abonnements
 
-#### a) Offre Gratuite (L'Actuelle)
-*   **Pour qui ?** Pour attirer un maximum d'utilisateurs et leur faire découvrir la valeur de Clikup.
-*   **Contenu :** 5 tickets Upload/jour, 3 tickets IA/jour, 200 Mo de stockage.
+#### a) Offre Gratuite
+*   **Contenu :** 5 tickets Upload/jour, 3 tickets IA/jour (limités à 20/mois), 200 Mo de stockage.
 
-#### b) Offre "Créateur" (Abonnement)
-*   **Pour qui ?** L'amateur éclairé ou l'utilisateur régulier qui a besoin de plus de flexibilité.
-*   **Prix Proposé :** **4,99 € / mois**.
-*   **Contenu :**
-    *   **500** tickets d'upload par mois.
-    *   **50** tickets IA par mois.
-    *   10 Go de stockage.
-    *   Badge "Créateur" sur le profil.
+#### b) Offre "Créateur"
+*   **Prix :** 4,99 € / mois.
+*   **Contenu :** 500 tickets upload/mois, 50 tickets IA/mois, 10 Go de stockage.
 
-#### c) Offre "Pro" (Abonnement)
-*   **Pour qui ?** Le créateur de contenu sérieux, freelance ou community manager.
-*   **Prix Proposé :** **9,99 € / mois**.
-*   **Contenu :**
-    *   Tickets d'upload **illimités**.
-    *   **150** tickets IA par mois.
-    *   50 Go de stockage.
-    *   Badge "Pro" et accès en avant-première aux nouvelles fonctionnalités.
+#### c) Offre "Pro"
+*   **Prix :** 9,99 € / mois.
+*   **Contenu :** Uploads illimités, 150 tickets IA/mois, 50 Go de stockage.
 
-#### d) Offre "Maître" (Abonnement)
-*   **Pour qui ?** Les agences, les entreprises et les utilisateurs très intensifs ("power users").
-*   **Prix Proposé :** **19,99 € / mois**.
-*   **Contenu :**
-    *   Tickets d'upload **illimités**.
-    *   **300** tickets IA par mois.
-    *   250 Go de stockage.
-    *   Badge "Maître" et support client prioritaire.
+#### d) Offre "Maître"
+*   **Prix :** 19,99 € / mois.
+*   **Contenu :** Uploads illimités, 300 tickets IA/mois, 250 Go de stockage.
+    
+#### e) Offres "Stockage Seul"
+*   **Prix :** 7,99 €/mois (250Go), 14,99 €/mois (500Go), 29,99 €/mois (1To).
+*   **Contenu :** Augmentation du quota de stockage tout en conservant les tickets gratuits.
 
 ### Piste 2 : Les Packs "À la Carte" (Achats Uniques)
 
-Pour les utilisateurs (gratuits ou abonnés) qui ont un besoin ponctuel et intense.
-
 #### a) Packs "Boost Upload"
-*   **Cible :** L'utilisateur qui doit téléverser un gros album de vacances ou un projet ponctuel.
-*   **Formules :**
-    *   **S :** 50 tickets pour **1,99 €**.
-    *   **M :** 120 tickets pour **3,99 €**.
-    *   **L :** 300 tickets pour **7,99 €**.
+*   **Formules :** De 50 tickets (1,99 €) à 1000 tickets (19,99 €).
 
 #### b) Packs "Boost IA"
-*   **Cible :** L'utilisateur qui veut expérimenter intensivement avec l'IA sur un projet créatif.
-*   **Formules :**
-    *   **S :** 20 tickets pour **2,99 €**.
-    *   **M :** 50 tickets pour **5,99 €**.
-    *   **L :** 150 tickets pour **14,99 €**.
+*   **Formules :** De 20 tickets (2,99 €) à 1000 tickets (80,00 €).
 *(Note : Les tickets IA sont plus chers car ils reflètent le coût plus élevé des appels aux modèles d'IA générative d'images.)*
 
 ---
 
 ## 3. Analyse de Rentabilité et Positionnement
 
-*   **Rentabilité :** Les prix proposés pour les abonnements et les packs sont structurés pour couvrir largement les coûts opérationnels estimés (stockage, bande passante, appels API IA), même pour un usage intensif, tout en assurant une marge brute saine pour financer les utilisateurs gratuits et le développement futur.
+*   **Rentabilité :** Les prix sont structurés pour couvrir largement les coûts opérationnels estimés (stockage, bande passante, appels API IA), même pour un usage intensif, tout en assurant une marge brute saine pour financer les utilisateurs gratuits et le développement futur.
 *   **Positionnement :** Cette structure tarifaire positionne Clikup comme une solution "premium" mais accessible. Contrairement aux hébergeurs gratuits financés par la publicité, Clikup vend de la **valeur ajoutée** (puissance de l'IA, gain de temps, organisation) et de la **commodité** (limites élevées, stockage étendu). Notre cible n'est pas l'utilisateur qui cherche le "tout gratuit", mais celui qui cherche le **meilleur outil**.
 
 ---
 
-### Analyse de Rentabilité - Scénario "Power User" (Abonnement Maître)
-Analysons un cas d'utilisation maximaliste de l'abonnement "Maître" pour vérifier sa rentabilité.
-- **Hypothèses :**
-  - L'utilisateur consomme ses 300 tickets IA.
-  - L'utilisateur atteint 250 Go de stockage.
-- **Calcul des Coûts :**
-  - **Coût IA :** 300 tickets × 0,0275 €/ticket = **8,25 €**
-  - **Coût Stockage :** 250 Go × 0,023 €/Go/mois = **5,75 €**
-  - **Coût Total Mensuel :** 8,25 € + 5,75 € = **14,00 €**
-- **Conclusion :**
-  - **Marge brute :** 19,99 € (prix de l'abonnement) - 14,00 € (coût) = **5,99 €**.
-  - **Le forfait est rentable**, même dans un scénario d'utilisation maximale, ce qui valide la structure tarifaire.
+## 4. Logique Technique du Système de Tickets (Implémentée)
 
----
+Pour intégrer la monétisation, le système distingue les tickets gratuits (rechargés quotidiennement/mensuellement) des tickets achetés (persistants).
 
-### Proposition pour un Futur Forfait "Agence"
-Pour répondre à un besoin de volume encore plus élevé, nous pouvons envisager un forfait "Agence".
-- **Hypothèse :** Forfait offrant 1000 tickets IA par mois.
-- **Calcul des Coûts IA :**
-  - 1000 tickets × 0,0275 €/ticket = **27,50 €**.
-- **Logique de Prix :**
-  - Le prix par ticket de l'abonnement "Maître" est d'environ 0,067 €/ticket. Pour un forfait supérieur, nous pouvons viser un tarif de 0,05 €/ticket pour l'utilisateur.
-  - 1000 tickets × 0,05 €/ticket = 50 €.
-- **Prix Suggéré :** **49,99 € / mois**.
-- **Analyse de Rentabilité :**
-  - **Marge brute (sur les tickets) :** 49,99 € - 27,50 € = **22,49 €**.
-  - Ce prix reste très rentable et cohérent avec la structure dégressive des autres offres.
-
----
-
-## 4. Logique Technique du Système de Tickets
-
-Pour intégrer la monétisation, il est crucial de distinguer les tickets gratuits (rechargés quotidiennement) des tickets achetés (persistants).
-
-### a) Évolution du Modèle de Données
-Le document utilisateur dans Firestore devra être enrichi pour séparer ces deux types de soldes.
-
-*   **Tickets Gratuits (existants) :**
-    *   `ticketCount` : Nombre de tickets d'upload gratuits restants pour la journée.
-    *   `aiTicketCount` : Nombre de tickets IA gratuits restants pour la journée.
-    *   `lastTicketRefill` et `lastAiTicketRefill` : Timestamps pour gérer la recharge quotidienne.
-
-*   **Tickets Achetés (à ajouter) :**
-    *   `packUploadTickets` (nombre) : Solde de tickets d'upload achetés via des packs.
-    *   `packAiTickets` (nombre) : Solde de tickets IA achetés via des packs.
-
-*   **Tickets d'Abonnement (à ajouter) :**
-    *   `subscriptionUploadTickets` (nombre) : Quota mensuel de tickets d'upload lié à un abonnement.
-    *   `subscriptionAiTickets` (nombre) : Quota mensuel de tickets IA lié à un abonnement.
-    *   `subscriptionTier` (chaîne) : Niveau d'abonnement actuel (ex: "creator", "pro").
-    *   `subscriptionRenewalDate` (date) : Date du prochain renouvellement et de la recharge des tickets d'abonnement.
+### a) Modèle de Données Enrichi
+Le document utilisateur dans Firestore sépare ces différents soldes :
+*   `ticketCount`, `aiTicketCount` (quotidiens gratuits).
+*   `subscriptionUploadTickets`, `subscriptionAiTickets` (abonnements mensuels).
+*   `packUploadTickets`, `packAiTickets` (packs achetés).
 
 ### b) Logique de Consommation
-Lorsqu'un utilisateur effectue une action payante, le système doit décompter les tickets dans un ordre précis et avantageux pour lui.
-
-**Ordre de priorité pour un décompte :**
-1.  **Tickets Gratuits Quotidiens :** Le système utilise toujours en priorité les tickets qui "expirent" à la fin de la journée.
-2.  **Tickets d'Abonnement Mensuels :** Si les tickets gratuits sont épuisés, le système puise dans le quota mensuel de l'abonnement.
-3.  **Tickets Achetés (Packs) :** En dernier recours, si tous les autres soldes sont à zéro, le système utilise les tickets achetés, qui n'ont pas de date d'expiration.
-
-**Exemple :** Un utilisateur abonné "Créateur" achète un pack de 20 tickets IA.
-*   Son solde de départ est : `aiTicketCount: 3` (gratuit), `subscriptionAiTickets: 50` (abo), `packAiTickets: 20` (pack).
-*   Il utilise 5 fois l'IA.
-*   **Décompte :** Le système utilise les 3 tickets gratuits, puis 2 tickets de son abonnement.
-*   **Nouveau solde :** `aiTicketCount: 0`, `subscriptionAiTickets: 48`, `packAiTickets: 20`.
-*   Le lendemain, son `aiTicketCount` sera rechargé à 3, les autres soldes restant inchangés.
+Le système décompte les tickets dans un ordre précis et avantageux pour l'utilisateur :
+1.  Tickets Gratuits Quotidiens.
+2.  Tickets d'Abonnement Mensuels.
+3.  Tickets Achetés (Packs).
 
 Cette architecture garantit que l'utilisateur ne perd jamais ce qu'il a payé tout en profitant des avantages gratuits de la plateforme.
 
 ---
 
-## 5. Prochaines Étapes Techniques :
-1.  **Créer la page "Boutique" :** Concevoir l'interface où toutes ces offres seront présentées de manière claire et attractive.
-2.  **Intégrer une solution de paiement :** Mettre en place un service comme Stripe pour gérer les abonnements récurrents et les paiements uniques.
-3.  **Mettre à jour la logique des tickets :** Modifier le code pour que le système puisse gérer les tickets mensuels (pour les abonnés), les quotas de stockage et l'ajout de tickets achetés via les packs.
-4.  **Modifier le modèle de données utilisateur (`backend.json`)** pour inclure les nouveaux champs de tickets.
+## 5. Gestion du Stockage et Période de Grâce
+
+Pour éviter de "prendre en otage" les fichiers d'un utilisateur qui arrête son abonnement, une politique juste est en place :
+*   Si un utilisateur annule son abonnement et que son stockage utilisé dépasse la limite gratuite (200 Mo), il ne peut plus rien téléverser, mais **conserve l'accès à tous ses fichiers**.
+*   Une **période de grâce de 90 jours** est activée. Passé ce délai, et si l'utilisateur n'a pas libéré d'espace ou ne s'est pas réabonné, une fonction automatisée (`scheduledStorageCleanup`) supprime les fichiers les plus anciens jusqu'à ce que le quota soit respecté.

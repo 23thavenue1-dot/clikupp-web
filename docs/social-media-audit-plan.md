@@ -1,6 +1,6 @@
-# Plan de Conception : Audit de Profil par l'IA
+# Plan de Conception : Audit de Profil par l'IA ("Coach Stratégique")
 
-Ce document détaille la conception et l'implémentation de la fonctionnalité "Audit de Profil IA", un outil stratégique pour les créateurs de contenu.
+Ce document détaille la conception et l'implémentation de la fonctionnalité "Coach Stratégique", un outil d'audit de profil par l'IA pour les créateurs de contenu.
 
 ---
 
@@ -10,88 +10,66 @@ Permettre à un utilisateur de soumettre son profil de réseau social (via une s
 
 ---
 
-## 2. Parcours Utilisateur (UX)
+## 2. Parcours Utilisateur (UX) - Implémenté
 
-L'expérience doit être celle d'un **assistant guidé** (wizard), simple et intuitif, qui se déroule en plusieurs étapes claires.
+L'expérience a été conçue comme un **assistant guidé** (wizard), simple et intuitif, qui se déroule en plusieurs étapes claires.
 
 ### Étape A : Le Point d'Entrée
 
-1.  **Nouvel Élément de Navigation :** Ajouter un lien "Analyse IA" dans la barre de navigation principale (`Navbar.tsx`). Il sera accompagné d'une icône pertinente (ex: `LineChart`, `SearchCheck`).
-2.  **Redirection :** Ce lien redirige l'utilisateur vers la nouvelle page `/audit`.
+1.  **Nouvel Élément de Navigation :** Un lien "Coach Stratégique" a été ajouté dans la barre de navigation principale.
+2.  **Redirection :** Ce lien redirige l'utilisateur vers la page `/audit`.
 
-### Étape B : La Page d'Audit (`/audit/page.tsx`)
+### Étape B : L'Assistant d'Analyse (`/audit/page.tsx`)
 
-Cette page est le cœur de l'assistant. Elle sera structurée comme un formulaire en plusieurs étapes.
+Cette page est le cœur de l'assistant, structurée comme un formulaire en plusieurs étapes :
 
-*   **Étape 1 : Plateforme & Objectifs**
-    *   **Champ :** Un `Select` pour choisir la plateforme (Instagram, TikTok, Facebook, etc.).
-    *   **Champ :** Un `Select` où l'utilisateur choisit son objectif principal parmi une liste d'options optimisées :
-        *   "Augmenter mon engagement et créer une communauté."
-        *   "Professionnaliser mon image de marque."
-        *   "Trouver plus de clients ou d'opportunités."
-        *   "Définir une identité visuelle plus cohérente et mémorable."
-        *   "Diversifier mon contenu et trouver de nouvelles idées."
+*   **Étape 1 : Sélection du Profil de Marque**
+    *   L'utilisateur choisit un "Profil de Marque" existant (client, projet) ou en crée un nouveau. Cela permet d'organiser les audits.
 
-*   **Étape 2 : Identité Visuelle**
-    *   **Titre :** "Importez une sélection de vos publications."
-    *   **Conseil :** Ajouter un texte explicatif : "Pour une analyse optimale, sélectionnez entre 6 et 9 publications qui représentent le mieux votre style actuel. **Astuce :** Incluez une capture d'écran de votre grille de profil ('feed') pour que l'IA puisse analyser l'harmonie globale."
-    *   **Composant :** Une grille interactive permettant à l'utilisateur de sélectionner des images directement depuis sa galerie Clikup.
+*   **Étape 2 : Définition du Contexte**
+    *   Un `Select` pour choisir la plateforme (Instagram, TikTok, etc.).
+    *   Un `Select` où l'utilisateur choisit son objectif principal (Augmenter l'engagement, Professionnaliser l'image, etc.).
 
-*   **Étape 3 : Identité Rédactionnelle**
-    *   **Titre :** "Copiez-collez le texte de 2 ou 3 de vos publications récentes."
-    *   **Composant :** Trois champs `Textarea` pour que l'utilisateur puisse coller ses descriptions.
+*   **Étape 3 : Identité Visuelle (Analyse de Style)**
+    *   L'utilisateur sélectionne entre 6 et 9 images dans sa galerie Clikup qui représentent son style actuel.
 
-*   **Étape 4 : Lancement**
-    *   **Récapitulatif :** Un bref résumé ("Analyse pour Instagram avec 9 images et 3 textes.").
-    *   **Bouton d'Action :** Un bouton "Lancer l'analyse (coûte 5 tickets IA)". Ce bouton sera désactivé tant que tous les champs obligatoires ne sont pas remplis.
-    *   **État de Chargement :** Après le clic, l'interface affichera une animation de chargement avec des messages engageants ("L'IA analyse vos couleurs...", "L'IA étudie votre style...").
+*   **Étape 4 : Identité Visuelle (Analyse du Sujet)**
+    *   (Optionnel) L'utilisateur sélectionne jusqu'à 5 portraits clairs de lui-même ou du sujet principal pour que l'IA puisse "apprendre" son apparence.
 
-### Étape C : La Page de Rapport (`/audit/resultats/[resultId]/page.tsx`)
+*   **Étape 5 : Identité Rédactionnelle**
+    *   (Optionnel) L'utilisateur peut coller le texte de quelques publications et ajouter un contexte libre pour affiner l'analyse.
+    
+*   **Étape 6 : Lancement**
+    *   Un récapitulatif est présenté, et un bouton "Lancer l'analyse" (coût : 5 tickets IA) démarre le processus, avec une animation de chargement.
 
-Une fois l'analyse terminée, l'utilisateur est redirigé vers une page dédiée à son rapport. Cette page est conçue pour être claire, lisible et inspirante.
+### Étape C : La Page de Rapport (`/audit/resultats/[auditId]/page.tsx`)
 
-*   **Structure :** Utilisation de `Card` pour chaque section du rapport.
-*   **Contenu du Rapport :**
-    1.  **Carte "Votre Identité Actuelle" :**
-        *   Titre: "Diagnostic de votre Identité Visuelle".
-        *   Contenu: L'IA génère des mots-clés qui décrivent le style perçu (ex: "Naturel", "Contraste élevé", "Palette chaude").
-    2.  **Carte "Points Forts & Axes d'Amélioration" :**
-        *   Titre: "Analyse Stratégique".
-        *   Contenu: Deux listes à puces claires : ce qui fonctionne bien et ce qui pourrait être amélioré.
-    3.  **Carte "Stratégie de Contenu Recommandée" :**
-        *   Titre: "Suggestions pour vos Prochains Contenus".
-        *   Contenu: Des idées concrètes de publications (ex: "Essayez un carrousel avant/après", "Faites une vidéo des coulisses").
-    4.  **Carte "Plan d'Action Personnalisé" :**
-        *   Titre: "Votre Programme sur 7 Jours".
-        *   Contenu: Un tableau simple (Jour 1: Poster une photo de type X, Jour 2: Faire une Story sondage, etc.).
+Une fois l'analyse terminée, l'utilisateur est redirigé vers une page de rapport dédiée, conçue pour être claire, lisible et inspirante.
+
+*   **Structure :** Utilisation de composants `Card` pour chaque section du rapport (Identité Visuelle, Analyse Stratégique, Stratégie de Contenu, Plan d'Action).
+*   **Passez à l'action :** La page inclut une section interactive "Passez à l'action" qui permet à l'utilisateur de :
+    1.  Générer de nouvelles idées de contenu basées sur l'audit.
+    2.  Utiliser ces idées comme "prompts" pour générer de nouvelles images avec l'IA.
+    3.  Sauvegarder ces nouvelles créations en tant que brouillon ou les programmer directement dans le Planificateur de Contenu.
 
 ---
 
-## 3. Implémentation Technique
+## 3. Implémentation Technique (Réalisée)
 
 ### a) Nouveau Flow Genkit (`src/ai/flows/social-audit-flow.ts`)
 
-*   **Input Schema (Zod) :**
-    *   `platform`: `string`
-    *   `goal`: `string` (l'objectif choisi dans la liste)
-    *   `image_urls`: `array of strings` (les data URIs des images sélectionnées)
-    *   `post_texts`: `array of strings`
-*   **Output Schema (Zod) :**
-    *   `visual_identity`: `object` avec `keywords: array of strings` et `summary: string`.
-    *   `strategic_analysis`: `object` avec `strengths: array of strings` et `improvements: array of strings`.
-    *   `content_strategy`: `array of objects`, chaque objet contenant `idea: string` et `description: string`.
-    *   `action_plan`: `array of objects`, chaque objet contenant `day: number` et `action: string`.
-*   **Prompt :** Un prompt maître très détaillé qui instruit l'IA d'agir comme un coach en stratégie de contenu et de structurer sa réponse selon le schéma de sortie défini, en tenant compte de l'objectif de l'utilisateur.
+*   **Input Schema (Zod) :** Le flow accepte la plateforme, l'objectif, les URLs des images de style, les URLs (optionnelles) des images du sujet, et le contexte textuel.
+*   **Output Schema (Zod) :** Le flow retourne un objet structuré contenant toutes les sections du rapport, y compris les suggestions de prompts créatifs.
+*   **Prompt :** Un prompt maître très détaillé instruit l'IA d'agir comme un coach en stratégie de contenu, de prendre en compte l'apparence du sujet si fournie, et de structurer sa réponse selon le schéma de sortie défini.
 
 ### b) Nouvelles Pages React
 
-*   `src/app/audit/page.tsx` : La page principale de l'assistant, gérant l'état des différentes étapes du formulaire.
-*   `src/app/audit/resultats/[resultId]/page.tsx` : La page qui affichera les résultats de l'analyse.
+*   `src/app/audit/page.tsx` : La page principale de l'assistant.
+*   `src/app/audit/resultats/[auditId]/page.tsx` : La page qui affiche le rapport et permet de générer/planifier du nouveau contenu.
+*   `src/app/audit/history/page.tsx` : Une page pour consulter l'historique de tous les rapports générés.
 
 ### c) Modèle de Données
 
-*   Les résultats de chaque audit pourraient être sauvegardés dans une nouvelle sous-collection `audits` dans le document de l'utilisateur (`/users/{userId}/audits/{auditId}`) pour qu'il puisse consulter ses rapports passés.
-
----
-
-Ce plan fournit une base solide pour construire une fonctionnalité cohérente, utile et intuitive qui renforcera la proposition de valeur de Clikup.
+*   Les résultats de chaque audit sont sauvegardés dans une sous-collection `/users/{userId}/audits/{auditId}`.
+*   Les "Profils de Marque" sont sauvegardés dans `/users/{userId}/brandProfiles/{brandProfileId}`.
+*   Les publications planifiées sont sauvegardées dans `/users/{userId}/scheduledPosts/{postId}`.

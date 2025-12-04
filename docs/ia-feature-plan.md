@@ -1,16 +1,16 @@
 # Plan de Développement Technique : Intégration de l'IA
 
-Ce document détaille les étapes techniques pour transformer "Clikup" en un assistant de contenu intelligent, comme défini dans `docs/idées.md`.
+Ce document détaille les étapes techniques qui ont permis de transformer "Clikup" en un assistant de contenu intelligent.
 
 ## Phase 1 : Génération de Description par IA (Terminé)
 
-**Objectif :** Permettre à l'IA de générer une description, un titre et des hashtags pour une image, afin d'enrichir le contenu et d'activer le succès "Futuriste".
+**Objectif :** Permettre à l'IA de générer une description, un titre et des hashtags pour une image, afin d'enrichir le contenu.
 
 **Technologies Clés :**
 *   **Genkit** : Pour créer le flow d'IA.
 *   **Modèle Gemini** : Pour l'analyse d'image et la génération de texte.
 
-**État :** Terminé. Le flow `generateImageDescriptionFlow` est fonctionnel et intégré à l'interface de modification d'image. Le système de tickets IA est également en place pour réguler son utilisation.
+**État :** Terminé. Le flow `generateImageDescriptionFlow` est fonctionnel et intégré à plusieurs endroits de l'interface (depuis la galerie, depuis le hub de création, depuis la page de détail). Le système de tickets IA est également en place pour réguler son utilisation.
 
 ## Phase 2 : Retouche d'Image par IA (Terminé)
 
@@ -20,23 +20,30 @@ Ce document détaille les étapes techniques pour transformer "Clikup" en un ass
 *   **Genkit**
 *   **Modèles d'édition d'image de Gemini** (`gemini-2.5-flash-image-preview`).
 
-**État :** Terminé. L'ensemble de la fonctionnalité, incluant le flow Genkit, la page d'édition, la comparaison avant/après et les suggestions, est pleinement opérationnel.
+**État :** Terminé. L'ensemble de la fonctionnalité, incluant le flow Genkit, la page d'édition, la comparaison avant/après et les suggestions de prompts, est pleinement opérationnel.
 
-## Phase 3 : Partage Simplifié vers les Réseaux Sociaux (Long Terme)
+## Phase 3 : Génération d'Images et de Vidéos (Terminé)
 
-**Objectif :** Faciliter la publication du contenu créé (image retouchée + description générée) sur les réseaux sociaux.
+**Objectif :** Permettre la création de médias originaux à partir d'un simple texte.
 
-**Approche 1 (Simple) :**
+**Technologies Clés :**
+*   **Genkit**
+*   **Modèles de génération d'image** (`imagen-4.0-fast-generate-001`) et de **vidéo** (`veo-2.0-generate-001`).
 
-1.  Dans la fenêtre de partage, après qu'une image ait été retouchée et une description générée, ajouter :
-    *   Un bouton "Copier la description et les hashtags".
-    *   Un bouton "Télécharger l'image finale".
-2.  L'utilisateur peut alors facilement coller le texte et téléverser l'image manuellement sur la plateforme de son choix.
+**État :** Terminé. Les flows `generateImageFlow` et `generateVideoFlow` sont intégrés dans le composant "Uploader", permettant une création de contenu multimédia directement depuis la page d'accueil.
 
-**Approche 2 (Avancée - Intégration API) :**
+## Phase 4 : Le Coach Stratégique IA (Terminé)
 
-1.  **Recherche et Développement :** Étudier les API de développeur de Meta (pour Instagram/Facebook) et de X pour comprendre les exigences et les limitations du partage de contenu.
-2.  **Implémentation :**
-    *   Mettre en place un flux d'authentification OAuth pour que les utilisateurs puissent connecter leurs comptes de réseaux sociaux à Clikup.
-    *   Utiliser les API pour envoyer l'image et le texte directement depuis Clikup.
-    *   Cela nécessite une gestion complexe des jetons d'accès et des permissions.
+**Objectif :** Fournir une analyse stratégique complète d'un profil de créateur.
+
+**Technologies Clés :**
+*   **Genkit** et **Gemini** (capacités multimodales).
+*   Architecture "wizard" en plusieurs étapes pour la collecte d'informations.
+
+**État :** Terminé. Le "Coach Stratégique" est une fonctionnalité majeure et aboutie, qui guide l'utilisateur de la sélection de son contenu (images, textes) jusqu'à la génération d'un rapport complet et la création de suggestions de posts.
+
+## Phase 5 : Intégration avec le Planificateur (Terminé)
+
+**Objectif :** Créer une synergie entre l'analyse IA et la planification de contenu.
+
+**État :** Terminé. Les idées de contenu générées par le Coach Stratégique peuvent être sauvegardées en tant que brouillons ou programmées directement dans le Planificateur, créant ainsi un flux de travail cohérent, de l'idéation à la publication planifiée.

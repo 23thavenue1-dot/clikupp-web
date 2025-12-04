@@ -1,4 +1,15 @@
-# Analyse des Solutions de Paiement pour Clikup
+# Analyse des Solutions de Paiement pour Clikup (Archivé)
+
+**Ce document est archivé car une décision a été prise et l'implémentation a été réalisée.**
+
+*   **Solution Choisie :** **Stripe**
+*   **Raison :** L'existence de l'**extension Firebase officielle (`firestore-stripe-payments`)** a été le facteur décisif. Elle simplifie énormément l'intégration technique, automatise la synchronisation entre les paiements et la mise à jour des droits des utilisateurs dans Firestore, et gère les webhooks de manière sécurisée.
+*   **État de l'Implémentation :** L'intégration de Stripe est **terminée et fonctionnelle**. Elle gère à la fois les abonnements récurrents et les achats uniques (packs de tickets).
+*   **Documentation du Processus :** Le journal de bord détaillé du débogage et de la résolution des problèmes rencontrés se trouve dans `docs/payment-troubleshooting-log.md`.
+
+---
+
+## Analyse Initiale (Conservée pour référence historique)
 
 Ce document compare plusieurs solutions de paiement populaires pour aider à choisir la plus adaptée à l'intégration dans Clikup, en prenant en compte notre stack technique (Firebase) et nos besoins (abonnements, achats uniques).
 
@@ -32,42 +43,8 @@ Ce document compare plusieurs solutions de paiement populaires pour aider à cho
 
 ---
 
-## 3. Paddle (L'Alternative Solide)
+## Conclusion et Décision
 
-*   **Pour qui ?** Très similaire à Lemon Squeezy, c'est aussi un "Merchant of Record" très apprécié des entreprises de logiciels.
+Bien que la gestion des taxes par Lemon Squeezy soit très attractive, l'avantage technique de l'**extension Firebase officielle de Stripe** est trop important pour être ignoré dans notre contexte. Elle promet une intégration plus simple, plus robuste et mieux maintenue avec notre architecture existante.
 
-*   **Avantages :**
-    *   **Mêmes avantages que Lemon Squeezy :** Gestion entièrement automatisée des taxes, de la facturation et de la conformité légale à l'échelle mondiale.
-
-*   **Inconvénients :**
-    *   **Moins populaire :** La communauté et les ressources en ligne sont un peu moins vastes que pour Stripe ou Lemon Squeezy.
-    *   **API :** Historiquement, leur API était considérée comme un peu moins flexible, mais ils ont fait d'énormes progrès.
-
----
-
-## 4. PayPal
-
-*   **Pour qui ?** Utile si vous souhaitez offrir une option de paiement très familière pour rassurer un large éventail d'utilisateurs.
-
-*   **Avantages :**
-    *   **Confiance et Reconnaissance :** C'est une marque universellement connue et approuvée par des millions de personnes.
-
-*   **Inconvénients :**
-    *   **Expérience de Développement :** L'intégration via leur API est souvent jugée moins fluide, moins moderne et plus complexe que celles de Stripe ou Lemon Squeezy.
-
----
-
-## Recommandation Stratégique pour Clikup
-
-La décision finale dépend de votre priorité principale :
-
-1.  **Priorité à la simplicité administrative et à la tranquillité d'esprit :**
-    *   **Lemon Squeezy** est probablement le meilleur choix. Vous vous concentrez sur votre application, et ils s'occupent de toute la complexité fiscale. C'est idéal pour démarrer vite et bien.
-
-2.  **Priorité à l'intégration technique la plus poussée avec Firebase :**
-    *   **Stripe** est imbattable sur ce point, grâce à l'**extension Firebase officielle**. Cette extension est conçue spécifiquement pour notre cas d'usage : elle peut écouter les événements de paiement Stripe et déclencher automatiquement des actions dans notre base de données (comme `updateDoc` sur le profil d'un utilisateur pour lui ajouter ses `packAiTickets`).
-
-**Conclusion :**
-
-*   Si vous voulez vous lancer sans vous soucier des taxes -> **Lemon Squeezy**.
-*   Si vous êtes prêt à gérer les taxes (ou à utiliser un service tiers pour cela) en échange d'une intégration potentiellement plus simple avec Firebase -> **Stripe**.
+**Décision :** Nous avons choisi **Stripe** en nous appuyant sur l'extension `firestore-stripe-payments`.

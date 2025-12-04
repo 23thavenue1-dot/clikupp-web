@@ -1,44 +1,18 @@
-# Statut et Feuille de Route : Système de Tickets
+# Statut du Système de Tickets (Archivé)
 
-Ce document dresse un bilan de l'état actuel du système de tickets, retrace les défis rencontrés, les solutions mises en place et définit les prochaines étapes claires pour finaliser la fonctionnalité.
+**Ce document est archivé car la fonctionnalité est terminée et stable.** Les informations pertinentes ont été intégrées dans les documents de synthèse comme le `README.md` et le `feature-dev-log.md`.
 
-## 1. État Actuel de la Fonctionnalité (Tickets d'Upload)
+---
 
-À ce jour, les fondations du système de tickets d'upload sont en place et fonctionnelles :
+## 1. État Final de la Fonctionnalité (Tickets d'Upload et IA)
 
-*   **Stockage des Données :** Chaque utilisateur possède bien dans Firestore un champ `ticketCount` et `lastTicketRefill`.
-*   **Affichage du Compteur :** Le nombre de tickets restants est maintenant **affiché de manière fiable** dans l'interface de téléversement. Le compteur est également interactif.
-*   **Décompte à l'Upload :** Le mécanisme de décompte est **actif**. Chaque fois qu'un utilisateur téléverse une image, son `ticketCount` est correctement décrémenté de 1.
-*   **Blocage à Zéro :** Un utilisateur qui n'a plus de tickets **ne peut plus en téléverser**, et un message d'erreur clair lui est notifié.
-*   **Recharge Quotidienne :** La logique de recharge est implémentée et réinitialise le compteur à 5, une fois par période de 24 heures.
+Le système de tickets est **100% fonctionnel et intégré**.
 
-## 2. Implémentation du Système de Tickets IA (Terminé)
+*   **Stockage des Données :** Chaque utilisateur possède dans Firestore les champs nécessaires pour les tickets d'upload (`ticketCount`), les tickets IA (`aiTicketCount`), ainsi que les timestamps pour leur recharge (`lastTicketRefill`, `lastAiTicketRefill`). Des champs pour gérer les quotas mensuels (`aiTicketMonthlyCount`) et les tickets payants sont également en place.
+*   **Affichage des Compteurs :** Le nombre de tickets restants est affiché de manière fiable et interactive à plusieurs endroits clés de l'interface (Uploader, Modales de génération, etc.).
+*   **Décompte Fiable :** Le mécanisme de décompte est actif pour chaque téléversement et chaque utilisation d'une fonctionnalité IA.
+*   **Blocage à Zéro :** Un utilisateur qui n'a plus de tickets est bloqué et reçoit une notification claire avec un lien vers la boutique.
+*   **Recharge Quotidienne et Mensuelle :** La logique de recharge est entièrement gérée par une Cloud Function (`checkAndRefillTickets` appelée depuis le client, et la logique de l'abonnement dans `onSubscriptionChange`). Le système réinitialise les compteurs journaliers tout en respectant la limite mensuelle pour les tickets IA gratuits.
+*   **Hiérarchie de Consommation :** Le système est intelligent et consomme les tickets dans l'ordre le plus avantageux pour l'utilisateur : d'abord les gratuits, puis ceux de l'abonnement, et enfin ceux des packs achetés.
 
-Nous étendons maintenant le système pour gérer la consommation des fonctionnalités d'IA.
-
-### Étape 1 : Mise à jour du Modèle de Données (Terminé)
-*   **Objectif :** Définir ce qu'est un "ticket IA" dans notre base de données.
-*   **Action Réalisée :**
-    1.  Ajout des champs `aiTicketCount` (nombre) et `lastAiTicketRefill` (date) à l'entité `User` dans `docs/backend.json`.
-    2.  Mise à jour du processus d'inscription (`src/app/signup/page.tsx`) pour que chaque nouvel utilisateur commence avec un quota de **3 tickets IA**.
-*   **Résultat :** Les fondations sont posées. L'application sait maintenant que les tickets IA existent et comment les initialiser.
-
-### Étape 2 : Implémenter le décompte et l'affichage (Terminé)
-*   **Objectif :** Contrôler l'utilisation de l'IA et informer l'utilisateur de son solde.
-*   **Action Réalisée :**
-    1.  Le composant `ImageList.tsx` récupère maintenant le profil utilisateur pour connaître le `aiTicketCount`.
-    2.  Un compteur de tickets IA est affiché dans la fenêtre de dialogue de génération.
-    3.  Le bouton de génération est désactivé et une infobulle apparaît si l'utilisateur n'a plus de tickets.
-    4.  Une nouvelle fonction `decrementAiTicketCount` a été créée dans `lib/firestore.ts`.
-    5.  Après chaque génération d'IA réussie, le compteur de l'utilisateur est décrémenté de 1.
-*   **Résultat :** Le système de décompte est fonctionnel. L'utilisation de l'IA est maintenant limitée par le nombre de tickets disponibles.
-
-
-### Étape 3 : Mettre en place la recharge quotidienne (Terminé)
-*   **Objectif :** Assurer que les utilisateurs reçoivent leur quota de tickets IA chaque jour.
-*   **Action Réalisée :**
-    1. La fonction `checkAndRefillTickets` dans `lib/firestore.ts` a été étendue.
-    2. Elle vérifie maintenant non seulement les tickets d'upload, mais aussi les tickets IA (`aiTicketCount`) et les recharge à 3 si plus de 24h se sont écoulées depuis la dernière recharge.
-*   **Résultat :** Le système de tickets IA est complet, autonome et durable. Les utilisateurs seront réapprovisionnés chaque jour.
-
-    
+Le système de tickets est une fonctionnalité centrale et robuste de l'application, formant la base du modèle économique "Freemium".
