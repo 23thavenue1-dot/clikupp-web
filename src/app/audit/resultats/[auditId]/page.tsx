@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -16,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { editImage, generateImage } from '@/ai/flows/generate-image-flow';
 import { generateVideo } from '@/ai/flows/generate-video-flow';
+import { generateImageDescription } from '@/ai/flows/generate-description-flow';
 import { decrementAiTicketCount, saveImageMetadata, savePostForLater } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
@@ -252,15 +254,27 @@ export default function AuditResultPage() {
         }
     };
 
-    // Nouvelle fonction de sauvegarde en 2 étapes
     const saveGeneratedImageAndPlan = async (isDraft: boolean, date?: Date) => {
-        if (!currentHistoryItem || !prompt || !user || !firebaseApp || !firestore) return;
+        if (!currentHistoryItem || !user || !firebaseApp || !firestore || !auditReport) return;
         
         const setLoading = isDraft ? setIsSavingDraft : setIsScheduling;
         setLoading(true);
 
         try {
-            // --- ÉTAPE 1: Sauvegarder l'image générée dans la bibliothèque ---
+            // --- Étape 1 : Générer la description stratégique ---
+            const descriptionContext = `Analyse Stratégique : ${auditReport.strategic_analysis.strengths.join(', ')}. Améliorations : ${auditReport.strategic_analysis.improvements.join(', ')}`;
+            const descriptionResult = await generateImageDescription({
+                imageUrl: currentHistoryItem.imageUrl,
+                platform: auditReport.platform as Platform,
+                goal: auditReport.goal,
+                context: descriptionContext,
+            });
+
+            const newTitle = descriptionResult.title;
+            const newDescription = descriptionResult.description;
+            const newHashtags = descriptionResult.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' ');
+
+            // --- Étape 2 : Sauvegarder l'image générée dans la bibliothèque ---
             const storage = getStorage(firebaseApp);
             const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
             const newFileName = `ai-creation-${Date.now()}.png`;
@@ -270,8 +284,9 @@ export default function AuditResultPage() {
             
             const newImageDocRef = await saveImageMetadata(firestore, user, { 
                 ...metadata,
-                title: `Généré par IA: ${currentHistoryItem.prompt}`,
-                description: currentHistoryItem.prompt,
+                title: newTitle,
+                description: newDescription,
+                hashtags: newHashtags,
                 generatedByAI: true
             });
 
@@ -282,29 +297,24 @@ export default function AuditResultPage() {
             }
             const newImageMetadata = newImageSnap.data() as ImageMetadata;
             
-            // --- ÉTAPE 2: Utiliser la nouvelle image pour créer le brouillon/post ---
+            // --- Étape 3 : Utiliser la nouvelle image pour créer le brouillon/post ---
             await savePostForLater(firestore, storage, user.uid, {
                 title: isDraft ? 'Brouillon généré par IA' : `Post programmé pour le ${format(date!, 'd MMMM')}`,
-                description: prompt,
+                description: newDescription,
                 scheduledAt: isDraft ? undefined : date,
-                imageSource: newImageMetadata, // On passe l'objet métadonnées complet
+                imageSource: newImageMetadata,
                 auditId: auditId,
             });
 
             if (isDraft) {
-                toast({ title: "Brouillon sauvegardé !", description: "Retrouvez-le dans votre Planificateur de contenu." });
+                toast({ title: "Brouillon sauvegardé !", description: "Une description pertinente a aussi été générée. Retrouvez-le dans votre Planificateur." });
             } else {
-                toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur pour le ${format(date!, 'PPP', { locale: fr })}.` });
+                toast({ title: "Publication programmée !", description: `Une description pertinente a été générée. Retrouvez-la dans votre Planificateur pour le ${format(date!, 'PPP', { locale: fr })}.` });
                 setScheduleDate(undefined);
             }
 
         } catch (error) {
-            const appError = withErrorHandling(() => { throw error; }); // Wrapper pour le logging
-            toast({
-                variant: 'destructive',
-                title: `Erreur lors de la ${isDraft ? 'sauvegarde du brouillon' : 'programmation'}`,
-                description: (error as Error).message || "Une erreur est survenue."
-            });
+            withErrorHandling(() => { throw error; }); // Wrapper pour le logging
         } finally {
             setLoading(false);
         }
