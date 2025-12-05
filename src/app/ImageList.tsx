@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -9,10 +7,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, createGallery, addMultipleImagesToGalleries, toggleGlobalImagePin, deleteMultipleImages, savePostForLater } from '@/lib/firestore';
+import { type ImageMetadata, type UserProfile, type Gallery, deleteImageMetadata, updateImageDescription, decrementAiTicketCount, createGallery, addMultipleImagesToGalleries, toggleGlobalImagePin, deleteMultipleImages, savePostForLater, type BrandProfile } from '@/lib/firestore';
 import { format, formatDistanceToNow, addMonths, startOfMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, CopyPlus, Ticket, PlusCircle, X, BoxSelect, Sparkles, Save, Download, MoreHorizontal, PinOff, Pin, ShoppingCart, FilePlus, Calendar as CalendarIcon } from 'lucide-react';
+import { ImageIcon, Trash2, Loader2, Share2, Copy, Check, Pencil, Wand2, Instagram, Facebook, MessageSquare, VenetianMask, CopyPlus, Ticket, PlusCircle, X, BoxSelect, Sparkles, Save, Download, MoreHorizontal, PinOff, Pin, ShoppingCart, FilePlus, Calendar as CalendarIcon, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -62,6 +60,8 @@ import {
 import { withErrorHandling } from '@/lib/async-wrapper';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
@@ -107,8 +107,12 @@ export function ImageList() {
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
 
-    const [isSavingDraft, setIsSavingDraft] = useState(false);
-    const [isScheduling, setIsScheduling] = useState(false);
+    // Nouveaux états pour le dialogue de planification/brouillon
+    const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+    const [imageToSchedule, setImageToSchedule] = useState<ImageMetadata | null>(null);
+    const [scheduleDate, setScheduleDate] = useState<Date | undefined>(undefined);
+    const [selectedProfileId, setSelectedProfileId] = useState<string>('');
+    const [isSavingPost, setIsSavingPost] = useState(false);
 
 
     const imagesQuery = useMemoFirebase(() => {
@@ -123,6 +127,12 @@ export function ImageList() {
         return query(collection(firestore, `users/${user.uid}/galleries`), orderBy('createdAt', 'desc'));
     }, [user, firestore]);
     const { data: galleries } = useCollection<Gallery>(galleriesQuery);
+    
+    const brandProfilesQuery = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return query(collection(firestore, `users/${user.uid}/brandProfiles`), orderBy('createdAt', 'desc'));
+    }, [user, firestore]);
+    const { data: brandProfiles } = useCollection<BrandProfile>(brandProfilesQuery);
 
      const totalAiTickets = useMemo(() => {
         if (!userProfile) return 0;
@@ -179,6 +189,15 @@ export function ImageList() {
         setNewGalleryName('');
         setShowAddToGalleryDialog(true);
     };
+    
+    const openScheduleDialog = (e: React.MouseEvent, image: ImageMetadata) => {
+        e.preventDefault();
+        setImageToSchedule(image);
+        setScheduleDate(undefined);
+        setSelectedProfileId('');
+        setScheduleDialogOpen(true);
+    };
+
 
     const handleDeleteImage = async () => {
         if (!imageToDelete || !user || !firestore) return;
@@ -416,45 +435,33 @@ export function ImageList() {
         }
     };
     
-    const handleSaveDraft = async (e: React.MouseEvent, image: ImageMetadata) => {
-        e.preventDefault();
-        if (!user || !firebaseApp) return;
-        setIsSavingDraft(true);
+    const handleSavePost = async () => {
+        if (!user || !firebaseApp || !imageToSchedule || !selectedProfileId) return;
+
+        setIsSavingPost(true);
         const storage = getStorage(firebaseApp);
         
         const { error } = await withErrorHandling(() => 
             savePostForLater(firestore, storage, user.uid, {
-                title: image.title,
-                description: image.description || '',
-                imageSource: image,
+                brandProfileId: selectedProfileId,
+                title: imageToSchedule.title,
+                description: imageToSchedule.description || '',
+                scheduledAt: scheduleDate, // Peut être undefined pour un brouillon
+                imageSource: imageToSchedule,
             })
         );
         
         if (!error) {
-            toast({ title: "Brouillon sauvegardé !", description: "Retrouvez-le dans votre Planificateur de contenu." });
+            if (scheduleDate) {
+                toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur pour le ${format(scheduleDate, 'PPP', { locale: fr })}.` });
+            } else {
+                toast({ title: "Brouillon sauvegardé !", description: "Retrouvez-le dans votre Planificateur de contenu." });
+            }
+            setScheduleDialogOpen(false);
         }
-        setIsSavingDraft(false);
+        setIsSavingPost(false);
     };
 
-    const handleSchedule = async (date: Date, image: ImageMetadata) => {
-        if (!user || !firebaseApp || !date) return;
-        setIsScheduling(true);
-        const storage = getStorage(firebaseApp);
-
-        const { error } = await withErrorHandling(() => 
-            savePostForLater(firestore, storage, user.uid, {
-                title: image.title,
-                description: image.description || '',
-                scheduledAt: date,
-                imageSource: image
-            })
-        );
-
-        if (!error) {
-            toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur pour le ${format(date, 'PPP', { locale: fr })}.` });
-        }
-        setIsScheduling(false);
-    };
 
     const monthlyLimitReached = !!(userProfile && userProfile.aiTicketMonthlyCount >= 20 && totalAiTickets <= 0);
     const nextRefillDate = userProfile?.aiTicketMonthlyReset ? format(addMonths(startOfMonth(userProfile.aiTicketMonthlyReset.toDate()), 1), "d MMMM", { locale: fr }) : 'prochain mois';
@@ -627,26 +634,10 @@ export function ImageList() {
                                                                     <span>Ajouter à la galerie</span>
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuSeparator />
-                                                                <DropdownMenuItem onClick={(e) => handleSaveDraft(e, image)} disabled={isSavingDraft}>
-                                                                    {isSavingDraft ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <FilePlus className="mr-2 h-4 w-4" />}
-                                                                    <span>Enregistrer en brouillon</span>
+                                                                <DropdownMenuItem onClick={(e) => openScheduleDialog(e, image)}>
+                                                                    <FilePlus className="mr-2 h-4 w-4" />
+                                                                    <span>Planifier / Brouillon...</span>
                                                                 </DropdownMenuItem>
-                                                                <Popover>
-                                                                    <PopoverTrigger asChild>
-                                                                         <DropdownMenuItem onSelect={(e) => e.preventDefault()} disabled={isScheduling}>
-                                                                            {isScheduling ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <CalendarIcon className="mr-2 h-4 w-4" />}
-                                                                            <span>Programmer...</span>
-                                                                        </DropdownMenuItem>
-                                                                    </PopoverTrigger>
-                                                                    <PopoverContent className="w-auto p-0" onClick={(e) => e.stopPropagation()}>
-                                                                        <Calendar
-                                                                            mode="single"
-                                                                            onSelect={(date) => date && handleSchedule(date, image)}
-                                                                            disabled={(date) => date < new Date() || isScheduling}
-                                                                            initialFocus
-                                                                        />
-                                                                    </PopoverContent>
-                                                                </Popover>
                                                                 <DropdownMenuSeparator />
                                                                 <DropdownMenuItem onClick={(e) => handleDownload(e, image)} disabled={isDownloading === image.id}>
                                                                     {isDownloading === image.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
@@ -911,6 +902,83 @@ export function ImageList() {
                         <Button onClick={handleSaveToGalleries} disabled={isSavingToGallery || selectedGalleries.size === 0}>
                              {isSavingToGallery && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                             Enregistrer
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Planifier une publication</DialogTitle>
+                        <DialogDescription>
+                            Associez ce post à un profil et choisissez une date de publication, ou sauvegardez-le en tant que brouillon.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="brand-profile">Profil de Marque</Label>
+                            <Select value={selectedProfileId} onValueChange={setSelectedProfileId}>
+                                <SelectTrigger id="brand-profile">
+                                    <SelectValue placeholder="Sélectionnez un profil..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {brandProfiles && brandProfiles.length > 0 ? brandProfiles.map(profile => (
+                                        <SelectItem key={profile.id} value={profile.id}>
+                                            <div className="flex items-center gap-2">
+                                                <Avatar className="h-5 w-5">
+                                                    <AvatarImage src={profile.avatarUrl} alt={profile.name} />
+                                                    <AvatarFallback>{profile.name.charAt(0)}</AvatarFallback>
+                                                </Avatar>
+                                                <span>{profile.name}</span>
+                                            </div>
+                                        </SelectItem>
+                                    )) : (
+                                        <div className="p-4 text-center text-sm text-muted-foreground">Aucun profil créé.</div>
+                                    )}
+                                </SelectContent>
+                            </Select>
+                             {brandProfiles?.length === 0 && (
+                                <p className="text-xs text-muted-foreground">
+                                    Vous devez d'abord créer un profil de marque dans le <Link href="/audit" className="underline text-primary">Coach Stratégique</Link>.
+                                </p>
+                            )}
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Date de publication (optionnel)</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal",
+                                            !scheduleDate && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {scheduleDate ? format(scheduleDate, "PPP", { locale: fr }) : <span>Choisissez une date</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                    <Calendar
+                                        mode="single"
+                                        selected={scheduleDate}
+                                        onSelect={setScheduleDate}
+                                        disabled={(date) => date < new Date() || date < new Date("1900-01-01")}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                             <p className="text-xs text-muted-foreground">Si aucune date n'est choisie, le post sera sauvegardé comme brouillon.</p>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button variant="secondary" disabled={isSavingPost}>Annuler</Button>
+                        </DialogClose>
+                        <Button onClick={handleSavePost} disabled={isSavingPost || !selectedProfileId}>
+                            {isSavingPost && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                            {scheduleDate ? 'Programmer' : 'Enregistrer en brouillon'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
