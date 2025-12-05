@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -481,6 +482,131 @@ export function ImageList() {
 
     const hasAiTickets = totalAiTickets > 0;
 
+    // Component that wraps the clickable area
+    const ClickableArea = ({ image }: { image: ImageMetadata }) => {
+        const content = (
+            <>
+                {isSelectionMode ? (
+                    <div className="absolute top-2 left-2 z-10 bg-background rounded-full p-1 border">
+                        <div className={cn(
+                            "w-4 h-4 rounded-sm border-2 border-primary transition-colors",
+                            selectedImages.has(image.id) && "bg-primary"
+                        )}>
+                            {selectedImages.has(image.id) && <Check className="w-3.5 h-3.5 text-primary-foreground"/>}
+                        </div>
+                    </div>
+                ) : (
+                    isPinned && (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm rounded-full p-1.5 border-2 border-primary">
+                                    <Pin className="w-3 h-3 text-primary"/>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Épinglée globalement</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    )
+                )}
+                    
+                <Image
+                    src={image.directUrl}
+                    alt={image.originalName || 'Image téléversée'}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+                    className="object-cover bg-muted transition-transform duration-300 group-hover:scale-105"
+                    unoptimized // Important pour les Data URLs et celles de Storage
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                
+                <div className="absolute top-2 right-2 z-10">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="secondary"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                            >
+                                <MoreHorizontal size={16} />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenuItem onClick={(e) => handleToggleGlobalPin(e, image)}>
+                                {isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
+                                <span>{isPinned ? 'Désépingler' : 'Épingler'}</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild>
+                                <Link href={`/edit/${image.id}`} passHref>
+                                    <Sparkles className="mr-2 h-4 w-4" />
+                                    <span>Éditer avec l'IA</span>
+                                </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => openEditDialog(e, image)}>
+                                <Wand2 className="mr-2 h-4 w-4" />
+                                <span>Modifier la description</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => openAddToGalleryDialog(e, image)}>
+                                <CopyPlus className="mr-2 h-4 w-4" />
+                                <span>Ajouter à la galerie</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={(e) => openScheduleDialog(e, image)}>
+                                <FilePlus className="mr-2 h-4 w-4" />
+                                <span>Planifier / Brouillon...</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={(e) => handleDownload(e, image)} disabled={isDownloading === image.id}>
+                                {isDownloading === image.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                                <span>Télécharger</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={(e) => openDeleteDialog(e, image)} disabled={isDeleting === image.id} className="text-red-500 focus:text-red-500">
+                                {isDeleting === image.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                                <span>Supprimer</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+
+                <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
+                    <p 
+                    className="text-sm font-semibold truncate"
+                    title={image.originalName}
+                    >
+                        {image.originalName || 'Image depuis URL'}
+                    </p>
+                    {image.uploadTimestamp && (
+                        <p className="text-xs opacity-80">
+                            {formatDistanceToNow(image.uploadTimestamp.toDate(), { addSuffix: true, locale: fr })}
+                        </p>
+                    )}
+                </div>
+            </>
+        );
+
+        if (isSelectionMode) {
+            return (
+                <div
+                    onClick={() => toggleImageSelection(image.id)}
+                    className={cn("block aspect-square w-full relative overflow-hidden cursor-pointer", selectedImages.has(image.id) && "ring-2 ring-primary ring-offset-2 rounded-lg")}
+                >
+                    {content}
+                </div>
+            );
+        }
+
+        return (
+            <Link href={`/image/${image.id}`} className="block aspect-square w-full relative overflow-hidden">
+                {content}
+            </Link>
+        );
+    };
+
+    const isPinned = (imageId: string) => userProfile?.pinnedImageIds?.includes(imageId) ?? false;
+
 
     return (
         <TooltipProvider>
@@ -550,123 +676,12 @@ export function ImageList() {
                                 
                                 {!isLoading && sortedImages && sortedImages.length > 0 && (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                        {sortedImages.map(image => {
-                                            const isPinned = userProfile?.pinnedImageIds?.includes(image.id) ?? false;
-                                            return (
+                                        {sortedImages.map(image => (
                                             <div
                                                 key={image.id}
-                                                onClick={(e) => {
-                                                    if (isSelectionMode) {
-                                                        e.preventDefault();
-                                                        toggleImageSelection(image.id);
-                                                    }
-                                                }}
-                                                className={cn(
-                                                    "group relative flex flex-col transition-all overflow-hidden rounded-lg border",
-                                                    isSelectionMode && "cursor-pointer"
-                                                )}
+                                                className="group relative flex flex-col transition-all overflow-hidden rounded-lg border"
                                             >
-                                                <Link href={`/image/${image.id}`} className={cn("block aspect-square w-full relative overflow-hidden", selectedImages.has(image.id) && "ring-2 ring-primary ring-offset-2 rounded-lg")}>
-                                                    {isSelectionMode ? (
-                                                        <div className="absolute top-2 left-2 z-10 bg-background rounded-full p-1 border">
-                                                            <div className={cn(
-                                                                "w-4 h-4 rounded-sm border-2 border-primary transition-colors",
-                                                                selectedImages.has(image.id) && "bg-primary"
-                                                            )}>
-                                                                {selectedImages.has(image.id) && <Check className="w-3.5 h-3.5 text-primary-foreground"/>}
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        isPinned && (
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <div className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm rounded-full p-1.5 border-2 border-primary">
-                                                                        <Pin className="w-3 h-3 text-primary"/>
-                                                                    </div>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p>Épinglée globalement</p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        )
-                                                    )}
-                                                     
-                                                    <Image
-                                                        src={image.directUrl}
-                                                        alt={image.originalName || 'Image téléversée'}
-                                                        fill
-                                                        sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
-                                                        className="object-cover bg-muted transition-transform duration-300 group-hover:scale-105"
-                                                        unoptimized // Important pour les Data URLs et celles de Storage
-                                                    />
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-                                                    
-                                                    <div className="absolute top-2 right-2 z-10">
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button
-                                                                    variant="secondary"
-                                                                    size="icon"
-                                                                    className="h-8 w-8"
-                                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                                                                >
-                                                                    <MoreHorizontal size={16} />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                                                <DropdownMenuItem onClick={(e) => handleToggleGlobalPin(e, image)}>
-                                                                    {isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
-                                                                    <span>{isPinned ? 'Désépingler' : 'Épingler'}</span>
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem asChild>
-                                                                    <Link href={`/edit/${image.id}`} passHref>
-                                                                        <Sparkles className="mr-2 h-4 w-4" />
-                                                                        <span>Éditer avec l'IA</span>
-                                                                    </Link>
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={(e) => openEditDialog(e, image)}>
-                                                                    <Wand2 className="mr-2 h-4 w-4" />
-                                                                    <span>Modifier la description</span>
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={(e) => openAddToGalleryDialog(e, image)}>
-                                                                    <CopyPlus className="mr-2 h-4 w-4" />
-                                                                    <span>Ajouter à la galerie</span>
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem onClick={(e) => openScheduleDialog(e, image)}>
-                                                                    <FilePlus className="mr-2 h-4 w-4" />
-                                                                    <span>Planifier / Brouillon...</span>
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem onClick={(e) => handleDownload(e, image)} disabled={isDownloading === image.id}>
-                                                                    {isDownloading === image.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                                                                    <span>Télécharger</span>
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem onClick={(e) => openDeleteDialog(e, image)} disabled={isDeleting === image.id} className="text-red-500 focus:text-red-500">
-                                                                    {isDeleting === image.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                                                                    <span>Supprimer</span>
-                                                                </DropdownMenuItem>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </div>
-
-                                                    <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-                                                        <p 
-                                                        className="text-sm font-semibold truncate"
-                                                        title={image.originalName}
-                                                        >
-                                                            {image.originalName || 'Image depuis URL'}
-                                                        </p>
-                                                        {image.uploadTimestamp && (
-                                                            <p className="text-xs opacity-80">
-                                                                {formatDistanceToNow(image.uploadTimestamp.toDate(), { addSuffix: true, locale: fr })}
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                </Link>
-                                                    
+                                                <ClickableArea image={image} />
                                                 <div className="p-3 bg-card flex-grow flex flex-col gap-1">
                                                     {image.title && (
                                                         <p className="font-semibold text-sm line-clamp-2">{image.title}</p>
@@ -676,7 +691,7 @@ export function ImageList() {
                                                     </p>
                                                 </div>
                                             </div>
-                                        )})}
+                                        ))}
                                     </div>
                                 )}
                             </CardContent>
