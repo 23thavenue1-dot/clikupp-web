@@ -48,7 +48,7 @@ function ShareDialog({ post, imageUrl }: { post: ScheduledPost, imageUrl: string
                     Choisissez une plateforme pour partager votre post. Le texte et le lien de l'image seront préparés pour vous.
                 </DialogDescription>
             </DialogHeader>
-            <div className="py-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="py-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
                  <Button asChild variant="outline" className="h-12 border-pink-500 text-pink-600 hover:bg-pink-500/10 hover:text-pink-600">
                     <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer">
                         <Instagram className="mr-2 h-5 w-5" />
@@ -258,7 +258,12 @@ export default function PlannerPage() {
                         </div>
                          {brandProfiles && brandProfiles.length > 0 && (
                             <Select value={selectedProfileId} onValueChange={setSelectedProfileId}>
-                                <SelectTrigger className="w-full sm:w-[280px]">
+                                <SelectTrigger 
+                                    className={cn(
+                                        "w-full sm:w-[280px]",
+                                        selectedProfileId === 'all' && "bg-gradient-to-r from-blue-500 to-cyan-400 text-white border-blue-600 ring-offset-background focus:ring-blue-500"
+                                    )}
+                                >
                                     <SelectValue placeholder="Sélectionner un profil..." />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -345,5 +350,3 @@ export default function PlannerPage() {
         </>
     );
 }
-
-    
