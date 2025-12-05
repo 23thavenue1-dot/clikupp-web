@@ -33,24 +33,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 
-function ShareDialog({ post, imageUrl }: { post: ScheduledPost, imageUrl: string | null }) {
+function ShareDialog({ post, imageUrl, brandProfile }: { post: ScheduledPost, imageUrl: string | null, brandProfile: BrandProfile | null }) {
     if (!imageUrl) return null;
 
     const fullText = `${post.title}\n\n${post.description}`.trim();
-    const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(fullText)}&url=${encodeURIComponent(imageUrl)}`;
+    
+    // Utiliser les URLs du profil de marque si elles existent, sinon, utiliser les URLs génériques
+    const twitterShareUrl = brandProfile?.twitterUrl 
+        ? `${brandProfile.twitterUrl}/intent/tweet?text=${encodeURIComponent(fullText)}&url=${encodeURIComponent(imageUrl)}`
+        : `https://twitter.com/intent/tweet?text=${encodeURIComponent(fullText)}&url=${encodeURIComponent(imageUrl)}`;
+        
     const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(imageUrl)}`;
+    const instagramUrl = brandProfile?.instagramUrl || 'https://www.instagram.com';
+    const tiktokUrl = brandProfile?.tiktokUrl || 'https://www.tiktok.com';
 
     return (
         <DialogContent>
             <DialogHeader>
-                <DialogTitle>Partager maintenant</DialogTitle>
+                <DialogTitle>Partager maintenant pour "{brandProfile?.name || 'Profil par défaut'}"</DialogTitle>
                 <DialogDescription>
                     Choisissez une plateforme pour partager votre post. Le texte et le lien de l'image seront préparés pour vous.
                 </DialogDescription>
             </DialogHeader>
             <div className="py-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
                  <Button asChild variant="outline" className="h-12 border-pink-500 text-pink-600 hover:bg-pink-500/10 hover:text-pink-600">
-                    <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer">
+                    <a href={instagramUrl} target="_blank" rel="noopener noreferrer">
                         <Instagram className="mr-2 h-5 w-5" />
                         Ouvrir Instagram
                     </a>
@@ -62,7 +69,7 @@ function ShareDialog({ post, imageUrl }: { post: ScheduledPost, imageUrl: string
                     </a>
                 </Button>
                 <Button asChild variant="outline" className="h-12 border-black text-black dark:border-white dark:text-white hover:bg-black/10 dark:hover:bg-white/10">
-                    <a href="https://www.tiktok.com" target="_blank" rel="noopener noreferrer">
+                    <a href={tiktokUrl} target="_blank" rel="noopener noreferrer">
                         <VenetianMask className="mr-2 h-5 w-5" />
                         Ouvrir TikTok
                     </a>
@@ -82,11 +89,13 @@ function ShareDialog({ post, imageUrl }: { post: ScheduledPost, imageUrl: string
 }
 
 
-function PostCard({ post, storage, onDelete }: { post: ScheduledPost, storage: FirebaseStorage | null, onDelete: (post: ScheduledPost) => void }) {
+function PostCard({ post, storage, brandProfiles, onDelete }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isImageLoading, setIsImageLoading] = useState(true);
     const [isShareOpen, setIsShareOpen] = useState(false);
     const router = useRouter();
+
+    const brandProfile = useMemo(() => brandProfiles?.find(p => p.id === post.brandProfileId), [brandProfiles, post.brandProfileId]);
 
     useEffect(() => {
         if (storage && post.imageStoragePath) {
@@ -110,7 +119,6 @@ function PostCard({ post, storage, onDelete }: { post: ScheduledPost, storage: F
     const isScheduled = post.status === 'scheduled' && post.scheduledAt;
 
     const handleEdit = () => {
-        // Redirection vers l'audit si l'ID existe, sinon on ne fait rien car c'est la seule façon d'éditer
         if (post.auditId) {
             router.push(`/audit/resultats/${post.auditId}`);
         }
@@ -134,9 +142,20 @@ function PostCard({ post, storage, onDelete }: { post: ScheduledPost, storage: F
                 </div>
                 <CardHeader>
                     <div className="flex items-center justify-between">
-                        <Badge variant={isScheduled ? "default" : "secondary"} className={cn(isScheduled && "bg-blue-600 text-white")}>
-                            {isScheduled ? 'Programmé' : 'Brouillon'}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                            <Badge variant={isScheduled ? "default" : "secondary"} className={cn(isScheduled && "bg-blue-600 text-white")}>
+                                {isScheduled ? 'Programmé' : 'Brouillon'}
+                            </Badge>
+                             {brandProfile && (
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <Avatar className="h-4 w-4">
+                                        <AvatarImage src={brandProfile.avatarUrl} alt={brandProfile.name} />
+                                        <AvatarFallback className="text-[8px]">{brandProfile.name.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <span className="truncate">{brandProfile.name}</span>
+                                </div>
+                            )}
+                        </div>
                          <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -179,7 +198,7 @@ function PostCard({ post, storage, onDelete }: { post: ScheduledPost, storage: F
                     Créé {formatDistanceToNow(post.createdAt.toDate(), { locale: fr, addSuffix: true })}
                 </CardFooter>
             </Card>
-            <ShareDialog post={post} imageUrl={imageUrl} />
+            <ShareDialog post={post} imageUrl={imageUrl} brandProfile={brandProfile} />
         </Dialog>
     );
 }
@@ -308,7 +327,7 @@ export default function PlannerPage() {
                                 <h2 className="text-2xl font-semibold mb-4">Publications Programmées ({scheduledPosts.length})</h2>
                                 {scheduledPosts.length > 0 ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {scheduledPosts.map(post => <PostCard key={post.id} post={post} storage={storage} onDelete={setPostToDelete} />)}
+                                        {scheduledPosts.map(post => <PostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />)}
                                     </div>
                                 ) : (
                                     <p className="text-muted-foreground">Aucune publication programmée pour ce profil.</p>
@@ -319,7 +338,7 @@ export default function PlannerPage() {
                                 <h2 className="text-2xl font-semibold mb-4">Brouillons ({draftPosts.length})</h2>
                                 {draftPosts.length > 0 ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {draftPosts.map(post => <PostCard key={post.id} post={post} storage={storage} onDelete={setPostToDelete} />)}
+                                        {draftPosts.map(post => <PostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />)}
                                     </div>
                                 ) : (
                                     <p className="text-muted-foreground">Aucun brouillon sauvegardé pour ce profil.</p>
