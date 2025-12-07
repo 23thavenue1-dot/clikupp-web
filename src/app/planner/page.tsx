@@ -133,8 +133,8 @@ function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete,
 
     if (variant === 'draft') {
         return (
-            <div className="flex items-center gap-2 p-2 border rounded-lg bg-card hover:shadow-md transition-shadow w-full">
-                <div {...dragHandleProps} className="p-2 cursor-grab touch-none">
+            <div className="flex items-center gap-2 p-2 border rounded-lg bg-card hover:shadow-md transition-shadow w-full cursor-grab touch-none">
+                <div {...dragHandleProps}>
                     <GripVertical className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
@@ -205,8 +205,8 @@ function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete,
     );
 }
 
-// Le conteneur déplaçable
-function DraggablePostCard({ post, storage, brandProfiles, onDelete }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
+// Composant wrapper pour la logique DND
+function DraggablePostCard({ post, children }: { post: ScheduledPost, children: React.ReactNode }) {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: post.id,
         data: post,
@@ -216,16 +216,10 @@ function DraggablePostCard({ post, storage, brandProfiles, onDelete }: { post: S
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
     } : undefined;
 
+    // Applique les listeners à la div parente pour que toute la carte soit déplaçable.
     return (
-        <div ref={setNodeRef} style={style} className={cn(isDragging && "z-50 shadow-2xl", "w-full")}>
-            <PostCard 
-                post={post}
-                variant="draft"
-                storage={storage}
-                brandProfiles={brandProfiles}
-                onDelete={onDelete}
-                dragHandleProps={{...attributes, ...listeners}}
-            />
+        <div ref={setNodeRef} style={style} className={cn(isDragging && 'z-50 shadow-2xl', 'w-full')} {...attributes} {...listeners}>
+            {children}
         </div>
     );
 }
@@ -329,7 +323,9 @@ function CalendarView({ posts, drafts, brandProfiles, onDelete }: { posts: Sched
                 {drafts.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {drafts.map(post => (
-                           <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={onDelete} />
+                            <DraggablePostCard key={post.id} post={post}>
+                               <PostCard post={post} variant="draft" storage={storage} brandProfiles={brandProfiles} onDelete={onDelete} />
+                           </DraggablePostCard>
                         ))}
                     </div>
                 ) : (
@@ -490,7 +486,7 @@ export default function PlannerPage() {
                                     </section>
                                     <section>
                                         <h2 className="text-2xl font-semibold mb-4">Brouillons ({draftPosts.length})</h2>
-                                        {draftPosts.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{draftPosts.map(post => <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />)}</div> : <p className="text-muted-foreground">Aucun brouillon sauvegardé pour ce profil.</p>}
+                                        {draftPosts.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{draftPosts.map(post => <DraggablePostCard key={post.id} post={post}><PostCard post={post} variant="draft" storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} /></DraggablePostCard>)}</div> : <p className="text-muted-foreground">Aucun brouillon sauvegardé pour ce profil.</p>}
                                     </section>
                                 </div>
                             )}
