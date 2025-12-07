@@ -4,11 +4,11 @@
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy, updateDoc, doc, Timestamp } from 'firebase/firestore';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Calendar as CalendarIcon, Edit, FileText, Clock, Trash2, MoreHorizontal, Share2, Facebook, MessageSquare, Instagram, VenetianMask, Building, List, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, Edit, FileText, Clock, Trash2, MoreHorizontal, Share2, Facebook, MessageSquare, Instagram, VenetianMask, Building, List, CalendarDays, ChevronLeft, ChevronRight, GripVertical } from 'lucide-react';
 import { format, formatDistanceToNow, isSameDay, startOfMonth, addMonths, subMonths, getDaysInMonth, getDay, startOfWeek, addDays, endOfMonth, endOfWeek, isSameMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -34,6 +34,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { TimePicker } from '@/components/ui/time-picker';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import { useDraggable } from '@dnd-kit/core';
+import { useDroppable } from '@dnd-kit/core';
 
 
 function ShareDialog({ post, imageUrl, brandProfile }: { post: ScheduledPost, imageUrl: string | null, brandProfile: BrandProfile | null }) {
@@ -92,8 +103,26 @@ function ShareDialog({ post, imageUrl, brandProfile }: { post: ScheduledPost, im
     );
 }
 
+// --- Nouveau composant DraggablePostCard ---
+function DraggablePostCard({ post, storage, brandProfiles, onDelete }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: post.id,
+    data: post, // On attache les données du post au draggable
+  });
 
-function PostCard({ post, storage, brandProfiles, onDelete }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+  } : undefined;
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+        <PostCard post={post} storage={storage} brandProfiles={brandProfiles} onDelete={onDelete} draggableListeners={listeners} />
+    </div>
+  );
+}
+
+
+function PostCard({ post, storage, brandProfiles, onDelete, draggableListeners }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, draggableListeners?: any }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isImageLoading, setIsImageLoading] = useState(true);
     const [isShareOpen, setIsShareOpen] = useState(false);
@@ -145,9 +174,9 @@ function PostCard({ post, storage, brandProfiles, onDelete }: { post: ScheduledP
                     )}
                 </div>
                 <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <Badge variant={isScheduled ? "default" : "secondary"} className={cn(isScheduled && "bg-blue-600 text-white")}>
+                    <div className="flex items-start justify-between">
+                         <div className="flex flex-col gap-2 flex-1 min-w-0">
+                            <Badge variant={isScheduled ? "default" : "secondary"} className={cn("w-fit", isScheduled && "bg-blue-600 text-white")}>
                                 {isScheduled ? 'Programmé' : 'Brouillon'}
                             </Badge>
                              {brandProfile && (
@@ -160,30 +189,37 @@ function PostCard({ post, storage, brandProfiles, onDelete }: { post: ScheduledP
                                 </div>
                             )}
                         </div>
-                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DialogTrigger asChild>
-                                    <DropdownMenuItem>
-                                        <Share2 className="mr-2 h-4 w-4" />
-                                        Partager maintenant
+                         <div className="flex items-center flex-shrink-0">
+                             {draggableListeners && (
+                                <div {...draggableListeners} className="cursor-grab p-2 -m-2">
+                                    <GripVertical className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                             )}
+                             <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DialogTrigger asChild>
+                                        <DropdownMenuItem>
+                                            <Share2 className="mr-2 h-4 w-4" />
+                                            Partager maintenant
+                                        </DropdownMenuItem>
+                                    </DialogTrigger>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={handleEdit} disabled={!post.auditId}>
+                                        <Edit className="mr-2 h-4 w-4" />
+                                        Modifier
                                     </DropdownMenuItem>
-                                </DialogTrigger>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={handleEdit} disabled={!post.auditId}>
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Modifier
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive">
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Supprimer
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                                    <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive">
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Supprimer
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                         </div>
                     </div>
                     <CardTitle className="mt-2 text-lg">{post.title}</CardTitle>
                     {isScheduled && (
@@ -209,7 +245,59 @@ function PostCard({ post, storage, brandProfiles, onDelete }: { post: ScheduledP
 
 type ScheduledPostWithImage = ScheduledPost & { imageUrl?: string | null };
 
-// --- NOUVEAU Calendrier Visuel ---
+function CalendarDay({ day, posts, isCurrentMonth, isToday }: { day: Date, posts: ScheduledPostWithImage[], isCurrentMonth: boolean, isToday: boolean }) {
+    const { setNodeRef } = useDroppable({
+        id: format(day, 'yyyy-MM-dd'),
+    });
+
+    return (
+        <div
+            ref={setNodeRef}
+            className={cn(
+                "h-48 p-1.5 border-r border-b relative flex flex-col",
+                !isCurrentMonth && "bg-muted/30 text-muted-foreground",
+                isToday && "bg-primary/10"
+            )}
+        >
+            <span className={cn(
+                "text-xs font-semibold mb-1", 
+                !isCurrentMonth && "opacity-50",
+                isToday && "text-primary font-bold"
+            )}>
+                {format(day, 'd')}
+            </span>
+            <div className="space-y-1 overflow-y-auto flex-1">
+                {posts.map(post => {
+                    const brandProfile = null; // Mettre la logique pour récupérer le profil de marque
+                    return (
+                        <Popover key={post.id}>
+                            <PopoverTrigger asChild>
+                                <div className="w-full p-1 bg-blue-100 dark:bg-blue-900/50 rounded-sm overflow-hidden flex items-center gap-1.5 cursor-pointer hover:ring-2 hover:ring-primary">
+                                    {post.imageUrl ? (
+                                        <Image src={post.imageUrl} alt={post.title} width={20} height={20} className="object-cover h-5 w-5 rounded-sm" />
+                                    ) : (
+                                        <div className="h-5 w-5 bg-muted rounded-sm flex-shrink-0"></div>
+                                    )}
+                                    <p className="text-xs font-medium text-blue-800 dark:text-blue-200 truncate flex-1">{post.title}</p>
+                                </div>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-64" align="start">
+                                <div className="space-y-2">
+                                    <h4 className="font-semibold leading-none">{post.title}</h4>
+                                    <p className="text-sm text-muted-foreground line-clamp-3">{post.description}</p>
+                                    <p className="text-xs text-muted-foreground pt-1 border-t">
+                                        À {format(post.scheduledAt!.toDate(), 'HH:mm')}
+                                    </p>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                    )
+                })}
+            </div>
+        </div>
+    );
+}
+
 function CalendarView({ posts, brandProfiles, onDelete }: { posts: ScheduledPostWithImage[], brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
     const [currentMonth, setCurrentMonth] = useState(new Date());
 
@@ -262,60 +350,16 @@ function CalendarView({ posts, brandProfiles, onDelete }: { posts: ScheduledPost
                     </div>
                 ))}
             </div>
-            <div className="grid grid-cols-7 grid-rows-5 border-l">
-                {calendarGrid.map((day, index) => {
-                    const dayKey = format(day, 'yyyy-MM-dd');
-                    const postsForDay = postsByDay.get(dayKey) || [];
-                    return (
-                        <div
-                            key={index}
-                            className={cn(
-                                "h-40 p-1.5 border-r border-b relative flex flex-col",
-                                !isSameMonth(day, currentMonth) && "bg-muted/30 text-muted-foreground",
-                                isSameDay(day, new Date()) && "bg-primary/10"
-                            )}
-                        >
-                            <span className={cn(
-                                "text-xs font-semibold mb-1", 
-                                !isSameMonth(day, currentMonth) && "opacity-50",
-                                isSameDay(day, new Date()) && "text-primary font-bold"
-                            )}>
-                                {format(day, 'd')}
-                            </span>
-                            <div className="space-y-1 overflow-y-auto flex-1">
-                                {postsForDay.map(post => {
-                                    const brandProfile = brandProfiles?.find(p => p.id === post.brandProfileId);
-                                    return (
-                                        <Popover key={post.id}>
-                                            <PopoverTrigger asChild>
-                                                <div className="w-full p-1 bg-blue-100 dark:bg-blue-900/50 rounded-sm overflow-hidden flex items-center gap-1.5 cursor-pointer hover:ring-2 hover:ring-primary">
-                                                    {post.imageUrl && (
-                                                        <Image src={post.imageUrl} alt={post.title} width={20} height={20} className="object-cover h-5 w-5 rounded-sm" />
-                                                    )}
-                                                     {brandProfile?.avatarUrl && (
-                                                        <Avatar className="h-5 w-5">
-                                                            <AvatarImage src={brandProfile.avatarUrl} />
-                                                        </Avatar>
-                                                    )}
-                                                    <p className="text-xs font-medium text-blue-800 dark:text-blue-200 truncate flex-1">{post.title}</p>
-                                                </div>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-64" align="start">
-                                                <div className="space-y-2">
-                                                    <h4 className="font-semibold leading-none">{post.title}</h4>
-                                                    <p className="text-sm text-muted-foreground line-clamp-3">{post.description}</p>
-                                                    <p className="text-xs text-muted-foreground pt-1 border-t">
-                                                        À {format(post.scheduledAt!.toDate(), 'HH:mm')} sur {brandProfile?.name || 'Profil'}
-                                                    </p>
-                                                </div>
-                                            </PopoverContent>
-                                        </Popover>
-                                    )
-                                })}
-                            </div>
-                        </div>
-                    )
-                })}
+            <div className="grid grid-cols-7 border-l">
+                {calendarGrid.map((day, index) => (
+                    <CalendarDay
+                        key={index}
+                        day={day}
+                        posts={postsByDay.get(format(day, 'yyyy-MM-dd')) || []}
+                        isCurrentMonth={isSameMonth(day, currentMonth)}
+                        isToday={isSameDay(day, new Date())}
+                    />
+                ))}
             </div>
         </div>
     );
@@ -332,16 +376,23 @@ export default function PlannerPage() {
     const [isDeleting, setIsDeleting] = useState(false);
     const [selectedProfileId, setSelectedProfileId] = useState<string>('all');
 
+    const sensors = useSensors(useSensor(PointerSensor));
+
+    const [draggedPost, setDraggedPost] = useState<ScheduledPost | null>(null);
+    const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+    const [targetDate, setTargetDate] = useState<Date | null>(null);
+    const [scheduleTime, setScheduleTime] = useState<Date | undefined>(new Date());
+    const [isScheduling, setIsScheduling] = useState(false);
+
 
     const postsQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
-        return query(collection(firestore, `users/${user.uid}/scheduledPosts`), orderBy('scheduledAt', 'asc'));
+        return query(collection(firestore, `users/${user.uid}/scheduledPosts`), orderBy('createdAt', 'desc'));
     }, [user, firestore]);
     const { data: posts, isLoading: arePostsLoading } = useCollection<ScheduledPost>(postsQuery);
 
     const [postsWithImages, setPostsWithImages] = useState<ScheduledPostWithImage[]>([]);
 
-    // Effet pour enrichir les posts avec les URLs des images
     useEffect(() => {
         if (posts && storage) {
             const fetchImageUrls = async () => {
@@ -381,8 +432,8 @@ export default function PlannerPage() {
     }, [postsWithImages, selectedProfileId]);
 
 
-    const scheduledPosts = filteredPosts.filter(p => p.status === 'scheduled') || [];
-    const draftPosts = filteredPosts.filter(p => p.status === 'draft') || [];
+    const scheduledPosts = useMemo(() => filteredPosts.filter(p => p.status === 'scheduled') || [], [filteredPosts]);
+    const draftPosts = useMemo(() => filteredPosts.filter(p => p.status === 'draft') || [], [filteredPosts]);
 
     useEffect(() => {
         if (!isUserLoading && !user) {
@@ -404,6 +455,40 @@ export default function PlannerPage() {
         setPostToDelete(null);
     };
 
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { over, active } = event;
+        if (over && active.data.current) {
+            setDraggedPost(active.data.current as ScheduledPost);
+            setTargetDate(new Date(over.id as string));
+            setScheduleTime(new Date()); // Reset to current time
+            setScheduleDialogOpen(true);
+        }
+    };
+    
+    const handleSchedule = async () => {
+        if (!user || !firestore || !draggedPost || !targetDate || !scheduleTime) return;
+        setIsScheduling(true);
+
+        const newScheduledAt = new Date(targetDate);
+        newScheduledAt.setHours(scheduleTime.getHours());
+        newScheduledAt.setMinutes(scheduleTime.getMinutes());
+
+        const postRef = doc(firestore, `users/${user.uid}/scheduledPosts`, draggedPost.id);
+        const { error } = await withErrorHandling(() => 
+            updateDoc(postRef, {
+                status: 'scheduled',
+                scheduledAt: Timestamp.fromDate(newScheduledAt)
+            })
+        );
+        
+        if (!error) {
+            toast({ title: "Post programmé !", description: `Le post a été programmé pour le ${format(newScheduledAt, "d MMMM 'à' HH:mm", { locale: fr })}.` });
+        }
+        setIsScheduling(false);
+        setScheduleDialogOpen(false);
+    };
+
+
     if (isUserLoading || arePostsLoading || areProfilesLoading) {
         return (
             <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
@@ -413,7 +498,7 @@ export default function PlannerPage() {
     }
     
     return (
-        <>
+        <DndContext sensors={sensors} onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
             <div className="container mx-auto p-4 sm:p-6 lg:p-8">
                 <div className="w-full max-w-7xl mx-auto space-y-8">
                     <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -493,7 +578,7 @@ export default function PlannerPage() {
                                         <h2 className="text-2xl font-semibold mb-4">Brouillons ({draftPosts.length})</h2>
                                         {draftPosts.length > 0 ? (
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                                {draftPosts.map(post => <PostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />)}
+                                                {draftPosts.map(post => <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />)}
                                             </div>
                                         ) : (
                                             <p className="text-muted-foreground">Aucun brouillon sauvegardé pour ce profil.</p>
@@ -509,7 +594,7 @@ export default function PlannerPage() {
                                 {draftPosts.length > 0 ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                         {draftPosts.map(post => (
-                                             <PostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />
+                                             <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />
                                         ))}
                                     </div>
                                 ) : (
@@ -538,6 +623,27 @@ export default function PlannerPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </>
+
+            <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Programmer le post</DialogTitle>
+                        <DialogDescription>
+                            Confirmez l'heure de publication pour le {targetDate && format(targetDate, 'd MMMM yyyy', { locale: fr })}.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <TimePicker date={scheduleTime} setDate={setScheduleTime} />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="secondary" onClick={() => setScheduleDialogOpen(false)}>Annuler</Button>
+                        <Button onClick={handleSchedule} disabled={isScheduling}>
+                            {isScheduling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Programmer
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </DndContext>
     );
 }
