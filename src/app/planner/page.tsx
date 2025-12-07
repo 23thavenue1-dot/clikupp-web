@@ -1,10 +1,9 @@
 
 'use client';
 
-import React from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useMemo } from 'react';
 import { collection, query, orderBy, updateDoc, doc, Timestamp } from 'firebase/firestore';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -259,18 +258,17 @@ function DraggableDraft({ post, storage, brandProfiles, onDelete }: { post: Sche
     
     const style = transform ? {
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-        zIndex: 50,
     } : undefined;
 
     return (
-        <div ref={setNodeRef} style={style} className={cn(isDragging && "shadow-2xl")}>
+        <div ref={setNodeRef} style={style} className={cn(isDragging && "z-50 shadow-2xl")}>
             <PostCard 
                 post={post}
                 variant="draft"
                 storage={storage}
                 brandProfiles={brandProfiles}
                 onDelete={onDelete}
-                dragHandleProps={{...attributes, ...listeners}}
+                dragHandleProps={{...attributes, ...listeners, className: "touch-none"}}
             />
         </div>
     )
