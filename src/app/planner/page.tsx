@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -9,7 +8,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, Calendar as CalendarIcon, Edit, FileText, Clock, Trash2, MoreHorizontal, Share2, Facebook, MessageSquare, Instagram, VenetianMask, Building, List, CalendarDays, ChevronLeft, ChevronRight, GripVertical } from 'lucide-react';
-import { format, formatDistanceToNow, isSameDay, startOfMonth, addMonths, subMonths, getDaysInMonth, getDay, startOfWeek, addDays, endOfMonth, endOfWeek, isSameMonth } from 'date-fns';
+import { format, isSameDay, startOfMonth, addMonths, subMonths, endOfMonth, startOfWeek, endOfWeek, isSameMonth, addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { ScheduledPost, BrandProfile } from '@/lib/firestore';
@@ -103,27 +102,33 @@ function ShareDialog({ post, imageUrl, brandProfile }: { post: ScheduledPost, im
     );
 }
 
-// --- Nouveau composant DraggablePostCard ---
 function DraggablePostCard({ post, storage, brandProfiles, onDelete }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
-    id: post.id,
-    data: post,
-  });
+    const { attributes, listeners, setNodeRef, transform } = useDraggable({
+        id: post.id,
+        data: post,
+    });
 
-  const style = transform ? {
-    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-    zIndex: 100, // Pour s'assurer que l'élément est au-dessus
-  } : undefined;
+    const style = transform ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+        zIndex: 100,
+    } : undefined;
 
-  return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      <PostCard post={post} storage={storage} brandProfiles={brandProfiles} onDelete={onDelete} isDraggable={true} />
-    </div>
-  );
+    return (
+        <div ref={setNodeRef} style={style} {...attributes}>
+            <PostCard 
+                post={post} 
+                storage={storage} 
+                brandProfiles={brandProfiles} 
+                onDelete={onDelete} 
+                variant="draft"
+                listeners={listeners}
+            />
+        </div>
+    );
 }
 
 
-function PostCard({ post, storage, brandProfiles, onDelete, isDraggable = false }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, isDraggable?: boolean }) {
+function PostCard({ post, storage, brandProfiles, onDelete, variant = 'default', listeners }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, variant?: 'default' | 'draft', listeners?: any }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isImageLoading, setIsImageLoading] = useState(true);
     const [isShareOpen, setIsShareOpen] = useState(false);
@@ -135,16 +140,9 @@ function PostCard({ post, storage, brandProfiles, onDelete, isDraggable = false 
         if (storage && post.imageStoragePath) {
             const imageRef = ref(storage, post.imageStoragePath);
             getDownloadURL(imageRef)
-                .then(url => {
-                    setImageUrl(url);
-                })
-                .catch(error => {
-                    console.error("Erreur de chargement de l'image du post:", error);
-                    setImageUrl(null);
-                })
-                .finally(() => {
-                    setIsImageLoading(false);
-                });
+                .then(url => setImageUrl(url))
+                .catch(error => console.error("Erreur de chargement de l'image du post:", error))
+                .finally(() => setIsImageLoading(false));
         } else {
             setIsImageLoading(false);
         }
@@ -158,21 +156,26 @@ function PostCard({ post, storage, brandProfiles, onDelete, isDraggable = false 
         }
     };
 
+    if (variant === 'draft') {
+        return (
+             <div className="flex items-center gap-4 p-2 border rounded-lg bg-card hover:shadow-md transition-shadow cursor-grab" {...listeners}>
+                <div className="relative w-16 h-16 rounded-md bg-muted flex-shrink-0 overflow-hidden">
+                    {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm truncate">{post.title}</p>
+                    <p className="text-xs text-muted-foreground truncate">{brandProfile?.name || 'Profil par défaut'}</p>
+                </div>
+                <GripVertical className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+            </div>
+        )
+    }
+
     return (
         <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
-            <Card className={cn("flex flex-col overflow-hidden transition-all hover:shadow-md", isDraggable && "cursor-grab")}>
+            <Card className="flex flex-col overflow-hidden transition-all hover:shadow-md">
                 <div className="relative aspect-video bg-muted">
-                    {isImageLoading ? (
-                        <div className="flex h-full w-full items-center justify-center">
-                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                        </div>
-                    ) : imageUrl ? (
-                        <Image src={imageUrl} alt={post.title} fill className="object-cover" />
-                    ) : (
-                        <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                            <FileText className="h-8 w-8" />
-                        </div>
-                    )}
+                    {isImageLoading ? <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <div className="flex h-full w-full items-center justify-center text-muted-foreground"><FileText className="h-8 w-8" /></div>}
                 </div>
                 <CardHeader>
                     <div className="flex items-start justify-between">
@@ -191,54 +194,28 @@ function PostCard({ post, storage, brandProfiles, onDelete, isDraggable = false 
                             )}
                         </div>
                          <div className="flex items-center flex-shrink-0">
-                             {isDraggable && <GripVertical className="h-5 w-5 text-muted-foreground mr-1" />}
                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                        <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
+                                <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                    <DialogTrigger asChild>
-                                        <DropdownMenuItem>
-                                            <Share2 className="mr-2 h-4 w-4" />
-                                            Partager maintenant
-                                        </DropdownMenuItem>
-                                    </DialogTrigger>
+                                    <DialogTrigger asChild><DropdownMenuItem><Share2 className="mr-2 h-4 w-4" />Partager maintenant</DropdownMenuItem></DialogTrigger>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={handleEdit} disabled={!post.auditId}>
-                                        <Edit className="mr-2 h-4 w-4" />
-                                        Modifier
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive">
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Supprimer
-                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={handleEdit} disabled={!post.auditId}><Edit className="mr-2 h-4 w-4" />Modifier</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                          </div>
                     </div>
                     <CardTitle className="mt-2 text-lg">{post.title}</CardTitle>
-                    {isScheduled && (
-                        <CardDescription className="flex items-center gap-2 text-sm">
-                            <Clock className="h-4 w-4" />
-                            Pour le {format(post.scheduledAt.toDate(), "d MMMM yyyy 'à' HH:mm", { locale: fr })}
-                        </CardDescription>
-                    )}
+                    {isScheduled && <CardDescription className="flex items-center gap-2 text-sm"><Clock className="h-4 w-4" />Pour le {format(post.scheduledAt.toDate(), "d MMMM yyyy 'à' HH:mm", { locale: fr })}</CardDescription>}
                 </CardHeader>
-                <CardContent className="flex-grow">
-                    <p className="text-sm text-muted-foreground line-clamp-3">
-                        {post.description}
-                    </p>
-                </CardContent>
-                <CardFooter className="text-xs text-muted-foreground">
-                    Créé {formatDistanceToNow(post.createdAt.toDate(), { locale: fr, addSuffix: true })}
-                </CardFooter>
+                <CardContent className="flex-grow"><p className="text-sm text-muted-foreground line-clamp-3">{post.description}</p></CardContent>
+                <CardFooter className="text-xs text-muted-foreground">Créé {format(post.createdAt.toDate(), { locale: fr, addSuffix: true })}</CardFooter>
             </Card>
             <ShareDialog post={post} imageUrl={imageUrl} brandProfile={brandProfile} />
         </Dialog>
     );
 }
+
 
 type ScheduledPostWithImage = ScheduledPost & { imageUrl?: string | null };
 
@@ -253,43 +230,34 @@ function CalendarDay({ day, posts, isCurrentMonth, isToday }: { day: Date, posts
             className={cn(
                 "h-48 p-1.5 border-r border-b relative flex flex-col",
                 !isCurrentMonth && "bg-muted/30 text-muted-foreground",
-                isToday && "bg-primary/10"
+                isToday && "bg-blue-500/10"
             )}
         >
             <span className={cn(
                 "text-xs font-semibold mb-1", 
                 !isCurrentMonth && "opacity-50",
-                isToday && "text-primary font-bold"
+                isToday && "text-blue-600 font-bold"
             )}>
                 {format(day, 'd')}
             </span>
             <div className="space-y-1 overflow-y-auto flex-1">
-                {posts.map(post => {
-                    const brandProfile = null; // Mettre la logique pour récupérer le profil de marque
-                    return (
-                        <Popover key={post.id}>
-                            <PopoverTrigger asChild>
-                                <div className="w-full p-1 bg-blue-100 dark:bg-blue-900/50 rounded-sm overflow-hidden flex items-center gap-1.5 cursor-pointer hover:ring-2 hover:ring-primary">
-                                    {post.imageUrl ? (
-                                        <Image src={post.imageUrl} alt={post.title} width={20} height={20} className="object-cover h-5 w-5 rounded-sm" />
-                                    ) : (
-                                        <div className="h-5 w-5 bg-muted rounded-sm flex-shrink-0"></div>
-                                    )}
-                                    <p className="text-xs font-medium text-blue-800 dark:text-blue-200 truncate flex-1">{post.title}</p>
-                                </div>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-64" align="start">
-                                <div className="space-y-2">
-                                    <h4 className="font-semibold leading-none">{post.title}</h4>
-                                    <p className="text-sm text-muted-foreground line-clamp-3">{post.description}</p>
-                                    <p className="text-xs text-muted-foreground pt-1 border-t">
-                                        À {format(post.scheduledAt!.toDate(), 'HH:mm')}
-                                    </p>
-                                </div>
-                            </PopoverContent>
-                        </Popover>
-                    )
-                })}
+                {posts.map(post => (
+                    <Popover key={post.id}>
+                        <PopoverTrigger asChild>
+                            <div className="w-full p-1 bg-blue-100 dark:bg-blue-900/50 rounded-sm overflow-hidden flex items-center gap-1.5 cursor-pointer hover:ring-2 hover:ring-primary">
+                                {post.imageUrl ? <Image src={post.imageUrl} alt={post.title} width={20} height={20} className="object-cover h-5 w-5 rounded-sm" /> : <div className="h-5 w-5 bg-muted rounded-sm flex-shrink-0"></div>}
+                                <p className="text-xs font-medium text-blue-800 dark:text-blue-200 truncate flex-1">{post.title}</p>
+                            </div>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64" align="start">
+                            <div className="space-y-2">
+                                <h4 className="font-semibold leading-none">{post.title}</h4>
+                                <p className="text-sm text-muted-foreground line-clamp-3">{post.description}</p>
+                                <p className="text-xs text-muted-foreground pt-1 border-t">À {format(post.scheduledAt!.toDate(), 'HH:mm')}</p>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+                ))}
             </div>
         </div>
     );
@@ -297,7 +265,6 @@ function CalendarDay({ day, posts, isCurrentMonth, isToday }: { day: Date, posts
 
 function CalendarView({ posts, brandProfiles, onDelete }: { posts: ScheduledPostWithImage[], brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
     const [currentMonth, setCurrentMonth] = useState(new Date());
-
     const weekDays = ['lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim'];
     
     const calendarGrid = useMemo(() => {
@@ -305,7 +272,6 @@ function CalendarView({ posts, brandProfiles, onDelete }: { posts: ScheduledPost
         const end = endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 1 });
         const days = [];
         let day = start;
-
         while (day <= end) {
             days.push(day);
             day = addDays(day, 1);
@@ -318,9 +284,7 @@ function CalendarView({ posts, brandProfiles, onDelete }: { posts: ScheduledPost
         posts.forEach(post => {
             if (post.scheduledAt) {
                 const dayKey = format(post.scheduledAt.toDate(), 'yyyy-MM-dd');
-                if (!map.has(dayKey)) {
-                    map.set(dayKey, []);
-                }
+                if (!map.has(dayKey)) map.set(dayKey, []);
                 map.get(dayKey)?.push(post);
             }
         });
@@ -332,31 +296,15 @@ function CalendarView({ posts, brandProfiles, onDelete }: { posts: ScheduledPost
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold capitalize">{format(currentMonth, 'MMMM yyyy', { locale: fr })}</h3>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
-                        <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
-                        <ChevronRight className="h-4 w-4" />
-                    </Button>
+                    <Button variant="outline" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}><ChevronLeft className="h-4 w-4" /></Button>
+                    <Button variant="outline" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}><ChevronRight className="h-4 w-4" /></Button>
                 </div>
             </div>
             <div className="grid grid-cols-7 border-t border-l rounded-t-lg overflow-hidden">
-                {weekDays.map(day => (
-                    <div key={day} className="p-2 text-center text-xs font-medium uppercase text-muted-foreground bg-muted/50 border-r border-b">
-                        {day}
-                    </div>
-                ))}
+                {weekDays.map(day => <div key={day} className="p-2 text-center text-xs font-medium uppercase text-muted-foreground bg-muted/50 border-r border-b">{day}</div>)}
             </div>
             <div className="grid grid-cols-7 border-l">
-                {calendarGrid.map((day, index) => (
-                    <CalendarDay
-                        key={index}
-                        day={day}
-                        posts={postsByDay.get(format(day, 'yyyy-MM-dd')) || []}
-                        isCurrentMonth={isSameMonth(day, currentMonth)}
-                        isToday={isSameDay(day, new Date())}
-                    />
-                ))}
+                {calendarGrid.map((day, index) => <CalendarDay key={index} day={day} posts={postsByDay.get(format(day, 'yyyy-MM-dd')) || []} isCurrentMonth={isSameMonth(day, currentMonth)} isToday={isSameDay(day, new Date())} />)}
             </div>
         </div>
     );
@@ -393,20 +341,7 @@ export default function PlannerPage() {
     useEffect(() => {
         if (posts && storage) {
             const fetchImageUrls = async () => {
-                const enrichedPosts = await Promise.all(
-                    posts.map(async (post) => {
-                        if (post.imageStoragePath) {
-                            try {
-                                const url = await getDownloadURL(ref(storage, post.imageStoragePath));
-                                return { ...post, imageUrl: url };
-                            } catch (error) {
-                                console.error(`Failed to get image URL for post ${post.id}`, error);
-                                return { ...post, imageUrl: null };
-                            }
-                        }
-                        return { ...post, imageUrl: null };
-                    })
-                );
+                const enrichedPosts = await Promise.all(posts.map(async (post) => ({ ...post, imageUrl: post.imageStoragePath ? await getDownloadURL(ref(storage, post.imageStoragePath)).catch(() => null) : null })));
                 setPostsWithImages(enrichedPosts);
             };
             fetchImageUrls();
@@ -441,13 +376,8 @@ export default function PlannerPage() {
     const handleDelete = async () => {
         if (!user || !storage || !firestore || !postToDelete) return;
         setIsDeleting(true);
-        const { error } = await withErrorHandling(() => 
-            deleteScheduledPost(firestore, storage, user.uid, postToDelete)
-        );
-        
-        if (!error) {
-            toast({ title: "Post supprimé", description: "Le post a bien été supprimé de votre planificateur." });
-        }
+        const { error } = await withErrorHandling(() => deleteScheduledPost(firestore, storage, user.uid, postToDelete));
+        if (!error) toast({ title: "Post supprimé", description: "Le post a bien été supprimé de votre planificateur." });
         setIsDeleting(false);
         setPostToDelete(null);
     };
@@ -457,7 +387,7 @@ export default function PlannerPage() {
         if (over && active.data.current) {
             setDraggedPost(active.data.current as ScheduledPost);
             setTargetDate(new Date(over.id as string));
-            setScheduleTime(new Date()); // Reset to current time
+            setScheduleTime(new Date());
             setScheduleDialogOpen(true);
         }
     };
@@ -471,27 +401,16 @@ export default function PlannerPage() {
         newScheduledAt.setMinutes(scheduleTime.getMinutes());
 
         const postRef = doc(firestore, `users/${user.uid}/scheduledPosts`, draggedPost.id);
-        const { error } = await withErrorHandling(() => 
-            updateDoc(postRef, {
-                status: 'scheduled',
-                scheduledAt: Timestamp.fromDate(newScheduledAt)
-            })
-        );
+        const { error } = await withErrorHandling(() => updateDoc(postRef, { status: 'scheduled', scheduledAt: Timestamp.fromDate(newScheduledAt) }));
         
-        if (!error) {
-            toast({ title: "Post programmé !", description: `Le post a été programmé pour le ${format(newScheduledAt, "d MMMM 'à' HH:mm", { locale: fr })}.` });
-        }
+        if (!error) toast({ title: "Post programmé !", description: `Le post a été programmé pour le ${format(newScheduledAt, "d MMMM 'à' HH:mm", { locale: fr })}.` });
         setIsScheduling(false);
         setScheduleDialogOpen(false);
     };
 
 
     if (isUserLoading || arePostsLoading || areProfilesLoading) {
-        return (
-            <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-        );
+        return <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
     }
     
     return (
@@ -505,32 +424,16 @@ export default function PlannerPage() {
                         </div>
                          {brandProfiles && brandProfiles.length > 0 && (
                             <Select value={selectedProfileId} onValueChange={setSelectedProfileId}>
-                                <SelectTrigger 
-                                    className={cn(
-                                        "w-full sm:w-[280px]",
-                                        selectedProfileId === 'all' && "bg-gradient-to-r from-blue-500 to-cyan-400 text-white border-blue-600 ring-offset-background focus:ring-blue-500"
-                                    )}
-                                >
+                                <SelectTrigger className={cn("w-full sm:w-[280px]", selectedProfileId === 'all' && "bg-gradient-to-r from-blue-500 to-cyan-400 text-white border-blue-600 ring-offset-background focus:ring-blue-500")}>
                                     <SelectValue placeholder="Sélectionner un profil..." />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">
-                                        <div className="flex items-center gap-3">
-                                            <Avatar className="h-6 w-6">
-                                                <AvatarFallback><Building className="h-4 w-4"/></AvatarFallback>
-                                            </Avatar>
-                                            Tous les profils
-                                        </div>
+                                        <div className="flex items-center gap-3"><Avatar className="h-6 w-6"><AvatarFallback><Building className="h-4 w-4"/></AvatarFallback></Avatar>Tous les profils</div>
                                     </SelectItem>
                                     {brandProfiles.map(profile => (
                                         <SelectItem key={profile.id} value={profile.id}>
-                                            <div className="flex items-center gap-3">
-                                                <Avatar className="h-6 w-6">
-                                                    <AvatarImage src={profile.avatarUrl} alt={profile.name} />
-                                                    <AvatarFallback>{profile.name.charAt(0).toUpperCase()}</AvatarFallback>
-                                                </Avatar>
-                                                {profile.name}
-                                            </div>
+                                            <div className="flex items-center gap-3"><Avatar className="h-6 w-6"><AvatarImage src={profile.avatarUrl} alt={profile.name} /><AvatarFallback>{profile.name.charAt(0).toUpperCase()}</AvatarFallback></Avatar>{profile.name}</div>
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -539,47 +442,19 @@ export default function PlannerPage() {
                     </header>
 
                     <Tabs defaultValue="calendar" className="w-full">
-                        <div className="flex justify-center mb-6">
-                            <TabsList>
-                                <TabsTrigger value="list"><List className="mr-2 h-4 w-4" />Vue Liste</TabsTrigger>
-                                <TabsTrigger value="calendar"><CalendarDays className="mr-2 h-4 w-4" />Vue Calendrier</TabsTrigger>
-                            </TabsList>
-                        </div>
-                        
+                        <div className="flex justify-center mb-6"><TabsList><TabsTrigger value="list"><List className="mr-2 h-4 w-4" />Vue Liste</TabsTrigger><TabsTrigger value="calendar"><CalendarDays className="mr-2 h-4 w-4" />Vue Calendrier</TabsTrigger></TabsList></div>
                         <TabsContent value="list">
                             {!posts || posts.length === 0 ? (
-                                <div className="text-center py-16 border-2 border-dashed rounded-lg">
-                                    <CalendarIcon className="mx-auto h-12 w-12 text-muted-foreground" />
-                                    <h3 className="mt-4 text-lg font-semibold">Votre planificateur est vide</h3>
-                                    <p className="mt-2 text-sm text-muted-foreground">
-                                        Générez des images avec le Coach Stratégique et sauvegardez-les en tant que brouillons ou programmez-les.
-                                    </p>
-                                    <Button asChild className="mt-4">
-                                        <Link href="/audit">Aller au Coach Stratégique</Link>
-                                    </Button>
-                                </div>
+                                <div className="text-center py-16 border-2 border-dashed rounded-lg"><CalendarIcon className="mx-auto h-12 w-12 text-muted-foreground" /><h3 className="mt-4 text-lg font-semibold">Votre planificateur est vide</h3><p className="mt-2 text-sm text-muted-foreground">Générez des images avec le Coach Stratégique et sauvegardez-les en tant que brouillons ou programmez-les.</p><Button asChild className="mt-4"><Link href="/audit">Aller au Coach Stratégique</Link></Button></div>
                             ) : (
                                 <div className="space-y-12">
                                     <section>
                                         <h2 className="text-2xl font-semibold mb-4">Publications Programmées ({scheduledPosts.length})</h2>
-                                        {scheduledPosts.length > 0 ? (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                                {scheduledPosts.map(post => <PostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />)}
-                                            </div>
-                                        ) : (
-                                            <p className="text-muted-foreground">Aucune publication programmée pour ce profil.</p>
-                                        )}
+                                        {scheduledPosts.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{scheduledPosts.map(post => <PostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />)}</div> : <p className="text-muted-foreground">Aucune publication programmée pour ce profil.</p>}
                                     </section>
-
                                     <section>
                                         <h2 className="text-2xl font-semibold mb-4">Brouillons ({draftPosts.length})</h2>
-                                        {draftPosts.length > 0 ? (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                                {draftPosts.map(post => <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />)}
-                                            </div>
-                                        ) : (
-                                            <p className="text-muted-foreground">Aucun brouillon sauvegardé pour ce profil.</p>
-                                        )}
+                                        {draftPosts.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{draftPosts.map(post => <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />)}</div> : <p className="text-muted-foreground">Aucun brouillon sauvegardé pour ce profil.</p>}
                                     </section>
                                 </div>
                             )}
@@ -588,15 +463,7 @@ export default function PlannerPage() {
                              <CalendarView posts={scheduledPosts} brandProfiles={brandProfiles} onDelete={setPostToDelete} />
                              <section className="mt-12">
                                 <h2 className="text-2xl font-semibold mb-4">Brouillons ({draftPosts.length})</h2>
-                                {draftPosts.length > 0 ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        {draftPosts.map(post => (
-                                             <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-muted-foreground">Aucun brouillon pour ce profil.</p>
-                                )}
+                                {draftPosts.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{draftPosts.map(post => <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />)}</div> : <p className="text-muted-foreground">Aucun brouillon pour ce profil.</p>}
                             </section>
                         </TabsContent>
                     </Tabs>
@@ -605,40 +472,16 @@ export default function PlannerPage() {
 
             <AlertDialog open={!!postToDelete} onOpenChange={(open) => !open && setPostToDelete(null)}>
                 <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Supprimer ce post ?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Cette action est irréversible. Le post et son image associée seront définitivement supprimés si l'image n'est pas utilisée ailleurs.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
-                            {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Supprimer
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
+                    <AlertDialogHeader><AlertDialogTitle>Supprimer ce post ?</AlertDialogTitle><AlertDialogDescription>Cette action est irréversible. Le post et son image associée seront définitivement supprimés si l'image n'est pas utilisée ailleurs.</AlertDialogDescription></AlertDialogHeader>
+                    <AlertDialogFooter><AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel><AlertDialogAction onClick={handleDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">{isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Supprimer</AlertDialogAction></AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
 
             <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
                 <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Programmer le post</DialogTitle>
-                        <DialogDescription>
-                            Confirmez l'heure de publication pour le {targetDate && format(targetDate, 'd MMMM yyyy', { locale: fr })}.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4">
-                        <TimePicker date={scheduleTime} setDate={setScheduleTime} />
-                    </div>
-                    <DialogFooter>
-                        <Button variant="secondary" onClick={() => setScheduleDialogOpen(false)}>Annuler</Button>
-                        <Button onClick={handleSchedule} disabled={isScheduling}>
-                            {isScheduling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Programmer
-                        </Button>
-                    </DialogFooter>
+                    <DialogHeader><DialogTitle>Programmer le post</DialogTitle><DialogDescription>Confirmez l'heure de publication pour le {targetDate && format(targetDate, 'd MMMM yyyy', { locale: fr })}.</DialogDescription></DialogHeader>
+                    <div className="py-4"><TimePicker date={scheduleTime} setDate={setScheduleTime} /></div>
+                    <DialogFooter><Button variant="secondary" onClick={() => setScheduleDialogOpen(false)}>Annuler</Button><Button onClick={handleSchedule} disabled={isScheduling}>{isScheduling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Programmer</Button></DialogFooter>
                 </DialogContent>
             </Dialog>
         </DndContext>
