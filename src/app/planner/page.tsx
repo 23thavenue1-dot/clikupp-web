@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import React, { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import { collection, query, orderBy, updateDoc, doc, Timestamp } from 'firebase/firestore';
@@ -112,15 +113,19 @@ function DraggablePostCard({ post, children }: { post: ScheduledPost, children: 
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
     } : undefined;
 
+    // We clone the child element to pass down the dnd-kit props
     return (
-        <div ref={setNodeRef} style={style} className={cn(isDragging && 'z-50', 'w-full')} {...listeners} {...attributes}>
-            {children}
+        <div ref={setNodeRef} style={style} className={cn(isDragging && 'z-50', 'w-full')}>
+            {React.cloneElement(children as React.ReactElement, {
+                ...attributes,
+                ...listeners,
+            })}
         </div>
     );
 }
 
 
-function PostCard({ post, storage, brandProfiles, onDelete, variant = 'default' }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, variant?: 'default' | 'draft' }) {
+function PostCard({ post, storage, brandProfiles, onDelete, variant = 'default', ...props }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, variant?: 'default' | 'draft' }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isImageLoading, setIsImageLoading] = useState(true);
     const router = useRouter();
@@ -150,8 +155,8 @@ function PostCard({ post, storage, brandProfiles, onDelete, variant = 'default' 
     if (variant === 'draft') {
         return (
             <Dialog>
-                 <div className="flex items-center gap-2 p-2 border rounded-lg bg-card hover:shadow-md transition-shadow cursor-grab">
-                    <div className="p-2">
+                 <div className="flex items-center gap-2 p-2 border rounded-lg bg-card hover:shadow-md transition-shadow">
+                     <div className="p-2 cursor-grab" {...props}>
                         <GripVertical className="h-5 w-5 text-muted-foreground"/>
                     </div>
                     <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
@@ -399,17 +404,31 @@ export default function PlannerPage() {
     };
     
     const handleSchedule = async () => {
-        if (!user || !firestore || !draggedPost || !targetDate || !scheduleTime) return;
+        if (!user || !firestore || !draggedPost || !targetDate) return; // Time can be undefined
         setIsScheduling(true);
-
+    
         const newScheduledAt = new Date(targetDate);
-        newScheduledAt.setHours(scheduleTime.getHours());
-        newScheduledAt.setMinutes(scheduleTime.getMinutes());
-
+        if (scheduleTime) {
+            newScheduledAt.setHours(scheduleTime.getHours());
+            newScheduledAt.setMinutes(scheduleTime.getMinutes());
+        } else {
+             newScheduledAt.setHours(0, 0, 0, 0); // Default to midnight if no time is set
+        }
+    
         const postRef = doc(firestore, `users/${user.uid}/scheduledPosts`, draggedPost.id);
-        const { error } = await withErrorHandling(() => updateDoc(postRef, { status: 'scheduled', scheduledAt: Timestamp.fromDate(newScheduledAt) }));
+        const { error } = await withErrorHandling(() => 
+            updateDoc(postRef, { 
+                status: 'scheduled', 
+                scheduledAt: Timestamp.fromDate(newScheduledAt) 
+            })
+        );
         
-        if (!error) toast({ title: "Post programmé !", description: `Le post a été programmé pour le ${format(newScheduledAt, "d MMMM 'à' HH:mm", { locale: fr })}.` });
+        if (!error) {
+            toast({ 
+                title: "Post programmé !", 
+                description: `Le post a été programmé pour le ${format(newScheduledAt, "d MMMM 'à' HH:mm", { locale: fr })}.` 
+            });
+        }
         setIsScheduling(false);
         setScheduleDialogOpen(false);
     };
@@ -469,7 +488,17 @@ export default function PlannerPage() {
                              <CalendarView posts={scheduledPosts} brandProfiles={brandProfiles} onDelete={setPostToDelete} />
                              <section className="mt-12">
                                 <h2 className="text-2xl font-semibold mb-4">Brouillons ({draftPosts.length})</h2>
-                                {draftPosts.length > 0 ? <div className="space-y-2">{draftPosts.map(post => <DraggablePostCard key={post.id} post={post}><PostCard post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} variant="draft" /></DraggablePostCard>)}</div> : <p className="text-muted-foreground">Aucun brouillon pour ce profil.</p>}
+                                {draftPosts.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {draftPosts.map(post => (
+                                            <DraggablePostCard key={post.id} post={post}>
+                                                <PostCard post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} variant="draft" />
+                                            </DraggablePostCard>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-muted-foreground">Aucun brouillon pour ce profil.</p>
+                                )}
                             </section>
                         </TabsContent>
                     </Tabs>
