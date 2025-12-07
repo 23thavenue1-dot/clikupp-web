@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -7,8 +8,8 @@ import { collection, query, orderBy } from 'firebase/firestore';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Calendar, Edit, FileText, Clock, Trash2, MoreHorizontal, Share2, Facebook, MessageSquare, Instagram, VenetianMask, Building } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
+import { Loader2, Calendar as CalendarIcon, Edit, FileText, Clock, Trash2, MoreHorizontal, Share2, Facebook, MessageSquare, Instagram, VenetianMask, Building, List, CalendarDays } from 'lucide-react';
+import { format, formatDistanceToNow, isSameDay, startOfMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { ScheduledPost, BrandProfile } from '@/lib/firestore';
@@ -31,6 +32,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 
 function ShareDialog({ post, imageUrl, brandProfile }: { post: ScheduledPost, imageUrl: string | null, brandProfile: BrandProfile | null }) {
@@ -39,13 +43,14 @@ function ShareDialog({ post, imageUrl, brandProfile }: { post: ScheduledPost, im
     const fullText = `${post.title}\n\n${post.description}`.trim();
     
     // Utiliser les URLs du profil de marque si elles existent, sinon, utiliser les URLs génériques
-    const twitterShareUrl = brandProfile?.twitterUrl 
-        ? `${brandProfile.twitterUrl}/intent/tweet?text=${encodeURIComponent(fullText)}&url=${encodeURIComponent(imageUrl)}`
+    const twitterShareUrl = brandProfile?.socialLinks?.find(l => l.name === 'X (Twitter)')?.url
+        ? `${brandProfile.socialLinks.find(l => l.name === 'X (Twitter)')?.url}/intent/tweet?text=${encodeURIComponent(fullText)}&url=${encodeURIComponent(imageUrl)}`
         : `https://twitter.com/intent/tweet?text=${encodeURIComponent(fullText)}&url=${encodeURIComponent(imageUrl)}`;
         
     const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(imageUrl)}`;
-    const instagramUrl = brandProfile?.instagramUrl || 'https://www.instagram.com';
-    const tiktokUrl = brandProfile?.tiktokUrl || 'https://www.tiktok.com';
+    const instagramUrl = brandProfile?.socialLinks?.find(l => l.name === 'Instagram')?.url || 'https://www.instagram.com';
+    const tiktokUrl = brandProfile?.socialLinks?.find(l => l.name === 'TikTok')?.url || 'https://www.tiktok.com';
+
 
     return (
         <DialogContent>
@@ -203,6 +208,41 @@ function PostCard({ post, storage, brandProfiles, onDelete }: { post: ScheduledP
     );
 }
 
+// Nouveau composant pour les jours du calendrier
+function CalendarDay({ day, posts }: { day: Date, posts: ScheduledPostWithImage[] }) {
+    return (
+        <div className="h-full relative p-1">
+            {posts.length > 0 && (
+                <div className="space-y-1">
+                    {posts.map(post => (
+                         <Popover key={post.id}>
+                            <PopoverTrigger asChild>
+                                <div className="w-full h-6 bg-blue-100 dark:bg-blue-900/50 rounded-sm overflow-hidden flex items-center cursor-pointer hover:ring-2 hover:ring-primary">
+                                    {post.imageUrl && (
+                                        <Image src={post.imageUrl} alt={post.title} width={24} height={24} className="object-cover h-full" />
+                                    )}
+                                    <p className="text-xs font-medium text-blue-800 dark:text-blue-200 truncate px-1.5 flex-1">{post.title}</p>
+                                </div>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-60" align="start">
+                                <div className="space-y-2">
+                                    <h4 className="font-semibold leading-none">{post.title}</h4>
+                                    <p className="text-sm text-muted-foreground line-clamp-3">{post.description}</p>
+                                    <p className="text-xs text-muted-foreground pt-1 border-t">
+                                        À {format(post.scheduledAt.toDate(), 'HH:mm')}
+                                    </p>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+
+type ScheduledPostWithImage = ScheduledPost & { imageUrl?: string | null };
 
 export default function PlannerPage() {
     const { user, isUserLoading } = useUser();
@@ -214,6 +254,7 @@ export default function PlannerPage() {
     const [postToDelete, setPostToDelete] = useState<ScheduledPost | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [selectedProfileId, setSelectedProfileId] = useState<string>('all');
+    const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()));
 
 
     const postsQuery = useMemoFirebase(() => {
@@ -222,6 +263,35 @@ export default function PlannerPage() {
     }, [user, firestore]);
     const { data: posts, isLoading: arePostsLoading } = useCollection<ScheduledPost>(postsQuery);
 
+    const [postsWithImages, setPostsWithImages] = useState<ScheduledPostWithImage[]>([]);
+
+    // Effet pour enrichir les posts avec les URLs des images
+    useEffect(() => {
+        if (posts && storage) {
+            const fetchImageUrls = async () => {
+                const enrichedPosts = await Promise.all(
+                    posts.map(async (post) => {
+                        if (post.imageStoragePath) {
+                            try {
+                                const url = await getDownloadURL(ref(storage, post.imageStoragePath));
+                                return { ...post, imageUrl: url };
+                            } catch (error) {
+                                console.error(`Failed to get image URL for post ${post.id}`, error);
+                                return { ...post, imageUrl: null };
+                            }
+                        }
+                        return { ...post, imageUrl: null };
+                    })
+                );
+                setPostsWithImages(enrichedPosts);
+            };
+            fetchImageUrls();
+        } else if (posts) {
+            setPostsWithImages(posts.map(p => ({...p, imageUrl: null})));
+        }
+    }, [posts, storage]);
+
+
     const brandProfilesQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
         return query(collection(firestore, `users/${user.uid}/brandProfiles`), orderBy('createdAt', 'desc'));
@@ -229,10 +299,10 @@ export default function PlannerPage() {
     const { data: brandProfiles, isLoading: areProfilesLoading } = useCollection<BrandProfile>(brandProfilesQuery);
     
     const filteredPosts = useMemo(() => {
-        if (!posts) return [];
-        if (selectedProfileId === 'all') return posts;
-        return posts.filter(p => p.brandProfileId === selectedProfileId);
-    }, [posts, selectedProfileId]);
+        if (!postsWithImages) return [];
+        if (selectedProfileId === 'all') return postsWithImages;
+        return postsWithImages.filter(p => p.brandProfileId === selectedProfileId);
+    }, [postsWithImages, selectedProfileId]);
 
 
     const scheduledPosts = filteredPosts.filter(p => p.status === 'scheduled') || [];
@@ -269,7 +339,7 @@ export default function PlannerPage() {
     return (
         <>
             <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-                <div className="w-full max-w-6xl mx-auto space-y-8">
+                <div className="w-full max-w-7xl mx-auto space-y-8">
                     <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div>
                             <h1 className="text-3xl font-bold tracking-tight">Planificateur de Contenu</h1>
@@ -310,32 +380,84 @@ export default function PlannerPage() {
                          )}
                     </header>
 
-                    {!posts || posts.length === 0 ? (
-                        <div className="text-center py-16 border-2 border-dashed rounded-lg">
-                            <Calendar className="mx-auto h-12 w-12 text-muted-foreground" />
-                            <h3 className="mt-4 text-lg font-semibold">Votre planificateur est vide</h3>
-                            <p className="mt-2 text-sm text-muted-foreground">
-                                Générez des images avec le Coach Stratégique et sauvegardez-les en tant que brouillons ou programmez-les.
-                            </p>
-                            <Button asChild className="mt-4">
-                                <Link href="/audit">Aller au Coach Stratégique</Link>
-                            </Button>
+                    <Tabs defaultValue="list" className="w-full">
+                        <div className="flex justify-center mb-6">
+                            <TabsList>
+                                <TabsTrigger value="list"><List className="mr-2 h-4 w-4" />Vue Liste</TabsTrigger>
+                                <TabsTrigger value="calendar"><CalendarDays className="mr-2 h-4 w-4" />Vue Calendrier</TabsTrigger>
+                            </TabsList>
                         </div>
-                    ) : (
-                        <div className="space-y-12">
-                            <section>
-                                <h2 className="text-2xl font-semibold mb-4">Publications Programmées ({scheduledPosts.length})</h2>
-                                {scheduledPosts.length > 0 ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {scheduledPosts.map(post => <PostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />)}
-                                    </div>
-                                ) : (
-                                    <p className="text-muted-foreground">Aucune publication programmée pour ce profil.</p>
-                                )}
-                            </section>
+                        
+                        <TabsContent value="list">
+                            {!posts || posts.length === 0 ? (
+                                <div className="text-center py-16 border-2 border-dashed rounded-lg">
+                                    <CalendarIcon className="mx-auto h-12 w-12 text-muted-foreground" />
+                                    <h3 className="mt-4 text-lg font-semibold">Votre planificateur est vide</h3>
+                                    <p className="mt-2 text-sm text-muted-foreground">
+                                        Générez des images avec le Coach Stratégique et sauvegardez-les en tant que brouillons ou programmez-les.
+                                    </p>
+                                    <Button asChild className="mt-4">
+                                        <Link href="/audit">Aller au Coach Stratégique</Link>
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="space-y-12">
+                                    <section>
+                                        <h2 className="text-2xl font-semibold mb-4">Publications Programmées ({scheduledPosts.length})</h2>
+                                        {scheduledPosts.length > 0 ? (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                {scheduledPosts.map(post => <PostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />)}
+                                            </div>
+                                        ) : (
+                                            <p className="text-muted-foreground">Aucune publication programmée pour ce profil.</p>
+                                        )}
+                                    </section>
 
-                            <section>
+                                    <section>
+                                        <h2 className="text-2xl font-semibold mb-4">Brouillons ({draftPosts.length})</h2>
+                                        {draftPosts.length > 0 ? (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                {draftPosts.map(post => <PostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />)}
+                                            </div>
+                                        ) : (
+                                            <p className="text-muted-foreground">Aucun brouillon sauvegardé pour ce profil.</p>
+                                        )}
+                                    </section>
+                                </div>
+                            )}
+                        </TabsContent>
+                        <TabsContent value="calendar">
+                             <Card>
+                                <CardContent className="p-2 md:p-4">
+                                     <Calendar
+                                        mode="single"
+                                        month={currentMonth}
+                                        onMonthChange={setCurrentMonth}
+                                        className="w-full"
+                                        classNames={{
+                                            months: 'space-y-4',
+                                            month: 'w-full',
+                                            table: 'w-full border-collapse',
+                                            head_row: 'flex border-b',
+                                            head_cell: 'w-full text-muted-foreground rounded-md text-[0.8rem] font-normal pb-2',
+                                            row: 'flex w-full mt-2',
+                                            cell: 'h-24 md:h-32 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 w-full border-r border-b last:border-r-0',
+                                            day: 'h-full w-full p-1.5 focus:relative focus:z-20 text-left align-top font-normal',
+                                            day_today: 'bg-accent text-accent-foreground',
+                                            day_outside: 'text-muted-foreground opacity-50',
+                                        }}
+                                        components={{
+                                            Day: ({ date }) => {
+                                                const postsForDay = scheduledPosts.filter(p => p.scheduledAt && isSameDay(p.scheduledAt.toDate(), date));
+                                                return <CalendarDay day={date} posts={postsForDay} />;
+                                            },
+                                        }}
+                                    />
+                                </CardContent>
+                            </Card>
+                            <section className="mt-8">
                                 <h2 className="text-2xl font-semibold mb-4">Brouillons ({draftPosts.length})</h2>
+                                <p className="text-sm text-muted-foreground mb-4">Dans une future version, vous pourrez glisser-déposer ces brouillons directement sur le calendrier.</p>
                                 {draftPosts.length > 0 ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {draftPosts.map(post => <PostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />)}
@@ -344,8 +466,8 @@ export default function PlannerPage() {
                                     <p className="text-muted-foreground">Aucun brouillon sauvegardé pour ce profil.</p>
                                 )}
                             </section>
-                        </div>
-                    )}
+                        </TabsContent>
+                    </Tabs>
                 </div>
             </div>
 
