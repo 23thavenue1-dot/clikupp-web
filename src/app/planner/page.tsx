@@ -8,8 +8,8 @@ import { collection, query, orderBy } from 'firebase/firestore';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Calendar as CalendarIcon, Edit, FileText, Clock, Trash2, MoreHorizontal, Share2, Facebook, MessageSquare, Instagram, VenetianMask, Building, List, CalendarDays } from 'lucide-react';
-import { format, formatDistanceToNow, isSameDay, startOfMonth } from 'date-fns';
+import { Loader2, Calendar as CalendarIcon, Edit, FileText, Clock, Trash2, MoreHorizontal, Share2, Facebook, MessageSquare, Instagram, VenetianMask, Building, List, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
+import { format, formatDistanceToNow, isSameDay, startOfMonth, addMonths, subMonths, getDaysInMonth, getDay, startOfWeek, addDays, endOfMonth, endOfWeek, isSameMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { ScheduledPost, BrandProfile } from '@/lib/firestore';
@@ -33,7 +33,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 
@@ -208,41 +207,115 @@ function PostCard({ post, storage, brandProfiles, onDelete }: { post: ScheduledP
     );
 }
 
-// Nouveau composant pour les jours du calendrier
-function CalendarDay({ day, posts }: { day: Date, posts: ScheduledPostWithImage[] }) {
+type ScheduledPostWithImage = ScheduledPost & { imageUrl?: string | null };
+
+// --- NOUVEAU Calendrier Visuel ---
+function CalendarView({ posts, brandProfiles, onDelete }: { posts: ScheduledPostWithImage[], brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
+    const [currentMonth, setCurrentMonth] = useState(new Date());
+
+    const weekDays = ['lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim'];
+    
+    const calendarGrid = useMemo(() => {
+        const start = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 });
+        const end = endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 1 });
+        const days = [];
+        let day = start;
+
+        while (day <= end) {
+            days.push(day);
+            day = addDays(day, 1);
+        }
+        return days;
+    }, [currentMonth]);
+    
+    const postsByDay = useMemo(() => {
+        const map = new Map<string, ScheduledPostWithImage[]>();
+        posts.forEach(post => {
+            if (post.scheduledAt) {
+                const dayKey = format(post.scheduledAt.toDate(), 'yyyy-MM-dd');
+                if (!map.has(dayKey)) {
+                    map.set(dayKey, []);
+                }
+                map.get(dayKey)?.push(post);
+            }
+        });
+        return map;
+    }, [posts]);
+
     return (
-        <div className="h-full relative p-1">
-            {posts.length > 0 && (
-                <div className="space-y-1">
-                    {posts.map(post => (
-                         <Popover key={post.id}>
-                            <PopoverTrigger asChild>
-                                <div className="w-full h-6 bg-blue-100 dark:bg-blue-900/50 rounded-sm overflow-hidden flex items-center cursor-pointer hover:ring-2 hover:ring-primary">
-                                    {post.imageUrl && (
-                                        <Image src={post.imageUrl} alt={post.title} width={24} height={24} className="object-cover h-full" />
-                                    )}
-                                    <p className="text-xs font-medium text-blue-800 dark:text-blue-200 truncate px-1.5 flex-1">{post.title}</p>
-                                </div>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-60" align="start">
-                                <div className="space-y-2">
-                                    <h4 className="font-semibold leading-none">{post.title}</h4>
-                                    <p className="text-sm text-muted-foreground line-clamp-3">{post.description}</p>
-                                    <p className="text-xs text-muted-foreground pt-1 border-t">
-                                        À {format(post.scheduledAt.toDate(), 'HH:mm')}
-                                    </p>
-                                </div>
-                            </PopoverContent>
-                        </Popover>
-                    ))}
+         <div className="w-full">
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold capitalize">{format(currentMonth, 'MMMM yyyy', { locale: fr })}</h3>
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
+                        <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
                 </div>
-            )}
+            </div>
+            <div className="grid grid-cols-7 border-t border-l rounded-t-lg overflow-hidden">
+                {weekDays.map(day => (
+                    <div key={day} className="p-2 text-center text-xs font-medium uppercase text-muted-foreground bg-muted/50 border-r border-b">
+                        {day}
+                    </div>
+                ))}
+            </div>
+            <div className="grid grid-cols-7 grid-rows-5 border-l">
+                {calendarGrid.map((day, index) => {
+                    const dayKey = format(day, 'yyyy-MM-dd');
+                    const postsForDay = postsByDay.get(dayKey) || [];
+                    return (
+                        <div
+                            key={index}
+                            className={cn(
+                                "h-40 p-1.5 border-r border-b relative flex flex-col",
+                                !isSameMonth(day, currentMonth) && "bg-muted/30 text-muted-foreground",
+                                isSameDay(day, new Date()) && "bg-blue-50 dark:bg-blue-900/20"
+                            )}
+                        >
+                            <span className={cn("text-xs font-semibold mb-1", !isSameMonth(day, currentMonth) && "opacity-50")}>
+                                {format(day, 'd')}
+                            </span>
+                            <div className="space-y-1 overflow-y-auto flex-1">
+                                {postsForDay.map(post => {
+                                    const brandProfile = brandProfiles?.find(p => p.id === post.brandProfileId);
+                                    return (
+                                        <Popover key={post.id}>
+                                            <PopoverTrigger asChild>
+                                                <div className="w-full p-1 bg-blue-100 dark:bg-blue-900/50 rounded-sm overflow-hidden flex items-center gap-1.5 cursor-pointer hover:ring-2 hover:ring-primary">
+                                                    {post.imageUrl && (
+                                                        <Image src={post.imageUrl} alt={post.title} width={20} height={20} className="object-cover h-5 w-5 rounded-sm" />
+                                                    )}
+                                                     {brandProfile?.avatarUrl && (
+                                                        <Avatar className="h-5 w-5">
+                                                            <AvatarImage src={brandProfile.avatarUrl} />
+                                                        </Avatar>
+                                                    )}
+                                                    <p className="text-xs font-medium text-blue-800 dark:text-blue-200 truncate flex-1">{post.title}</p>
+                                                </div>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-64" align="start">
+                                                <div className="space-y-2">
+                                                    <h4 className="font-semibold leading-none">{post.title}</h4>
+                                                    <p className="text-sm text-muted-foreground line-clamp-3">{post.description}</p>
+                                                    <p className="text-xs text-muted-foreground pt-1 border-t">
+                                                        À {format(post.scheduledAt!.toDate(), 'HH:mm')} sur {brandProfile?.name || 'Profil'}
+                                                    </p>
+                                                </div>
+                                            </PopoverContent>
+                                        </Popover>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    )
+                })}
+            </div>
         </div>
     );
 }
-
-
-type ScheduledPostWithImage = ScheduledPost & { imageUrl?: string | null };
 
 export default function PlannerPage() {
     const { user, isUserLoading } = useUser();
@@ -254,7 +327,6 @@ export default function PlannerPage() {
     const [postToDelete, setPostToDelete] = useState<ScheduledPost | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [selectedProfileId, setSelectedProfileId] = useState<string>('all');
-    const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()));
 
 
     const postsQuery = useMemoFirebase(() => {
@@ -380,7 +452,7 @@ export default function PlannerPage() {
                          )}
                     </header>
 
-                    <Tabs defaultValue="list" className="w-full">
+                    <Tabs defaultValue="calendar" className="w-full">
                         <div className="flex justify-center mb-6">
                             <TabsList>
                                 <TabsTrigger value="list"><List className="mr-2 h-4 w-4" />Vue Liste</TabsTrigger>
@@ -427,44 +499,17 @@ export default function PlannerPage() {
                             )}
                         </TabsContent>
                         <TabsContent value="calendar">
-                             <Card>
-                                <CardContent className="p-2 md:p-4">
-                                     <Calendar
-                                        mode="single"
-                                        month={currentMonth}
-                                        onMonthChange={setCurrentMonth}
-                                        className="w-full"
-                                        locale={fr}
-                                        classNames={{
-                                            months: 'space-y-4',
-                                            month: 'w-full',
-                                            table: 'w-full border-collapse',
-                                            head_row: 'flex border-b',
-                                            head_cell: 'w-full text-muted-foreground rounded-md text-[0.8rem] font-normal pb-2',
-                                            row: 'flex w-full mt-2',
-                                            cell: 'h-24 md:h-32 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 w-full border-r border-b last:border-r-0',
-                                            day: 'h-full w-full p-1.5 focus:relative focus:z-20 text-left align-top font-normal',
-                                            day_today: 'bg-accent text-accent-foreground',
-                                            day_outside: 'text-muted-foreground opacity-50',
-                                        }}
-                                        components={{
-                                            Day: ({ date }) => {
-                                                const postsForDay = scheduledPosts.filter(p => p.scheduledAt && isSameDay(p.scheduledAt.toDate(), date));
-                                                return <CalendarDay day={date} posts={postsForDay} />;
-                                            },
-                                        }}
-                                    />
-                                </CardContent>
-                            </Card>
-                            <section className="mt-8">
+                             <CalendarView posts={scheduledPosts} brandProfiles={brandProfiles} onDelete={setPostToDelete} />
+                             <section className="mt-12">
                                 <h2 className="text-2xl font-semibold mb-4">Brouillons ({draftPosts.length})</h2>
-                                <p className="text-sm text-muted-foreground mb-4">Dans une future version, vous pourrez glisser-déposer ces brouillons directement sur le calendrier.</p>
                                 {draftPosts.length > 0 ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {draftPosts.map(post => <PostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />)}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        {draftPosts.map(post => (
+                                             <PostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />
+                                        ))}
                                     </div>
                                 ) : (
-                                    <p className="text-muted-foreground">Aucun brouillon sauvegardé pour ce profil.</p>
+                                    <p className="text-muted-foreground">Aucun brouillon pour ce profil.</p>
                                 )}
                             </section>
                         </TabsContent>
