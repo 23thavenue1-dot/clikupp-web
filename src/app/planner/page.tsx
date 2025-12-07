@@ -103,32 +103,32 @@ function ShareDialog({ post, imageUrl, brandProfile }: { post: ScheduledPost, im
 }
 
 function DraggablePostCard({ post, storage, brandProfiles, onDelete }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
-    const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: post.id,
         data: post,
     });
 
     const style = transform ? {
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-        zIndex: 100,
     } : undefined;
 
     return (
-        <div ref={setNodeRef} style={style} {...attributes}>
-            <PostCard 
+        <div ref={setNodeRef} style={style} className={cn(isDragging && 'z-50')}>
+             <PostCard 
                 post={post} 
                 storage={storage} 
                 brandProfiles={brandProfiles} 
                 onDelete={onDelete} 
                 variant="draft"
                 listeners={listeners}
+                attributes={attributes}
             />
         </div>
     );
 }
 
 
-function PostCard({ post, storage, brandProfiles, onDelete, variant = 'default', listeners }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, variant?: 'default' | 'draft', listeners?: any }) {
+function PostCard({ post, storage, brandProfiles, onDelete, variant = 'default', listeners, attributes }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, variant?: 'default' | 'draft', listeners?: any, attributes?: any }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isImageLoading, setIsImageLoading] = useState(true);
     const [isShareOpen, setIsShareOpen] = useState(false);
@@ -158,7 +158,7 @@ function PostCard({ post, storage, brandProfiles, onDelete, variant = 'default',
 
     if (variant === 'draft') {
         return (
-             <div className="flex items-center gap-4 p-2 border rounded-lg bg-card hover:shadow-md transition-shadow cursor-grab" {...listeners}>
+             <div className="flex items-center gap-4 p-2 border rounded-lg bg-card hover:shadow-md transition-shadow cursor-grab" {...listeners} {...attributes}>
                 <div className="relative w-16 h-16 rounded-md bg-muted flex-shrink-0 overflow-hidden">
                     {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
                 </div>
@@ -209,7 +209,7 @@ function PostCard({ post, storage, brandProfiles, onDelete, variant = 'default',
                     {isScheduled && <CardDescription className="flex items-center gap-2 text-sm"><Clock className="h-4 w-4" />Pour le {format(post.scheduledAt.toDate(), "d MMMM yyyy 'à' HH:mm", { locale: fr })}</CardDescription>}
                 </CardHeader>
                 <CardContent className="flex-grow"><p className="text-sm text-muted-foreground line-clamp-3">{post.description}</p></CardContent>
-                <CardFooter className="text-xs text-muted-foreground">Créé {format(post.createdAt.toDate(), { locale: fr, addSuffix: true })}</CardFooter>
+                <CardFooter className="text-xs text-muted-foreground">Créé il y a {format(post.createdAt.toDate(), "d MMMM yyyy", { locale: fr })}</CardFooter>
             </Card>
             <ShareDialog post={post} imageUrl={imageUrl} brandProfile={brandProfile} />
         </Dialog>
@@ -220,7 +220,7 @@ function PostCard({ post, storage, brandProfiles, onDelete, variant = 'default',
 type ScheduledPostWithImage = ScheduledPost & { imageUrl?: string | null };
 
 function CalendarDay({ day, posts, isCurrentMonth, isToday }: { day: Date, posts: ScheduledPostWithImage[], isCurrentMonth: boolean, isToday: boolean }) {
-    const { setNodeRef } = useDroppable({
+    const { setNodeRef, isOver } = useDroppable({
         id: format(day, 'yyyy-MM-dd'),
     });
 
@@ -228,9 +228,10 @@ function CalendarDay({ day, posts, isCurrentMonth, isToday }: { day: Date, posts
         <div
             ref={setNodeRef}
             className={cn(
-                "h-48 p-1.5 border-r border-b relative flex flex-col",
+                "h-48 p-1.5 border-r border-b relative flex flex-col transition-all duration-200",
                 !isCurrentMonth && "bg-muted/30 text-muted-foreground",
-                isToday && "bg-blue-500/10"
+                isToday && !isOver && "bg-blue-600/10", // Style pour aujourd'hui
+                isOver && "scale-105 shadow-xl bg-primary/20 border-primary z-10" // Style au survol
             )}
         >
             <span className={cn(
@@ -454,7 +455,7 @@ export default function PlannerPage() {
                                     </section>
                                     <section>
                                         <h2 className="text-2xl font-semibold mb-4">Brouillons ({draftPosts.length})</h2>
-                                        {draftPosts.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{draftPosts.map(post => <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />)}</div> : <p className="text-muted-foreground">Aucun brouillon sauvegardé pour ce profil.</p>}
+                                        {draftPosts.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{draftPosts.map(post => <PostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} variant="draft" />)}</div> : <p className="text-muted-foreground">Aucun brouillon sauvegardé pour ce profil.</p>}
                                     </section>
                                 </div>
                             )}
