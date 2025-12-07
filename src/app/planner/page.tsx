@@ -1,9 +1,9 @@
 
 'use client';
 
-import React, { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { collection, query, orderBy, updateDoc, doc, Timestamp } from 'firebase/firestore';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,7 +34,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { TimePicker } from '@/components/ui/time-picker';
 import {
   DndContext,
   closestCenter,
@@ -113,9 +112,8 @@ function DraggablePostCard({ post, children }: { post: ScheduledPost, children: 
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
     } : undefined;
 
-    // We clone the child element to pass down the dnd-kit props
     return (
-        <div ref={setNodeRef} style={style} className={cn(isDragging && 'z-50', 'w-full')}>
+         <div ref={setNodeRef} style={style} className={cn(isDragging && 'z-50', 'w-full')}>
             {React.cloneElement(children as React.ReactElement, {
                 ...attributes,
                 ...listeners,
@@ -154,18 +152,18 @@ function PostCard({ post, storage, brandProfiles, onDelete, variant = 'default',
 
     if (variant === 'draft') {
         return (
-            <Dialog>
-                 <div className="flex items-center gap-2 p-2 border rounded-lg bg-card hover:shadow-md transition-shadow">
-                     <div className="p-2 cursor-grab" {...props}>
-                        <GripVertical className="h-5 w-5 text-muted-foreground"/>
-                    </div>
-                    <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
-                        {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm truncate">{post.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">{brandProfile?.name || 'Profil par défaut'}</p>
-                    </div>
+             <div className="flex items-center gap-2 p-2 border rounded-lg bg-card hover:shadow-md transition-shadow">
+                 <div className="p-2 cursor-grab" {...props}>
+                    <GripVertical className="h-5 w-5 text-muted-foreground"/>
+                </div>
+                <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
+                    {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm truncate">{post.title}</p>
+                    <p className="text-xs text-muted-foreground truncate">{brandProfile?.name || 'Profil par défaut'}</p>
+                </div>
+                <Dialog>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -175,9 +173,9 @@ function PostCard({ post, storage, brandProfiles, onDelete, variant = 'default',
                             <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
-                </div>
-                <ShareDialog post={post} imageUrl={imageUrl} brandProfile={brandProfile} />
-            </Dialog>
+                    <ShareDialog post={post} imageUrl={imageUrl} brandProfile={brandProfile} />
+                </Dialog>
+            </div>
         )
     }
 
@@ -216,7 +214,7 @@ function PostCard({ post, storage, brandProfiles, onDelete, variant = 'default',
                          </div>
                     </div>
                     <CardTitle className="mt-2 text-lg">{post.title}</CardTitle>
-                    {isScheduled && <CardDescription className="flex items-center gap-2 text-sm"><Clock className="h-4 w-4" />Pour le {format(post.scheduledAt.toDate(), "d MMMM yyyy 'à' HH:mm", { locale: fr })}</CardDescription>}
+                    {isScheduled && <CardDescription className="flex items-center gap-2 text-sm"><Clock className="h-4 w-4" />Pour le {format(post.scheduledAt.toDate(), "d MMMM yyyy", { locale: fr })}</CardDescription>}
                 </CardHeader>
                 <CardContent className="flex-grow"><p className="text-sm text-muted-foreground line-clamp-3">{post.description}</p></CardContent>
                 <CardFooter className="text-xs text-muted-foreground">Créé il y a {format(post.createdAt.toDate(), "d MMMM yyyy", { locale: fr })}</CardFooter>
@@ -264,7 +262,6 @@ function CalendarDay({ day, posts, isCurrentMonth, isToday }: { day: Date, posts
                             <div className="space-y-2">
                                 <h4 className="font-semibold leading-none">{post.title}</h4>
                                 <p className="text-sm text-muted-foreground line-clamp-3">{post.description}</p>
-                                <p className="text-xs text-muted-foreground pt-1 border-t">À {format(post.scheduledAt!.toDate(), 'HH:mm')}</p>
                             </div>
                         </PopoverContent>
                     </Popover>
@@ -337,7 +334,6 @@ export default function PlannerPage() {
     const [draggedPost, setDraggedPost] = useState<ScheduledPost | null>(null);
     const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
     const [targetDate, setTargetDate] = useState<Date | null>(null);
-    const [scheduleTime, setScheduleTime] = useState<Date | undefined>(new Date());
     const [isScheduling, setIsScheduling] = useState(false);
 
 
@@ -398,22 +394,16 @@ export default function PlannerPage() {
         if (over && active.data.current) {
             setDraggedPost(active.data.current as ScheduledPost);
             setTargetDate(new Date(over.id as string));
-            setScheduleTime(new Date());
             setScheduleDialogOpen(true);
         }
     };
     
     const handleSchedule = async () => {
-        if (!user || !firestore || !draggedPost || !targetDate) return; // Time can be undefined
+        if (!user || !firestore || !draggedPost || !targetDate) return;
         setIsScheduling(true);
     
         const newScheduledAt = new Date(targetDate);
-        if (scheduleTime) {
-            newScheduledAt.setHours(scheduleTime.getHours());
-            newScheduledAt.setMinutes(scheduleTime.getMinutes());
-        } else {
-             newScheduledAt.setHours(0, 0, 0, 0); // Default to midnight if no time is set
-        }
+        newScheduledAt.setHours(0, 0, 0, 0); // Programmé à minuit
     
         const postRef = doc(firestore, `users/${user.uid}/scheduledPosts`, draggedPost.id);
         const { error } = await withErrorHandling(() => 
@@ -426,7 +416,7 @@ export default function PlannerPage() {
         if (!error) {
             toast({ 
                 title: "Post programmé !", 
-                description: `Le post a été programmé pour le ${format(newScheduledAt, "d MMMM 'à' HH:mm", { locale: fr })}.` 
+                description: `Le post a été programmé pour le ${format(newScheduledAt, "d MMMM", { locale: fr })}.` 
             });
         }
         setIsScheduling(false);
@@ -479,7 +469,7 @@ export default function PlannerPage() {
                                     </section>
                                     <section>
                                         <h2 className="text-2xl font-semibold mb-4">Brouillons ({draftPosts.length})</h2>
-                                        {draftPosts.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{draftPosts.map(post => <PostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} variant="draft" />)}</div> : <p className="text-muted-foreground">Aucun brouillon sauvegardé pour ce profil.</p>}
+                                        {draftPosts.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{draftPosts.map(post => <DraggablePostCard key={post.id} post={post}><PostCard post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} variant="draft" /></DraggablePostCard>)}</div> : <p className="text-muted-foreground">Aucun brouillon sauvegardé pour ce profil.</p>}
                                     </section>
                                 </div>
                             )}
@@ -514,8 +504,7 @@ export default function PlannerPage() {
 
             <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
                 <DialogContent>
-                    <DialogHeader><DialogTitle>Programmer le post</DialogTitle><DialogDescription>Confirmez l'heure de publication pour le {targetDate && format(targetDate, 'd MMMM yyyy', { locale: fr })}.</DialogDescription></DialogHeader>
-                    <div className="py-4"><TimePicker date={scheduleTime} setDate={setScheduleTime} /></div>
+                    <DialogHeader><DialogTitle>Programmer le post</DialogTitle><DialogDescription>Confirmez la date de publication pour le {targetDate && format(targetDate, 'd MMMM yyyy', { locale: fr })}.</DialogDescription></DialogHeader>
                     <DialogFooter><Button variant="secondary" onClick={() => setScheduleDialogOpen(false)}>Annuler</Button><Button onClick={handleSchedule} disabled={isScheduling}>{isScheduling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Programmer</Button></DialogFooter>
                 </DialogContent>
             </Dialog>
