@@ -9,7 +9,7 @@ import type { ImageMetadata, UserProfile } from '@/lib/firestore';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Copy, Check, CopyPlus, Sparkles, FileText, LineChart, Wand2, ShoppingCart, Instagram, Facebook, MessageSquare, VenetianMask } from 'lucide-react';
+import { ArrowLeft, Loader2, Copy, Check, CopyPlus, Sparkles, FileText, LineChart, Wand2, ShoppingCart, Instagram, Facebook, MessageSquare, VenetianMask, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -258,9 +258,9 @@ export default function ImageDetailPage() {
 
                     <DialogContent className="sm:max-w-md">
                         <DialogHeader>
-                            <DialogTitle>Générer une description</DialogTitle>
+                            <DialogTitle>Générer ou Modifier le Contenu</DialogTitle>
                             <DialogDescription>
-                                Laissez l'IA rédiger un contenu optimisé pour vos réseaux sociaux.
+                                Laissez l'IA rédiger un contenu optimisé, ou modifiez-le manuellement.
                             </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
@@ -268,7 +268,7 @@ export default function ImageDetailPage() {
                                 <Label htmlFor="title">Titre</Label>
                                 <Input 
                                     id="title"
-                                    placeholder="Titre généré par l'IA..."
+                                    placeholder="Titre de votre publication..."
                                     value={currentTitle}
                                     onChange={(e) => setCurrentTitle(e.target.value)}
                                     disabled={isGeneratingDescription || isSavingDescription}
@@ -278,7 +278,7 @@ export default function ImageDetailPage() {
                                 <Label htmlFor="description">Description</Label>
                                 <Textarea 
                                     id="description"
-                                    placeholder="La description générée apparaîtra ici..."
+                                    placeholder="La description de votre publication..."
                                     value={currentDescription}
                                     onChange={(e) => setCurrentDescription(e.target.value)}
                                     rows={4}
@@ -289,7 +289,7 @@ export default function ImageDetailPage() {
                                 <Label htmlFor="hashtags">Hashtags</Label>
                                 <Textarea 
                                     id="hashtags"
-                                    placeholder="#hashtags #générés #ici"
+                                    placeholder="#vos #hashtags #ici"
                                     value={hashtagsString}
                                     onChange={(e) => setHashtagsString(e.target.value)}
                                     rows={2}
@@ -331,7 +331,7 @@ export default function ImageDetailPage() {
                             <Button variant="secondary" onClick={() => setIsDescriptionDialogOpen(false)} disabled={isSavingDescription}>Annuler</Button>
                             <Button onClick={handleSaveDescription} disabled={isSavingDescription || isGeneratingDescription}>
                                 {isSavingDescription && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                                Enregistrer
+                                Enregistrer les modifications
                             </Button>
                         </DialogFooter>
                     </DialogContent>
@@ -340,8 +340,18 @@ export default function ImageDetailPage() {
                 {/* --- Section Partage & Export --- */}
                 <Card>
                      <CardHeader>
-                        <CardTitle>Partage & Export</CardTitle>
-                        <CardDescription>Copiez le contenu de votre publication et les liens de partage.</CardDescription>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <CardTitle>Partage & Export</CardTitle>
+                                <CardDescription>Copiez le contenu de votre publication et les liens de partage.</CardDescription>
+                            </div>
+                            <DialogTrigger asChild>
+                                 <Button variant="outline" size="sm">
+                                    <Pencil className="mr-2 h-4 w-4"/>
+                                    Modifier
+                                </Button>
+                            </DialogTrigger>
+                        </div>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="p-4 border rounded-lg bg-muted/30 space-y-4">
@@ -448,5 +458,3 @@ export default function ImageDetailPage() {
         </div>
     );
 }
-
-    
