@@ -40,8 +40,6 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
-  useDraggable,
-  useDroppable,
 } from '@dnd-kit/core';
 import { TimePicker } from '@/components/ui/time-picker';
 
@@ -101,8 +99,7 @@ function ShareDialog({ post, imageUrl, brandProfile }: { post: ScheduledPost, im
     );
 }
 
-// Composant pour afficher une carte de post, avec une variante pour les brouillons
-function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete, dragHandleProps }: { post: ScheduledPost, variant?: 'default' | 'draft', storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, dragHandleProps?: any }) {
+function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete }: { post: ScheduledPost, variant?: 'default' | 'draft', storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isImageLoading, setIsImageLoading] = useState(true);
     const router = useRouter();
@@ -132,10 +129,9 @@ function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete,
 
     if (variant === 'draft') {
         return (
-            <Card className="w-full" {...dragHandleProps}>
+             <Card>
                 <div className="flex items-center gap-3 p-3">
-                     <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab flex-shrink-0" />
-                    <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
+                    <div className="relative w-16 h-16 rounded-md bg-muted flex-shrink-0 overflow-hidden">
                         {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -204,8 +200,7 @@ function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete,
     );
 }
 
-// Composant wrapper pour la logique DND
-function DraggablePostCard({ post, children }: { post: ScheduledPost, children: React.ReactNode }) {
+function DraggablePostCard({ post, variant = 'default', storage, brandProfiles, onDelete }: { post: ScheduledPost, variant?: 'default' | 'draft', storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: post.id,
         data: post,
@@ -217,11 +212,15 @@ function DraggablePostCard({ post, children }: { post: ScheduledPost, children: 
         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
     } : undefined;
     
-    // Le cloneElement ne passe pas correctement les listeners, nous enveloppons donc l'enfant
-    // dans une div qui recevra toutes les props de dnd-kit.
     return (
-        <div ref={setNodeRef} style={style} {...attributes} {...listeners} className={cn(isDragging && 'cursor-grabbing')}>
-            {children}
+        <div ref={setNodeRef} style={style} {...listeners} {...attributes} className={cn(isDragging && 'cursor-grabbing')}>
+            <PostCard 
+                post={post}
+                variant={variant}
+                storage={storage}
+                brandProfiles={brandProfiles}
+                onDelete={onDelete}
+            />
         </div>
     );
 }
@@ -281,15 +280,7 @@ function CalendarView({ posts, drafts, brandProfiles, onDelete }: { posts: Sched
                 {drafts.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {drafts.map(post => (
-                           <DraggablePostCard key={post.id} post={post}>
-                               <PostCard 
-                                    post={post} 
-                                    variant="draft" 
-                                    storage={storage} 
-                                    brandProfiles={brandProfiles} 
-                                    onDelete={onDelete} 
-                                />
-                           </DraggablePostCard>
+                           <DraggablePostCard key={post.id} post={post} variant="draft" storage={storage} brandProfiles={brandProfiles} onDelete={onDelete} />
                         ))}
                     </div>
                 ) : (
@@ -503,15 +494,7 @@ export default function PlannerPage() {
                                         {draftPosts.length > 0 ? (
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 {draftPosts.map(post => (
-                                                   <DraggablePostCard key={post.id} post={post}>
-                                                        <PostCard 
-                                                            post={post} 
-                                                            variant="draft" 
-                                                            storage={storage} 
-                                                            brandProfiles={brandProfiles} 
-                                                            onDelete={setPostToDelete} 
-                                                        />
-                                                    </DraggablePostCard>
+                                                   <DraggablePostCard key={post.id} post={post} variant="draft" storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />
                                                 ))}
                                             </div>
                                         ) : (
