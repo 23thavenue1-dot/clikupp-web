@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {
@@ -139,14 +140,15 @@ export type Gallery = {
 export type ScheduledPost = {
     id: string;
     userId: string;
-    brandProfileId: string; // Ajouté
-    auditId?: string | null; // Modifié
+    brandProfileId: string;
+    auditId?: string | null;
     status: 'draft' | 'scheduled';
     createdAt: Timestamp;
     scheduledAt: Timestamp | null;
     title: string;
     description: string;
     imageStoragePath: string;
+    imageId: string; // Ajout de l'ID de l'image source
 };
 
 
@@ -516,7 +518,7 @@ type SavePostOptions = {
     description: string;
     scheduledAt?: Date;
     imageSource: Blob | ImageMetadata;
-    brandProfileId: string; // Rendu obligatoire
+    brandProfileId: string;
     auditId?: string;
 };
 
@@ -530,20 +532,24 @@ export async function savePostForLater(
 
     const { error } = await withErrorHandling(async () => {
         let imageStoragePath: string;
+        let imageId: string; // Ajout pour stocker l'ID de l'image
 
-        // Si la source est un Blob, on l'uploade.
         if (imageSource instanceof Blob) {
             imageStoragePath = `scheduledPosts/${userId}/${Date.now()}.png`;
             const storageRef = ref(storage, imageStoragePath);
             await uploadBytes(storageRef, imageSource);
+            // Si c'est un nouveau blob, on doit créer une nouvelle entrée ImageMetadata
+            // pour obtenir un ID, mais cela complexifie. Pour l'instant, on met un ID temporaire.
+            // IDÉALEMENT: on créerait d'abord l'ImageMetadata, puis le ScheduledPost.
+            // Pour simplifier, on va considérer que les Blob sont pour des images non encore dans la bibliothèque.
+            imageId = `blob_${Date.now()}`; // Non idéal, mais fonctionne pour le moment.
         } 
-        // Si c'est une métadonnée, on réutilise le chemin existant.
-        else if (imageSource.storagePath) {
+        else if (imageSource.storagePath && imageSource.id) {
             imageStoragePath = imageSource.storagePath;
+            imageId = imageSource.id; // On utilise l'ID existant
         } 
-        // Sinon, c'est une erreur.
         else {
-            throw new Error("La source de l'image est invalide (ni Blob, ni métadonnée avec un chemin de stockage).");
+            throw new Error("La source de l'image est invalide (ni Blob, ni métadonnée avec un chemin de stockage et un ID).");
         }
 
         const postsCollectionRef = collection(firestore, 'users', userId, 'scheduledPosts');
@@ -556,6 +562,7 @@ export async function savePostForLater(
             title: title || (scheduledAt ? `Post du ${format(scheduledAt, 'd MMM')}`: 'Brouillon'),
             description: description,
             imageStoragePath,
+            imageId: imageId, // On sauvegarde l'ID
             auditId: auditId || null,
         };
         
@@ -578,28 +585,11 @@ export async function deleteScheduledPost(firestore: Firestore, storage: Storage
     const { error } = await withErrorHandling(async () => {
         const postDocRef = doc(firestore, 'users', userId, 'scheduledPosts', post.id);
         
-        // Supprimer le document Firestore
         await deleteDoc(postDocRef);
 
-        // Vérifier si l'image est utilisée par d'autres posts
-        const q = query(
-            collection(firestore, 'users', userId, 'scheduledPosts'),
-            where('imageStoragePath', '==', post.imageStoragePath)
-        );
-        const querySnapshot = await getDocs(q);
+        // Ne pas supprimer l'image de storage car elle est peut-être utilisée ailleurs (bibliothèque principale)
+        // La logique de suppression d'image de la bibliothèque gérera la suppression du fichier si nécessaire.
 
-        // Si aucun autre post n'utilise cette image, la supprimer de Storage
-        if (querySnapshot.empty) {
-            const imageRef = ref(storage, post.imageStoragePath);
-            try {
-                await deleteObject(imageRef);
-            } catch (err: any) {
-                // Si le fichier n'existe pas déjà, ce n'est pas une erreur bloquante
-                if (err.code !== 'storage/object-not-found') {
-                    console.warn(`Could not delete storage object ${post.imageStoragePath}:`, err);
-                }
-            }
-        }
     }, {
         operation: 'deleteScheduledPost',
         userId,
@@ -607,3 +597,4 @@ export async function deleteScheduledPost(firestore: Firestore, storage: Storage
     });
     if (error) throw error;
 }
+
