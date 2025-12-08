@@ -126,8 +126,7 @@ function PostCard({ post, storage, brandProfiles, onDelete, router }: { post: Sc
     const isScheduled = post.status === 'scheduled' && post.scheduledAt;
 
     const handleEdit = () => {
-        // Redirige toujours vers l'éditeur d'image
-        router.push(`/edit/${post.imageId}`);
+        router.push(`/image/${post.imageId}`);
     };
     
     return (
@@ -156,7 +155,7 @@ function PostCard({ post, storage, brandProfiles, onDelete, router }: { post: Sc
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 <DialogTrigger asChild><DropdownMenuItem><Share2 className="mr-2 h-4 w-4" />Partager maintenant</DropdownMenuItem></DialogTrigger>
-                                <DropdownMenuItem onClick={handleEdit}><Edit className="mr-2 h-4 w-4" />Modifier</DropdownMenuItem>
+                                <DropdownMenuItem onClick={handleEdit} disabled={!post.imageId}><Edit className="mr-2 h-4 w-4" />Modifier</DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
                             </DropdownMenuContent>
@@ -202,8 +201,7 @@ function DraggablePostCard({ post, storage, brandProfiles, onDelete, router }: {
     }, [storage, post.imageStoragePath]);
 
     const handleEdit = () => {
-        // Redirige toujours vers l'éditeur d'image
-        router.push(`/edit/${post.imageId}`);
+        router.push(`/image/${post.imageId}`);
     };
 
     return (
@@ -233,7 +231,7 @@ function DraggablePostCard({ post, storage, brandProfiles, onDelete, router }: {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DialogTrigger asChild><DropdownMenuItem><Share2 className="mr-2 h-4 w-4" />Partager</DropdownMenuItem></DialogTrigger>
-                             <DropdownMenuItem onClick={handleEdit}><Edit className="mr-2 h-4 w-4" />Modifier</DropdownMenuItem>
+                             <DropdownMenuItem onClick={handleEdit} disabled={!post.imageId}><Edit className="mr-2 h-4 w-4" />Modifier</DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
                         </DropdownMenuContent>
@@ -266,8 +264,7 @@ function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft, on
     });
 
     const handleEdit = (post: ScheduledPost) => {
-        // Redirige toujours vers l'éditeur d'image
-        router.push(`/edit/${post.imageId}`);
+        router.push(`/image/${post.imageId}`);
     };
 
     return (
@@ -299,7 +296,7 @@ function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft, on
                         <DropdownMenuContent>
                             <DropdownMenuLabel>{post.title}</DropdownMenuLabel>
                             <DropdownMenuSeparator/>
-                            <DropdownMenuItem onClick={() => handleEdit(post)}>
+                            <DropdownMenuItem onClick={() => handleEdit(post)} disabled={!post.imageId}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Modifier
                             </DropdownMenuItem>
