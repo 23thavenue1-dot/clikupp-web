@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -215,43 +214,119 @@ export default function ImageDetailPage() {
                 </Card>
 
                 {/* --- Section Outils IA --- */}
-                <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Hub de Création IA</CardTitle>
-                            <CardDescription>Donnez une nouvelle dimension à votre image.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Link href={`/edit/${imageId}`} passHref>
-                                <div className="p-4 border rounded-lg h-full flex flex-col items-start gap-2 hover:bg-muted/50 hover:border-primary/50 transition-colors cursor-pointer">
-                                    <div className="p-2 bg-primary/10 text-primary rounded-lg">
-                                        <Sparkles className="h-6 w-6" />
-                                    </div>
-                                    <span className="font-semibold">Éditer avec l'IA</span>
-                                    <p className="text-xs text-muted-foreground">Modifiez votre image en décrivant les changements en langage naturel.</p>
-                                </div>
-                            </Link>
-
-                            <DialogTrigger asChild>
-                                <div className="p-4 border rounded-lg h-full flex flex-col items-start gap-2 hover:bg-muted/50 hover:border-primary/50 transition-colors cursor-pointer">
-                                    <div className="p-2 bg-primary/10 text-primary rounded-lg">
-                                        <FileText className="h-6 w-6" />
-                                    </div>
-                                    <span className="font-semibold">Générer une description</span>
-                                    <p className="text-xs text-muted-foreground">Créez un titre, une description et des hashtags pertinents pour les réseaux sociaux.</p>
-                                </div>
-                            </DialogTrigger>
-                             <div 
-                                className="p-4 border rounded-lg h-full flex flex-col items-start gap-2 hover:bg-muted/50 hover:border-primary/50 transition-colors cursor-pointer md:col-span-2"
-                                onClick={handleCoachClick}
-                                role="button"
-                                tabIndex={0}
-                            >
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Hub de Création IA</CardTitle>
+                        <CardDescription>Donnez une nouvelle dimension à votre image.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Link href={`/edit/${imageId}`} passHref>
+                            <div className="p-4 border rounded-lg h-full flex flex-col items-start gap-2 hover:bg-muted/50 hover:border-primary/50 transition-colors cursor-pointer">
                                 <div className="p-2 bg-primary/10 text-primary rounded-lg">
-                                    <LineChart className="h-6 w-6" />
+                                    <Sparkles className="h-6 w-6" />
                                 </div>
-                                <span className="font-semibold">Utiliser dans le Coach Stratégique</span>
-                                <p className="text-xs text-muted-foreground">Analysez cette image dans le cadre d'un audit de profil pour une stratégie de contenu sur-mesure.</p>
+                                <span className="font-semibold">Éditer avec l'IA</span>
+                                <p className="text-xs text-muted-foreground">Modifiez votre image en décrivant les changements en langage naturel.</p>
+                            </div>
+                        </Link>
+
+                        <div className="p-4 border rounded-lg h-full flex flex-col items-start gap-2 hover:bg-muted/50 hover:border-primary/50 transition-colors cursor-pointer" onClick={() => setIsDescriptionDialogOpen(true)} role="button">
+                            <div className="p-2 bg-primary/10 text-primary rounded-lg">
+                                <FileText className="h-6 w-6" />
+                            </div>
+                            <span className="font-semibold">Générer une description</span>
+                            <p className="text-xs text-muted-foreground">Créez un titre, une description et des hashtags pertinents pour les réseaux sociaux.</p>
+                        </div>
+                         <div 
+                            className="p-4 border rounded-lg h-full flex flex-col items-start gap-2 hover:bg-muted/50 hover:border-primary/50 transition-colors cursor-pointer md:col-span-2"
+                            onClick={handleCoachClick}
+                            role="button"
+                            tabIndex={0}
+                        >
+                            <div className="p-2 bg-primary/10 text-primary rounded-lg">
+                                <LineChart className="h-6 w-6" />
+                            </div>
+                            <span className="font-semibold">Utiliser dans le Coach Stratégique</span>
+                            <p className="text-xs text-muted-foreground">Analysez cette image dans le cadre d'un audit de profil pour une stratégie de contenu sur-mesure.</p>
+                        </div>
+                    </CardContent>
+                </Card>
+                
+                {/* --- Section Partage & Export --- */}
+                 <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
+                    <Card>
+                         <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <CardTitle>Partage & Export</CardTitle>
+                                    <CardDescription>Copiez le contenu de votre publication et les liens de partage.</CardDescription>
+                                </div>
+                                <DialogTrigger asChild>
+                                     <Button variant="outline" size="sm">
+                                        <Pencil className="mr-2 h-4 w-4"/>
+                                        Modifier
+                                    </Button>
+                                </DialogTrigger>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="p-4 border rounded-lg bg-muted/30 space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-base font-semibold">Contenu de la publication</Label>
+                                     <Button
+                                        onClick={() => copyToClipboard(fullTextToCopy, 'details-all', 'Contenu complet copié !')}
+                                        disabled={!fullTextToCopy}
+                                        size="sm"
+                                    >
+                                        {copiedField === 'details-all' ? <Check className="mr-2" /> : <CopyPlus className="mr-2" />}
+                                        Tout Copier
+                                    </Button>
+                                </div>
+                                <Separator />
+                                <div className="relative">
+                                    <Label className="text-muted-foreground text-xs">Titre</Label>
+                                    <p className="text-sm font-medium pr-8">{image.title || 'N/A'}</p>
+                                </div>
+                                <div className="relative">
+                                    <Label className="text-muted-foreground text-xs">Description</Label>
+                                    <p className="text-sm whitespace-pre-wrap pr-8">{image.description || 'N/A'}</p>
+                                </div>
+                                 <div className="relative">
+                                    <Label className="text-muted-foreground text-xs">Hashtags</Label>
+                                    <p className="text-sm text-primary pr-8 break-words">{image.hashtags || 'N/A'}</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                 <div className="relative">
+                                    <Label className="text-muted-foreground">Lien direct (URL)</Label>
+                                    <div className="flex items-center gap-2">
+                                        <Input value={image.directUrl} readOnly className="text-xs"/>
+                                        <Button variant="ghost" size="icon" className="flex-shrink-0" onClick={() => copyToClipboard(image.directUrl, 'direct', 'Lien copié !')}>
+                                            {copiedField === 'direct' ? <Check className="text-green-500"/> : <Copy size={16} />}
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                 <div className="relative">
+                                    <Label className="text-muted-foreground">Pour forum (BBCode)</Label>
+                                     <div className="flex items-center gap-2">
+                                        <Input value={image.bbCode} readOnly className="text-xs"/>
+                                        <Button variant="ghost" size="icon" className="flex-shrink-0" onClick={() => copyToClipboard(image.bbCode, 'bbcode', 'BBCode copié !')}>
+                                            {copiedField === 'bbcode' ? <Check className="text-green-500"/> : <Copy size={16} />}
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                 <div className="relative">
+                                    <Label className="text-muted-foreground">Pour site web (HTML)</Label>
+                                     <div className="flex items-center gap-2">
+                                        <Input value={image.htmlCode} readOnly className="text-xs"/>
+                                        <Button variant="ghost" size="icon" className="flex-shrink-0" onClick={() => copyToClipboard(image.htmlCode, 'html', 'Code HTML copié !')}>
+                                            {copiedField === 'html' ? <Check className="text-green-500"/> : <Copy size={16} />}
+                                        </Button>
+                                    </div>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
@@ -336,84 +411,6 @@ export default function ImageDetailPage() {
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
-                
-                {/* --- Section Partage & Export --- */}
-                <Card>
-                     <CardHeader>
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <CardTitle>Partage & Export</CardTitle>
-                                <CardDescription>Copiez le contenu de votre publication et les liens de partage.</CardDescription>
-                            </div>
-                            <DialogTrigger asChild>
-                                 <Button variant="outline" size="sm">
-                                    <Pencil className="mr-2 h-4 w-4"/>
-                                    Modifier
-                                </Button>
-                            </DialogTrigger>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="p-4 border rounded-lg bg-muted/30 space-y-4">
-                            <div className="flex items-center justify-between">
-                                <Label className="text-base font-semibold">Contenu de la publication</Label>
-                                 <Button
-                                    onClick={() => copyToClipboard(fullTextToCopy, 'details-all', 'Contenu complet copié !')}
-                                    disabled={!fullTextToCopy}
-                                    size="sm"
-                                >
-                                    {copiedField === 'details-all' ? <Check className="mr-2" /> : <CopyPlus className="mr-2" />}
-                                    Tout Copier
-                                </Button>
-                            </div>
-                            <Separator />
-                            <div className="relative">
-                                <Label className="text-muted-foreground text-xs">Titre</Label>
-                                <p className="text-sm font-medium pr-8">{image.title || 'N/A'}</p>
-                            </div>
-                            <div className="relative">
-                                <Label className="text-muted-foreground text-xs">Description</Label>
-                                <p className="text-sm whitespace-pre-wrap pr-8">{image.description || 'N/A'}</p>
-                            </div>
-                             <div className="relative">
-                                <Label className="text-muted-foreground text-xs">Hashtags</Label>
-                                <p className="text-sm text-primary pr-8 break-words">{image.hashtags || 'N/A'}</p>
-                            </div>
-                        </div>
-
-                        <div className="space-y-4">
-                             <div className="relative">
-                                <Label className="text-muted-foreground">Lien direct (URL)</Label>
-                                <div className="flex items-center gap-2">
-                                    <Input value={image.directUrl} readOnly className="text-xs"/>
-                                    <Button variant="ghost" size="icon" className="flex-shrink-0" onClick={() => copyToClipboard(image.directUrl, 'direct', 'Lien copié !')}>
-                                        {copiedField === 'direct' ? <Check className="text-green-500"/> : <Copy size={16} />}
-                                    </Button>
-                                </div>
-                            </div>
-
-                             <div className="relative">
-                                <Label className="text-muted-foreground">Pour forum (BBCode)</Label>
-                                 <div className="flex items-center gap-2">
-                                    <Input value={image.bbCode} readOnly className="text-xs"/>
-                                    <Button variant="ghost" size="icon" className="flex-shrink-0" onClick={() => copyToClipboard(image.bbCode, 'bbcode', 'BBCode copié !')}>
-                                        {copiedField === 'bbcode' ? <Check className="text-green-500"/> : <Copy size={16} />}
-                                    </Button>
-                                </div>
-                            </div>
-
-                             <div className="relative">
-                                <Label className="text-muted-foreground">Pour site web (HTML)</Label>
-                                 <div className="flex items-center gap-2">
-                                    <Input value={image.htmlCode} readOnly className="text-xs"/>
-                                    <Button variant="ghost" size="icon" className="flex-shrink-0" onClick={() => copyToClipboard(image.htmlCode, 'html', 'Code HTML copié !')}>
-                                        {copiedField === 'html' ? <Check className="text-green-500"/> : <Copy size={16} />}
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
 
                  {/* --- NOUVELLE SECTION: PARTAGE RAPIDE --- */}
                 <Card>
@@ -458,3 +455,5 @@ export default function ImageDetailPage() {
         </div>
     );
 }
+
+    
