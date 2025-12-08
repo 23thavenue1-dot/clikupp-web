@@ -283,17 +283,32 @@ export default function ImageDetailPage() {
                                     </Button>
                                 </div>
                                 <Separator />
-                                <div className="relative">
+                                <div className="relative group">
                                     <Label className="text-muted-foreground text-xs">Titre</Label>
                                     <p className="text-sm font-medium pr-8">{image.title || 'N/A'}</p>
+                                    {image.title && (
+                                        <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => copyToClipboard(image.title || '', 'title-detail')}>
+                                            {copiedField === 'title-detail' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                                        </Button>
+                                    )}
                                 </div>
-                                <div className="relative">
+                                <div className="relative group">
                                     <Label className="text-muted-foreground text-xs">Description</Label>
                                     <p className="text-sm whitespace-pre-wrap pr-8">{image.description || 'N/A'}</p>
+                                     {image.description && (
+                                        <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => copyToClipboard(image.description || '', 'desc-detail')}>
+                                            {copiedField === 'desc-detail' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                                        </Button>
+                                    )}
                                 </div>
-                                 <div className="relative">
+                                 <div className="relative group">
                                     <Label className="text-muted-foreground text-xs">Hashtags</Label>
                                     <p className="text-sm text-primary pr-8 break-words">{image.hashtags || 'N/A'}</p>
+                                    {image.hashtags && (
+                                        <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => copyToClipboard(image.hashtags || '', 'tags-detail')}>
+                                            {copiedField === 'tags-detail' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
 
@@ -455,5 +470,3 @@ export default function ImageDetailPage() {
         </div>
     );
 }
-
-    
