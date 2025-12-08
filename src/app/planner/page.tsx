@@ -133,32 +133,28 @@ function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete,
 
     if (variant === 'draft') {
         return (
-             <Card 
-                className={cn("flex items-center gap-2 p-2 hover:shadow-md transition-shadow w-full cursor-grab touch-none", dragHandleProps?.className)} 
-                {...dragHandleProps}
-            >
-                <div className="flex-shrink-0 text-muted-foreground hover:text-foreground">
-                    <GripVertical className="h-5 w-5"/>
+             <Card className={cn("w-full cursor-grab touch-none", dragHandleProps?.className)} {...dragHandleProps}>
+                <div className="flex items-center gap-3 p-3">
+                    <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
+                        {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm truncate">{post.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">{brandProfile?.name || 'Profil par défaut'}</p>
+                    </div>
+                     <Dialog>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DialogTrigger asChild><DropdownMenuItem><Share2 className="mr-2 h-4 w-4" />Partager maintenant</DropdownMenuItem></DialogTrigger>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={handleEdit} disabled={!post.auditId}><Edit className="mr-2 h-4 w-4" />Modifier</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        <ShareDialog post={post} imageUrl={imageUrl} brandProfile={brandProfile} />
+                    </Dialog>
                 </div>
-                <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
-                    {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm truncate">{post.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{brandProfile?.name || 'Profil par défaut'}</p>
-                </div>
-                 <Dialog>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DialogTrigger asChild><DropdownMenuItem><Share2 className="mr-2 h-4 w-4" />Partager maintenant</DropdownMenuItem></DialogTrigger>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={handleEdit} disabled={!post.auditId}><Edit className="mr-2 h-4 w-4" />Modifier</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                    <ShareDialog post={post} imageUrl={imageUrl} brandProfile={brandProfile} />
-                </Dialog>
             </Card>
         )
     }
@@ -217,17 +213,16 @@ function DraggablePostCard({ post, children }: { post: ScheduledPost, children: 
 
     const style = transform ? {
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+        zIndex: 50, // Pour passer au-dessus des autres éléments pendant le glissement
+        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)', // Ombre portée
     } : undefined;
-
-    const dragHandleProps = {
-        ref: setNodeRef,
+    
+    return React.cloneElement(children as React.ReactElement, { 
+        ref: setNodeRef, 
         style: style,
         ...attributes,
-        ...listeners,
-        className: cn(isDragging && 'z-50 shadow-2xl')
-    };
-    
-    return React.cloneElement(children as React.ReactElement, { dragHandleProps });
+        ...listeners
+    });
 }
 
 
