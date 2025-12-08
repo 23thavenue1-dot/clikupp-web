@@ -299,10 +299,10 @@ export async function deleteMultipleImages(firestore: Firestore, storage: Storag
         const imageRefsToDelete = imageIds.map(id => doc(firestore, `users/${userId}/images`, id));
         const imageDocs = await Promise.all(imageRefsToDelete.map(ref => getDoc(ref)));
         const storageDeletePromises = imageDocs.map(docSnap => {
-            const data = docSnap.data() as ImageMetadata;
-            if (data) {
+            if (docSnap.exists()) {
+                const data = docSnap.data() as ImageMetadata;
                 totalSizeFreed += (data.fileSize || 0);
-                batch.delete(docSnap.ref);
+                batch.delete(docSnap.ref); // Delete from Firestore
                 if (data.storagePath) {
                     return deleteObject(ref(storage, data.storagePath)).catch(err => console.warn(`Failed to delete from Storage: ${data.storagePath}`, err));
                 }
@@ -639,4 +639,5 @@ export async function deleteScheduledPost(firestore: Firestore, storage: Storage
     });
     if (error) throw error;
 }
+
 
