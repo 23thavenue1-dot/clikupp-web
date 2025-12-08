@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
@@ -40,6 +41,8 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  useDraggable,
+  useDroppable,
 } from '@dnd-kit/core';
 import { TimePicker } from '@/components/ui/time-picker';
 
@@ -99,7 +102,7 @@ function ShareDialog({ post, imageUrl, brandProfile }: { post: ScheduledPost, im
     );
 }
 
-function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete }: { post: ScheduledPost, variant?: 'default' | 'draft', storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
+function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete, dragHandleProps }: { post: ScheduledPost, variant?: 'default' | 'draft', storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, dragHandleProps?: any }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isImageLoading, setIsImageLoading] = useState(true);
     const router = useRouter();
@@ -129,9 +132,9 @@ function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete 
 
     if (variant === 'draft') {
         return (
-             <Card>
-                <div className="flex items-center gap-3 p-3">
-                    <div className="relative w-16 h-16 rounded-md bg-muted flex-shrink-0 overflow-hidden">
+             <Card className={cn("w-full cursor-grab", dragHandleProps?.className)} {...dragHandleProps}>
+                <div className="flex items-center gap-3 p-2">
+                    <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
                         {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -213,13 +216,14 @@ function DraggablePostCard({ post, variant = 'default', storage, brandProfiles, 
     } : undefined;
     
     return (
-        <div ref={setNodeRef} style={style} {...listeners} {...attributes} className={cn(isDragging && 'cursor-grabbing')}>
+        <div ref={setNodeRef} style={style}>
             <PostCard 
                 post={post}
                 variant={variant}
                 storage={storage}
                 brandProfiles={brandProfiles}
                 onDelete={onDelete}
+                dragHandleProps={{...listeners, ...attributes, className: cn(isDragging && 'cursor-grabbing')}}
             />
         </div>
     );
