@@ -103,10 +103,9 @@ function ShareDialog({ post, imageUrl, brandProfile }: { post: ScheduledPost, im
     );
 }
 
-function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete, dragHandleProps }: { post: ScheduledPost, variant?: 'default' | 'draft', storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, dragHandleProps?: any }) {
+function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete, router, dragHandleProps }: { post: ScheduledPost, variant?: 'default' | 'draft', storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, router: ReturnType<typeof useRouter>, dragHandleProps?: any }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isImageLoading, setIsImageLoading] = useState(true);
-    const router = useRouter();
 
     const brandProfile = useMemo(() => brandProfiles?.find(p => p.id === post.brandProfileId), [brandProfiles, post.brandProfileId]);
 
@@ -134,10 +133,14 @@ function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete,
     if (variant === 'draft') {
         return (
              <Card 
-                className={cn("overflow-hidden transition-all hover:shadow-md cursor-grab touch-none", dragHandleProps?.className)}
-                {...dragHandleProps}
+                ref={dragHandleProps?.ref}
+                style={dragHandleProps?.style}
+                className={cn("overflow-hidden transition-all hover:shadow-md", dragHandleProps?.className)}
              >
-                <div className="flex items-center p-2">
+                <div 
+                    className="flex items-center p-2 cursor-grab touch-none"
+                    {...dragHandleProps}
+                >
                     <GripVertical className="h-5 w-5 text-muted-foreground mr-2 flex-shrink-0"/>
                     <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
                         {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
@@ -210,8 +213,8 @@ function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete,
     );
 }
 
-function DraggablePostCard({ post, storage, brandProfiles, onDelete }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void }) {
-    const { attributes, listeners, setNodeRef, transform } = useDraggable({
+function DraggablePostCard({ post, storage, brandProfiles, onDelete, router }: { post: ScheduledPost, storage: FirebaseStorage | null, brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, router: ReturnType<typeof useRouter> }) {
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: post.id,
         data: post,
     });
@@ -229,7 +232,7 @@ function DraggablePostCard({ post, storage, brandProfiles, onDelete }: { post: S
         ...attributes
     };
 
-    return <PostCard post={post} variant="draft" storage={storage} brandProfiles={brandProfiles} onDelete={onDelete} dragHandleProps={allProps} />;
+    return <PostCard post={post} variant="draft" storage={storage} brandProfiles={brandProfiles} onDelete={onDelete} router={router} dragHandleProps={allProps} />;
 }
 
 // Helper pour charger l'image dans le DraggablePostCard
@@ -247,7 +250,7 @@ function ImageLoader({ post, storage }: { post: ScheduledPost, storage: Firebase
 
 type ScheduledPostWithImage = ScheduledPost & { imageUrl?: string | null };
 
-function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft, onReschedule, onDelete }: { day: Date, posts: ScheduledPostWithImage[], isCurrentMonth: boolean, isToday: boolean, onConvertToDraft: (post: ScheduledPost) => void, onReschedule: (post: ScheduledPost) => void, onDelete: (post: ScheduledPost) => void }) {
+function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft, onReschedule, onDelete, router }: { day: Date, posts: ScheduledPostWithImage[], isCurrentMonth: boolean, isToday: boolean, onConvertToDraft: (post: ScheduledPost) => void, onReschedule: (post: ScheduledPost) => void, onDelete: (post: ScheduledPost) => void, router: ReturnType<typeof useRouter> }) {
     const { setNodeRef, isOver } = useDroppable({
         id: format(day, 'yyyy-MM-dd'),
     });
@@ -307,7 +310,7 @@ function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft, on
 }
 
 
-function CalendarView({ posts, drafts, brandProfiles, onDelete, onConvertToDraft, onReschedule }: { posts: ScheduledPostWithImage[], drafts: ScheduledPost[], brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, onConvertToDraft: (post: ScheduledPost) => void, onReschedule: (post: ScheduledPost) => void }) {
+function CalendarView({ posts, drafts, brandProfiles, onDelete, onConvertToDraft, onReschedule, router }: { posts: ScheduledPostWithImage[], drafts: ScheduledPost[], brandProfiles: BrandProfile[] | null, onDelete: (post: ScheduledPost) => void, onConvertToDraft: (post: ScheduledPost) => void, onReschedule: (post: ScheduledPost) => void, router: ReturnType<typeof useRouter> }) {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const weekDays = ['lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim'];
     const storage = useStorage();
@@ -349,7 +352,7 @@ function CalendarView({ posts, drafts, brandProfiles, onDelete, onConvertToDraft
                 {weekDays.map(day => <div key={day} className="p-2 text-center text-xs font-medium uppercase text-muted-foreground bg-muted/50 border-r border-b">{day}</div>)}
             </div>
             <div className="grid grid-cols-7 border-l">
-                {calendarGrid.map((day, index) => <CalendarDay key={index} day={day} posts={postsByDay.get(format(day, 'yyyy-MM-dd')) || []} isCurrentMonth={isSameMonth(day, currentMonth)} isToday={isSameDay(day, new Date())} onConvertToDraft={onConvertToDraft} onReschedule={onReschedule} onDelete={onDelete} />)}
+                {calendarGrid.map((day, index) => <CalendarDay key={index} day={day} posts={postsByDay.get(format(day, 'yyyy-MM-dd')) || []} isCurrentMonth={isSameMonth(day, currentMonth)} isToday={isSameDay(day, new Date())} onConvertToDraft={onConvertToDraft} onReschedule={onReschedule} onDelete={onDelete} router={router} />)}
             </div>
             <section className="mt-12">
                 <div className="flex items-baseline gap-4 mb-4">
@@ -359,7 +362,7 @@ function CalendarView({ posts, drafts, brandProfiles, onDelete, onConvertToDraft
                 {drafts.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {drafts.map(post => (
-                           <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={onDelete} />
+                           <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={onDelete} router={router} />
                         ))}
                     </div>
                 ) : (
@@ -563,7 +566,7 @@ export default function PlannerPage() {
                                 <div className="space-y-12">
                                     <section>
                                         <h2 className="text-2xl font-semibold mb-4">Publications Programmées ({scheduledPosts.length})</h2>
-                                        {scheduledPosts.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{scheduledPosts.map(post => <PostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />)}</div> : <p className="text-muted-foreground">Aucune publication programmée pour ce profil.</p>}
+                                        {scheduledPosts.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{scheduledPosts.map(post => <PostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} router={router} />)}</div> : <p className="text-muted-foreground">Aucune publication programmée pour ce profil.</p>}
                                     </section>
                                     <section>
                                         <div className="flex items-baseline gap-4 mb-4">
@@ -573,7 +576,7 @@ export default function PlannerPage() {
                                         {draftPosts.length > 0 ? (
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 {draftPosts.map(post => (
-                                                   <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} />
+                                                   <DraggablePostCard key={post.id} post={post} storage={storage} brandProfiles={brandProfiles} onDelete={setPostToDelete} router={router} />
                                                 ))}
                                             </div>
                                         ) : (
@@ -584,7 +587,7 @@ export default function PlannerPage() {
                             )}
                         </TabsContent>
                         <TabsContent value="calendar">
-                             <CalendarView posts={scheduledPosts} drafts={draftPosts} brandProfiles={brandProfiles} onDelete={setPostToDelete} onConvertToDraft={handleConvertToDraft} onReschedule={openRescheduleDialog} />
+                             <CalendarView posts={scheduledPosts} drafts={draftPosts} brandProfiles={brandProfiles} onDelete={setPostToDelete} onConvertToDraft={handleConvertToDraft} onReschedule={openRescheduleDialog} router={router} />
                         </TabsContent>
                     </Tabs>
                 </div>
