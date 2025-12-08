@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
@@ -124,10 +125,6 @@ function PostCard({ post, storage, brandProfiles, onDelete, router }: { post: Sc
     }, [storage, post.imageStoragePath]);
 
     const isScheduled = post.status === 'scheduled' && post.scheduledAt;
-
-    const handleEdit = () => {
-        router.push(`/image/${post.imageId}`);
-    };
     
     return (
         <Card className="flex flex-col overflow-hidden transition-all hover:shadow-md">
@@ -155,7 +152,11 @@ function PostCard({ post, storage, brandProfiles, onDelete, router }: { post: Sc
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 <DialogTrigger asChild><DropdownMenuItem><Share2 className="mr-2 h-4 w-4" />Partager maintenant</DropdownMenuItem></DialogTrigger>
-                                <DropdownMenuItem onClick={handleEdit} disabled={!post.imageId}><Edit className="mr-2 h-4 w-4" />Modifier</DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                  <Link href={`/image/${post.imageId}`}>
+                                    <Edit className="mr-2 h-4 w-4" />Modifier
+                                  </Link>
+                                </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
                             </DropdownMenuContent>
@@ -200,48 +201,46 @@ function DraggablePostCard({ post, storage, brandProfiles, onDelete, router }: {
         }
     }, [storage, post.imageStoragePath]);
 
-    const handleEdit = () => {
-        router.push(`/image/${post.imageId}`);
-    };
-
     return (
-         <Card 
-            ref={setNodeRef}
-            style={style}
-            className={cn("overflow-hidden transition-all hover:shadow-md", isDragging && "shadow-lg")}
-         >
-            <div 
-                className="flex items-center p-2 cursor-grab touch-none"
-                {...listeners}
-                {...attributes}
-            >
-                <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
-                    {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
+        <div ref={setNodeRef} style={style}>
+            <Card className={cn("overflow-hidden transition-all hover:shadow-md", isDragging && "shadow-lg")}>
+                <div className="flex items-center p-2">
+                    <div {...listeners} {...attributes} className="cursor-grab touch-none p-2 mr-2">
+                        <GripVertical className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <div className="relative w-12 h-12 rounded-md bg-muted flex-shrink-0 overflow-hidden">
+                        {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground m-auto" /> : imageUrl ? <Image src={imageUrl} alt={post.title} fill className="object-cover" /> : <FileText className="h-6 w-6 text-muted-foreground m-auto" />}
+                    </div>
+                    <div className="flex-1 min-w-0 pl-3">
+                        <p className="font-semibold text-sm truncate">{post.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">{brandProfile?.name || 'Profil par défaut'}</p>
+                    </div>
+                    <Dialog>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DialogTrigger asChild><DropdownMenuItem><Share2 className="mr-2 h-4 w-4" />Partager</DropdownMenuItem></DialogTrigger>
+                                <DropdownMenuItem asChild>
+                                  <Link href={`/image/${post.imageId}`}>
+                                    <Edit className="mr-2 h-4 w-4" />Modifier
+                                  </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        <ShareDialog post={post} imageUrl={imageUrl} brandProfile={brandProfile} />
+                    </Dialog>
                 </div>
-                <div className="flex-1 min-w-0 pl-3">
-                    <p className="font-semibold text-sm truncate">{post.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{brandProfile?.name || 'Profil par défaut'}</p>
-                </div>
-                <Dialog>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DialogTrigger asChild><DropdownMenuItem><Share2 className="mr-2 h-4 w-4" />Partager</DropdownMenuItem></DialogTrigger>
-                             <DropdownMenuItem onClick={handleEdit} disabled={!post.imageId}><Edit className="mr-2 h-4 w-4" />Modifier</DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                    <ShareDialog post={post} imageUrl={imageUrl} brandProfile={brandProfile} />
-                </Dialog>
-            </div>
-        </Card>
+            </Card>
+        </div>
     );
 }
+
 
 // Helper pour charger l'image dans le DraggablePostCard
 function ImageLoader({ post, storage }: { post: ScheduledPost, storage: FirebaseStorage | null }) {
@@ -262,10 +261,6 @@ function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft, on
     const { setNodeRef, isOver } = useDroppable({
         id: format(day, 'yyyy-MM-dd'),
     });
-
-    const handleEdit = (post: ScheduledPost) => {
-        router.push(`/image/${post.imageId}`);
-    };
 
     return (
         <div
@@ -296,9 +291,10 @@ function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft, on
                         <DropdownMenuContent>
                             <DropdownMenuLabel>{post.title}</DropdownMenuLabel>
                             <DropdownMenuSeparator/>
-                            <DropdownMenuItem onClick={() => handleEdit(post)} disabled={!post.imageId}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Modifier
+                            <DropdownMenuItem asChild>
+                                <Link href={`/image/${post.imageId}`}>
+                                    <Edit className="mr-2 h-4 w-4" />Modifier
+                                </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => onReschedule(post)}>
                                 <CalendarIcon className="mr-2 h-4 w-4" />
@@ -669,4 +665,5 @@ export default function PlannerPage() {
         </DndContext>
     );
 }
+
 
