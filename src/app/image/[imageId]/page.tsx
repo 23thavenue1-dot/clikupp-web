@@ -195,7 +195,13 @@ export default function ImageDetailPage() {
                
                 <Card>
                     <CardHeader>
-                        <div className="relative aspect-video w-full overflow-hidden rounded-md border bg-muted mb-4">
+                        <CardTitle className="text-3xl">Détails de l'image</CardTitle>
+                        <CardDescription>
+                            Téléversée {formatDistanceToNow(image.uploadTimestamp.toDate(), { addSuffix: true, locale: fr })}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                         <div className="relative aspect-video w-full overflow-hidden rounded-md border bg-muted mb-4">
                             <Image
                                 src={image.directUrl}
                                 alt={image.title || image.originalName || 'Image'}
@@ -204,11 +210,8 @@ export default function ImageDetailPage() {
                                 unoptimized
                             />
                         </div>
-                        <CardTitle className="text-3xl break-words">{image.title || 'Sans titre'}</CardTitle>
-                        <CardDescription>
-                            Téléversée {formatDistanceToNow(image.uploadTimestamp.toDate(), { addSuffix: true, locale: fr })}
-                        </CardDescription>
-                    </CardHeader>
+                        <h2 className="text-2xl font-semibold break-words">{image.title || 'Sans titre'}</h2>
+                    </CardContent>
                 </Card>
 
                 {/* --- Section Outils IA --- */}
