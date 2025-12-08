@@ -260,14 +260,32 @@ export async function saveImageFromUrl(firestore: Firestore, user: User, metadat
 
 export async function deleteImageMetadata(firestore: Firestore, userId: string, imageId: string): Promise<void> {
     const { error } = await withErrorHandling(async () => {
+        const batch = writeBatch(firestore);
         const imageDocRef = doc(firestore, 'users', userId, 'images', imageId);
         const userDocRef = doc(firestore, 'users', userId);
+
         const imageDoc = await getDoc(imageDocRef);
         if (!imageDoc.exists()) return;
+
         const imageData = imageDoc.data() as ImageMetadata;
         const fileSize = imageData.fileSize || 0;
-        await deleteDoc(imageDocRef);
-        if (fileSize > 0) await updateDoc(userDocRef, { storageUsed: increment(-fileSize) });
+        
+        // Delete image document
+        batch.delete(imageDocRef);
+
+        // Decrement storage used
+        if (fileSize > 0) {
+            batch.update(userDocRef, { storageUsed: increment(-fileSize) });
+        }
+
+        // Find and delete associated scheduled posts
+        const postsQuery = query(collection(firestore, 'users', userId, 'scheduledPosts'), where('imageId', '==', imageId));
+        const postsSnapshot = await getDocs(postsQuery);
+        postsSnapshot.forEach(postDoc => {
+            batch.delete(postDoc.ref);
+        });
+
+        await batch.commit();
     }, { operation: 'deleteImageMetadata', userId, path: `users/${userId}/images/${imageId}` });
     if (error) throw error;
 }
@@ -276,29 +294,53 @@ export async function deleteMultipleImages(firestore: Firestore, storage: Storag
     const { error } = await withErrorHandling(async () => {
         const batch = writeBatch(firestore);
         let totalSizeFreed = 0;
+
+        // Prepare to delete image documents and files from Storage
         const imageRefsToDelete = imageIds.map(id => doc(firestore, `users/${userId}/images`, id));
         const imageDocs = await Promise.all(imageRefsToDelete.map(ref => getDoc(ref)));
         const storageDeletePromises = imageDocs.map(docSnap => {
             const data = docSnap.data() as ImageMetadata;
-            if (data && data.storagePath) {
+            if (data) {
                 totalSizeFreed += (data.fileSize || 0);
                 batch.delete(docSnap.ref);
-                return deleteObject(ref(storage, data.storagePath)).catch(err => console.warn(`Failed to delete from Storage: ${data.storagePath}`, err));
-            } return Promise.resolve();
+                if (data.storagePath) {
+                    return deleteObject(ref(storage, data.storagePath)).catch(err => console.warn(`Failed to delete from Storage: ${data.storagePath}`, err));
+                }
+            }
+            return Promise.resolve();
         });
-        await Promise.all(storageDeletePromises);
-        if (totalSizeFreed > 0) batch.update(doc(firestore, 'users', userId), { storageUsed: increment(-totalSizeFreed) });
-        await batch.commit();
+
+        // Decrement storage used
+        if (totalSizeFreed > 0) {
+            batch.update(doc(firestore, 'users', userId), { storageUsed: increment(-totalSizeFreed) });
+        }
+
+        // Find and delete associated scheduled posts
+        if (imageIds.length > 0) {
+            const postsQuery = query(collection(firestore, 'users', userId, 'scheduledPosts'), where('imageId', 'in', imageIds));
+            const postsSnapshot = await getDocs(postsQuery);
+            postsSnapshot.forEach(postDoc => {
+                batch.delete(postDoc.ref);
+            });
+        }
+        
+        // Find and remove images from galleries
         const galleriesQuery = query(collection(firestore, 'users', userId, 'galleries'));
         const galleriesSnapshot = await getDocs(galleriesQuery);
-        const galleryUpdateBatch = writeBatch(firestore);
         galleriesSnapshot.forEach(galleryDoc => {
             const galleryData = galleryDoc.data() as Gallery;
             if (galleryData.imageIds.some(id => imageIds.includes(id))) {
-                galleryUpdateBatch.update(galleryDoc.ref, { imageIds: arrayRemove(...imageIds) });
+                batch.update(galleryDoc.ref, { 
+                    imageIds: arrayRemove(...imageIds),
+                    pinnedImageIds: arrayRemove(...imageIds)
+                });
             }
         });
-        await galleryUpdateBatch.commit();
+
+        // Execute all operations
+        await Promise.all(storageDeletePromises);
+        await batch.commit();
+
     }, { operation: 'deleteMultipleImages', userId });
     if (error) throw error;
 }
@@ -585,9 +627,9 @@ export async function deleteScheduledPost(firestore: Firestore, storage: Storage
     const { error } = await withErrorHandling(async () => {
         const postDocRef = doc(firestore, 'users', userId, 'scheduledPosts', post.id);
         
-        // Supprime uniquement le document Firestore, pas l'image dans Storage.
-        // L'image est liée à la bibliothèque principale et sa suppression est gérée séparément
-        // pour éviter de supprimer une image utilisée ailleurs.
+        // On ne supprime plus l'image de Storage ici pour éviter les suppressions accidentelles
+        // d'images partagées. La suppression de fichier doit être gérée uniquement
+        // lors de la suppression de l'ImageMetadata principale.
         await deleteDoc(postDocRef);
 
     }, {
@@ -597,3 +639,4 @@ export async function deleteScheduledPost(firestore: Firestore, storage: Storage
     });
     if (error) throw error;
 }
+
