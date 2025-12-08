@@ -3,25 +3,33 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useFirebase, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import type { ImageMetadata, UserProfile } from '@/lib/firestore';
+import { doc, collection, query, orderBy } from 'firebase/firestore';
+import type { ImageMetadata, UserProfile, BrandProfile } from '@/lib/firestore';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Copy, Check, CopyPlus, Sparkles, FileText, LineChart, Wand2, ShoppingCart, Instagram, Facebook, MessageSquare, VenetianMask, Pencil } from 'lucide-react';
+import { ArrowLeft, Loader2, Copy, Check, CopyPlus, Sparkles, FileText, LineChart, Wand2, ShoppingCart, Instagram, Facebook, MessageSquare, VenetianMask, Pencil, Calendar as CalendarIcon, FilePlus as FilePlusIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { generateImageDescription } from '@/ai/flows/generate-description-flow';
-import { decrementAiTicketCount, updateImageDescription } from '@/lib/firestore';
+import { decrementAiTicketCount, updateImageDescription, savePostForLater } from '@/lib/firestore';
+import { withErrorHandling } from '@/lib/async-wrapper';
+import { getStorage } from 'firebase/storage';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
 
@@ -31,7 +39,7 @@ export default function ImageDetailPage() {
     const router = useRouter();
     const imageId = params.imageId as string;
 
-    const { user, isUserLoading } = useUser();
+    const { user, isUserLoading, firebaseApp } = useFirebase();
     const { toast } = useToast();
     const firestore = useFirestore();
 
@@ -46,6 +54,12 @@ export default function ImageDetailPage() {
     const [hashtagsString, setHashtagsString] = useState('');
     const [wasGeneratedByAI, setWasGeneratedByAI] = useState(false);
 
+    // --- State pour la planification ---
+    const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+    const [scheduleDate, setScheduleDate] = useState<Date | undefined>(undefined);
+    const [selectedProfileId, setSelectedProfileId] = useState<string>('');
+    const [isSavingPost, setIsSavingPost] = useState(false);
+
 
     const imageDocRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -58,6 +72,12 @@ export default function ImageDetailPage() {
         return doc(firestore, `users/${user.uid}`);
     }, [user, firestore]);
     const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+
+    const brandProfilesQuery = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return query(collection(firestore, `users/${user.uid}/brandProfiles`), orderBy('createdAt', 'desc'));
+    }, [user, firestore]);
+    const { data: brandProfiles } = useDoc<BrandProfile[]>(brandProfilesQuery as any);
 
 
     useEffect(() => {
@@ -151,6 +171,33 @@ export default function ImageDetailPage() {
         }
     };
 
+    const handleSavePost = async () => {
+        if (!user || !firebaseApp || !image || !selectedProfileId) return;
+
+        setIsSavingPost(true);
+        const storage = getStorage(firebaseApp);
+        
+        const { error } = await withErrorHandling(() => 
+            savePostForLater(firestore, storage, user.uid, {
+                brandProfileId: selectedProfileId,
+                title: image.title,
+                description: image.description || '',
+                scheduledAt: scheduleDate, // Peut être undefined pour un brouillon
+                imageSource: image,
+            })
+        );
+        
+        if (!error) {
+            if (scheduleDate) {
+                toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur pour le ${format(scheduleDate, 'PPP', { locale: fr })}.` });
+            } else {
+                toast({ title: "Brouillon sauvegardé !", description: "Retrouvez-le dans votre Planificateur de contenu." });
+            }
+            setScheduleDialogOpen(false);
+        }
+        setIsSavingPost(false);
+    };
+
 
     if (isUserLoading || isImageLoading) {
         return (
@@ -237,8 +284,9 @@ export default function ImageDetailPage() {
                             <span className="font-semibold">Générer une description</span>
                             <p className="text-xs text-muted-foreground">Créez un titre, une description et des hashtags pertinents pour les réseaux sociaux.</p>
                         </div>
+                        
                          <div 
-                            className="p-4 border rounded-lg h-full flex flex-col items-start gap-2 hover:bg-muted/50 hover:border-primary/50 transition-colors cursor-pointer md:col-span-2"
+                            className="p-4 border rounded-lg h-full flex flex-col items-start gap-2 hover:bg-muted/50 hover:border-primary/50 transition-colors cursor-pointer"
                             onClick={handleCoachClick}
                             role="button"
                             tabIndex={0}
@@ -248,6 +296,19 @@ export default function ImageDetailPage() {
                             </div>
                             <span className="font-semibold">Utiliser dans le Coach Stratégique</span>
                             <p className="text-xs text-muted-foreground">Analysez cette image dans le cadre d'un audit de profil pour une stratégie de contenu sur-mesure.</p>
+                        </div>
+                        
+                         <div 
+                            className="p-4 border rounded-lg h-full flex flex-col items-start gap-2 hover:bg-muted/50 hover:border-primary/50 transition-colors cursor-pointer"
+                            onClick={() => setScheduleDialogOpen(true)}
+                            role="button"
+                            tabIndex={0}
+                        >
+                            <div className="p-2 bg-primary/10 text-primary rounded-lg">
+                                <FilePlusIcon className="h-6 w-6" />
+                            </div>
+                            <span className="font-semibold">Planifier / Brouillon</span>
+                            <p className="text-xs text-muted-foreground">Programmez cette image pour une publication future ou sauvegardez-la comme brouillon.</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -287,7 +348,7 @@ export default function ImageDetailPage() {
                                     <Label className="text-muted-foreground text-xs">Titre</Label>
                                     <p className="text-sm font-medium pr-8">{image.title || 'N/A'}</p>
                                     {image.title && (
-                                        <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-6 w-6 transition-opacity" onClick={() => copyToClipboard(image.title || '', 'title-detail')}>
+                                        <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-6 w-6" onClick={() => copyToClipboard(image.title || '', 'title-detail')}>
                                             {copiedField === 'title-detail' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
                                         </Button>
                                     )}
@@ -296,7 +357,7 @@ export default function ImageDetailPage() {
                                     <Label className="text-muted-foreground text-xs">Description</Label>
                                     <p className="text-sm whitespace-pre-wrap pr-8">{image.description || 'N/A'}</p>
                                      {image.description && (
-                                        <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-6 w-6 transition-opacity" onClick={() => copyToClipboard(image.description || '', 'desc-detail')}>
+                                        <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-6 w-6" onClick={() => copyToClipboard(image.description || '', 'desc-detail')}>
                                             {copiedField === 'desc-detail' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
                                         </Button>
                                     )}
@@ -305,7 +366,7 @@ export default function ImageDetailPage() {
                                     <Label className="text-muted-foreground text-xs">Hashtags</Label>
                                     <p className="text-sm text-primary pr-8 break-words">{image.hashtags || 'N/A'}</p>
                                     {image.hashtags && (
-                                        <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-6 w-6 transition-opacity" onClick={() => copyToClipboard(image.hashtags || '', 'tags-detail')}>
+                                        <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-6 w-6" onClick={() => copyToClipboard(image.hashtags || '', 'tags-detail')}>
                                             {copiedField === 'tags-detail' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
                                         </Button>
                                     )}
@@ -427,7 +488,7 @@ export default function ImageDetailPage() {
                     </DialogContent>
                 </Dialog>
 
-                 {/* --- NOUVELLE SECTION: PARTAGE RAPIDE --- */}
+                {/* --- NOUVELLE SECTION: PARTAGE RAPIDE --- */}
                 <Card>
                     <CardHeader>
                         <CardTitle>Partage Rapide</CardTitle>
@@ -467,6 +528,82 @@ export default function ImageDetailPage() {
                 </Card>
 
             </div>
+
+             <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Planifier une publication</DialogTitle>
+                        <DialogDescription>
+                            Associez ce post à un profil et choisissez une date de publication, ou sauvegardez-le en tant que brouillon.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="brand-profile">Profil de Marque</Label>
+                            <Select value={selectedProfileId} onValueChange={setSelectedProfileId}>
+                                <SelectTrigger id="brand-profile">
+                                    <SelectValue placeholder="Sélectionnez un profil..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {(brandProfiles ?? []).map(profile => (
+                                        <SelectItem key={profile.id} value={profile.id}>
+                                            <div className="flex items-center gap-2">
+                                                <Avatar className="h-5 w-5">
+                                                    <AvatarImage src={profile.avatarUrl} alt={profile.name} />
+                                                    <AvatarFallback>{profile.name.charAt(0)}</AvatarFallback>
+                                                </Avatar>
+                                                <span>{profile.name}</span>
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                             {(brandProfiles ?? []).length === 0 && (
+                                <p className="text-xs text-muted-foreground">
+                                    Vous devez d'abord créer un profil de marque dans le <Link href="/audit" className="underline text-primary">Coach Stratégique</Link>.
+                                </p>
+                            )}
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Date de publication (optionnel)</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal",
+                                            !scheduleDate && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {scheduleDate ? format(scheduleDate, "PPP", { locale: fr }) : <span>Choisissez une date</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                    <Calendar
+                                        mode="single"
+                                        selected={scheduleDate}
+                                        onSelect={setScheduleDate}
+                                        disabled={(date) => date < new Date() || date < new Date("1900-01-01")}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                             <p className="text-xs text-muted-foreground">Si aucune date n'est choisie, le post sera sauvegardé comme brouillon.</p>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button variant="secondary" disabled={isSavingPost}>Annuler</Button>
+                        </DialogClose>
+                        <Button onClick={handleSavePost} disabled={isSavingPost || !selectedProfileId}>
+                            {isSavingPost && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                            {scheduleDate ? 'Programmer' : 'Enregistrer en brouillon'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
         </div>
     );
 }
