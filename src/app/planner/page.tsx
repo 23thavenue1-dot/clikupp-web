@@ -48,6 +48,7 @@ import {
 } from '@dnd-kit/core';
 import { TimePicker } from '@/components/ui/time-picker';
 import { Calendar } from '@/components/ui/calendar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 function ShareDialog({ post, imageUrl, brandProfile }: { post: ScheduledPost, imageUrl: string | null, brandProfile: BrandProfile | null }) {
@@ -152,11 +153,25 @@ function PostCard({ post, storage, brandProfiles, onDelete, router }: { post: Sc
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 <DialogTrigger asChild><DropdownMenuItem><Share2 className="mr-2 h-4 w-4" />Partager maintenant</DropdownMenuItem></DialogTrigger>
-                                <DropdownMenuItem asChild>
-                                  <Link href={`/image/${post.imageId}`}>
-                                    <Edit className="mr-2 h-4 w-4" />Modifier
-                                  </Link>
-                                </DropdownMenuItem>
+                                
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div>
+                                            <DropdownMenuItem asChild disabled={!post.imageId}>
+                                                <Link href={post.imageId ? `/image/${post.imageId}` : '#'}>
+                                                    <Edit className="mr-2 h-4 w-4" />
+                                                    Modifier
+                                                </Link>
+                                            </DropdownMenuItem>
+                                        </div>
+                                    </TooltipTrigger>
+                                    {!post.imageId && (
+                                        <TooltipContent>
+                                            <p>Les anciens posts ne peuvent pas être modifiés ici.</p>
+                                        </TooltipContent>
+                                    )}
+                                </Tooltip>
+
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
                             </DropdownMenuContent>
@@ -224,11 +239,23 @@ function DraggablePostCard({ post, storage, brandProfiles, onDelete, router }: {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 <DialogTrigger asChild><DropdownMenuItem><Share2 className="mr-2 h-4 w-4" />Partager</DropdownMenuItem></DialogTrigger>
-                                <DropdownMenuItem asChild>
-                                  <Link href={`/image/${post.imageId}`}>
-                                    <Edit className="mr-2 h-4 w-4" />Modifier
-                                  </Link>
-                                </DropdownMenuItem>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div>
+                                            <DropdownMenuItem asChild disabled={!post.imageId}>
+                                                <Link href={post.imageId ? `/image/${post.imageId}` : '#'}>
+                                                    <Edit className="mr-2 h-4 w-4" />
+                                                    Modifier
+                                                </Link>
+                                            </DropdownMenuItem>
+                                        </div>
+                                    </TooltipTrigger>
+                                    {!post.imageId && (
+                                        <TooltipContent>
+                                            <p>Les anciens posts ne peuvent pas être modifiés ici.</p>
+                                        </TooltipContent>
+                                    )}
+                                </Tooltip>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={() => onDelete(post)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
                             </DropdownMenuContent>
@@ -240,7 +267,6 @@ function DraggablePostCard({ post, storage, brandProfiles, onDelete, router }: {
         </div>
     );
 }
-
 
 // Helper pour charger l'image dans le DraggablePostCard
 function ImageLoader({ post, storage }: { post: ScheduledPost, storage: FirebaseStorage | null }) {
@@ -291,11 +317,23 @@ function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft, on
                         <DropdownMenuContent>
                             <DropdownMenuLabel>{post.title}</DropdownMenuLabel>
                             <DropdownMenuSeparator/>
-                            <DropdownMenuItem asChild>
-                                <Link href={`/image/${post.imageId}`}>
-                                    <Edit className="mr-2 h-4 w-4" />Modifier
-                                </Link>
-                            </DropdownMenuItem>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div>
+                                        <DropdownMenuItem asChild disabled={!post.imageId}>
+                                            <Link href={post.imageId ? `/image/${post.imageId}` : '#'}>
+                                                <Edit className="mr-2 h-4 w-4" />
+                                                Modifier
+                                            </Link>
+                                        </DropdownMenuItem>
+                                    </div>
+                                </TooltipTrigger>
+                                {!post.imageId && (
+                                    <TooltipContent>
+                                        <p>Les anciens posts ne peuvent pas être modifiés.</p>
+                                    </TooltipContent>
+                                )}
+                            </Tooltip>
                             <DropdownMenuItem onClick={() => onReschedule(post)}>
                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                 Reprogrammer
@@ -539,6 +577,7 @@ export default function PlannerPage() {
     
     return (
         <DndContext sensors={sensors} onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
+          <TooltipProvider>
             <div className="container mx-auto p-4 sm:p-6 lg:p-8">
                 <div className="w-full max-w-7xl mx-auto space-y-8">
                     <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -661,9 +700,10 @@ export default function PlannerPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-
+          </TooltipProvider>
         </DndContext>
     );
 }
+
 
 
