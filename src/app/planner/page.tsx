@@ -127,6 +127,9 @@ function PostCard({ post, variant = 'default', storage, brandProfiles, onDelete,
     const handleEdit = () => {
         if (post.auditId) {
             router.push(`/audit/resultats/${post.auditId}`);
+        } else {
+            // Potentiellement, ouvrir une modale d'édition simple ici à l'avenir.
+            // Pour l'instant, on ne fait rien si le post n'est pas lié à un audit.
         }
     };
     
@@ -284,7 +287,7 @@ function CalendarDay({ day, posts, isCurrentMonth, isToday, onConvertToDraft, on
                         <DropdownMenuContent>
                             <DropdownMenuLabel>{post.title}</DropdownMenuLabel>
                             <DropdownMenuSeparator/>
-                            <DropdownMenuItem onClick={() => router.push(`/audit/resultats/${post.auditId}`)} disabled={!post.auditId}>
+                            <DropdownMenuItem onClick={() => { if(post.auditId) router.push(`/audit/resultats/${post.auditId}`); }} disabled={!post.auditId}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Modifier
                             </DropdownMenuItem>
@@ -571,7 +574,7 @@ export default function PlannerPage() {
                                     <section>
                                         <div className="flex items-baseline gap-4 mb-4">
                                             <h2 className="text-2xl font-semibold">Brouillons ({draftPosts.length})</h2>
-                                             <p className="text-sm text-muted-foreground">Glissez-déposez un brouillon sur le calendrier pour le programmer.</p>
+                                            <p className="text-sm text-muted-foreground">Glissez-déposez un brouillon sur le calendrier pour le programmer.</p>
                                         </div>
                                         {draftPosts.length > 0 ? (
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
