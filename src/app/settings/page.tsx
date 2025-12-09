@@ -603,21 +603,16 @@ function AccountTab() {
                             {userProfile.subscriptionTier === 'none' ? 'Aucun' : userProfile.subscriptionTier}
                         </p>
                     </div>
-                    {userProfile.subscriptionTier !== 'none' && (
+                    {userProfile.subscriptionTier !== 'none' ? (
                         <Button onClick={handleManageSubscription} disabled={isPortalLoading}>
                             {isPortalLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Gérer mon abonnement
                         </Button>
+                    ) : (
+                         <Button asChild>
+                            <Link href="/shop">Voir les offres</Link>
+                        </Button>
                     )}
-                </div>
-                <div className="border-t pt-4">
-                     <Button variant="outline" asChild>
-                        <Link href="https://github.com/23thavenue1-dot/clikup-web/issues" target="_blank" rel="noopener noreferrer">
-                           <AlertTriangle className="mr-2 h-4 w-4" />
-                           Signaler un problème
-                           <ExternalLink className="ml-2 h-4 w-4" />
-                        </Link>
-                    </Button>
                 </div>
             </div>
         </CardContent>
@@ -689,23 +684,19 @@ function AccountTab() {
           <CardDescription>Ces actions sont irréversibles. Soyez certain de votre choix.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-           <AlertDialog>
-              <AlertDialogTrigger asChild>
-                  <div className="flex items-center justify-between">
-                      <div>
-                          <p className="font-medium">Réinitialiser le client Stripe</p>
-                          <p className="text-sm text-muted-foreground">À utiliser en cas d'erreur `No such customer` après être passé en production.</p>
-                      </div>
-                      <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={handleResetStripeCustomer} disabled={isResettingStripe}>
-                          {isResettingStripe ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                          Réinitialiser Stripe
-                      </Button>
-                  </div>
-              </AlertDialogTrigger>
-          </AlertDialog>
+           <div className="flex items-center justify-between">
+                <div>
+                    <p className="font-medium">Réinitialiser le client Stripe</p>
+                    <p className="text-sm text-muted-foreground">À utiliser en cas d'erreur `No such customer` après être passé en production.</p>
+                </div>
+                <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={handleResetStripeCustomer} disabled={isResettingStripe}>
+                    {isResettingStripe ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                    Réinitialiser Stripe
+                </Button>
+            </div>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between pt-4 border-t">
                 <div>
                   <p className="font-medium">Supprimer le compte</p>
                   <p className="text-sm text-muted-foreground">Toutes vos données seront définitivement effacées.</p>

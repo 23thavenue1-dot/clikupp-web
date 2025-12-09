@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, Suspense, useMemo } from 'react';
@@ -15,24 +16,24 @@ import type { UserProfile } from '@/lib/firestore';
 import { cn } from '@/lib/utils';
 
 const SUBSCRIPTION_IDS = {
-    creator: 'price_1SXQhCCL0iCpjJii9y46m6uk',
-    pro: 'price_1SXQh9CL0iCpjJiifbU0fjV9',
-    master: 'price_1SXQh6CL0iCpjJiiSn7Jur4x',
-    storage_250: 'price_1SXQh0CL0iCpjJii8LKkxPgX',
-    storage_500: 'price_1SXQgvCL0iCpjJiiwOXmyVjm',
-    storage_1000: 'price_1SXQgsCL0iCpjJiizxBU54QP',
+    creator: 'price_1PWTzZCL0iCpjJiiBq1xT3sD',
+    pro: 'price_1PWTzXCL0iCpjJiiG7j3x9fF',
+    master: 'price_1PWTzVCL0iCpjJii5h3rR8gV',
+    storage_250: 'price_1PWTzTCL0iCpjJiiq2w4b5vR',
+    storage_500: 'price_1PWTzRCL0iCpjJii8a3a0e9G',
+    storage_1000: 'price_1PWTzOCL0iCpjJii5bM4u3eR',
 };
 
 const PACK_IDS = {
-    upload_s: 'price_1SXQkRCL0iCpjJii6jhlInvh',
-    upload_m: 'price_1SXQkPCL0iCpjJiippSEbykn',
-    upload_l: 'price_1SXQhSCL0iCpjJiiV16zv5oa',
-    upload_xl: 'price_1SXQgpCL0iCpjJiiAVWBKV1u',
-    ai_s: 'price_1SXQhOCL0iCpjJiiviouOczZ',
-    ai_m: 'price_1SXQhKCL0iCpjJii345BiFGt',
-    ai_l: 'price_1SXQhGCL0iCpjJiiiAn9JQbW',
-    ai_xl: 'price_1SXQgmCL0iCpjJii024e3ntr',
-    ai_xxl: 'price_1SXQgcCL0iCpjJiiHvbVStUw',
+    upload_s: 'price_1PWTzLCL0iCpjJiiD0p3F8bX',
+    upload_m: 'price_1PWTzJCL0iCpjJiiX2L4X9Zf',
+    upload_l: 'price_1PWTzHCL0iCpjJii3h2s3h3E',
+    upload_xl: 'price_1PWTzFCL0iCpjJiif3e3d3eD',
+    ai_s: 'price_1PWTzDCL0iCpjJii3d3e3h2s',
+    ai_m: 'price B',
+    ai_l: 'price_1PWTzACL0iCpjJiiV3h3rR8gV',
+    ai_xl: 'price_1PWTz8CL0iCpjJiiq2w4b5vR',
+    ai_xxl: 'price_1PWTz6CL0iCpjJii8a3a0e9G',
 };
 
 
@@ -197,56 +198,12 @@ function CheckoutButton({ item, disabled, isCurrentPlan }: { item: any, disabled
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
     
-    // NOUVEL ÉTAT POUR GÉRER L'ERREUR CLIENT
-    const [customerError, setCustomerError] = useState(false);
-
-    const handleResetStripeCustomer = async () => {
-        if (!user || !firestore) return;
-        setIsLoading(true);
-        const userDocRef = doc(firestore, 'users', user.uid);
-        try {
-            await updateDoc(userDocRef, { stripeCustomerId: null });
-            toast({
-                title: "Client Stripe réinitialisé",
-                description: "Vous pouvez maintenant réessayer votre achat.",
-            });
-            setCustomerError(false); // Réinitialiser l'erreur pour cacher le message
-        } catch (error) {
-            toast({ variant: "destructive", title: "Erreur", description: "Impossible de réinitialiser l'ID client." });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-    
     if (item.mode === 'free' || isCurrentPlan) {
         return (
              <Button disabled className="w-full">
                 {isCurrentPlan ? 'Votre plan actuel' : 'Déjà inclus'}
             </Button>
         )
-    }
-
-    if (customerError) {
-        return (
-            <div className="p-4 border rounded-lg bg-destructive/10 text-destructive text-sm space-y-4">
-                 <div className="flex items-start gap-3">
-                    <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                    <div>
-                        <h4 className="font-semibold">Erreur de client de paiement</h4>
-                        <p className="text-xs mt-1">Votre ID client de test n'est pas valide en mode production. Veuillez le réinitialiser pour continuer.</p>
-                    </div>
-                </div>
-                 <Button
-                    onClick={handleResetStripeCustomer}
-                    disabled={isLoading}
-                    className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    size="sm"
-                >
-                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Réinitialiser mon ID Client
-                </Button>
-            </div>
-        );
     }
 
     const handleCheckout = async () => {
@@ -274,13 +231,6 @@ function CheckoutButton({ item, disabled, isCurrentPlan }: { item: any, disabled
                 if (error) {
                     console.error('Erreur de la session de paiement:', JSON.stringify(error, null, 2));
 
-                    // DÉTECTION SPÉCIFIQUE DE L'ERREUR
-                    if (error.message && error.message.includes('No such customer')) {
-                        setCustomerError(true);
-                        setIsLoading(false);
-                        return; // Arrêter le traitement ici
-                    }
-                    
                     toast({
                         variant: 'destructive',
                         title: 'Erreur de paiement',
