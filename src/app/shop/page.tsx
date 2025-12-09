@@ -33,7 +33,7 @@ const PACK_IDS = {
     ai_m: 'price_1SXQhKCL0iCpjJii345BiFGt',
     ai_l: 'price_1SXQhGCL0iCpjJiiiAn9JQbW',
     ai_xl: 'price_1PWTz8CL0iCpjJiiq2w4b5vR',
-    ai_xxl: 'price_1PWTz6CL0iCpjJii8a3a0e9G',
+    ai_xxl: 'price_1SXQgcCL0iCpjJiiHvbVStUw',
 };
 
 
