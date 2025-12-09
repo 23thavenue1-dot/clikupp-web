@@ -20,7 +20,7 @@ const SUBSCRIPTION_IDS = {
     pro: 'price_1PWTzXCL0iCpjJiiG7j3x9fF',
     master: 'price_1PWTzVCL0iCpjJii5h3rR8gV',
     storage_250: 'price_1PWTzTCL0iCpjJiiq2w4b5vR',
-    storage_500: 'price_1PWTzRCL0iCpjJii8a3a0e9G',
+    storage_500: 'price_1SXQgvCL0iCpjJiiw0XmyVjm',
     storage_1000: 'price_1SXQgsCL0iCpjJiizxBU54QP',
 };
 
