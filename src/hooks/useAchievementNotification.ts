@@ -32,8 +32,15 @@ export const useAchievementNotification = () => {
 
         const seenCount = getSeenCount();
         const totalUnlocked = userProfile.unlockedAchievements?.length ?? 0;
-        
-        setHasNew(totalUnlocked > seenCount);
+        const newStatus = totalUnlocked > seenCount;
+
+        // Condition pour casser la boucle de rendu
+        setHasNew(prevHasNew => {
+            if (prevHasNew !== newStatus) {
+                return newStatus;
+            }
+            return prevHasNew;
+        });
     }, [userProfile]);
 
     // Ce useEffect réagit maintenant directement aux changements du userProfile
