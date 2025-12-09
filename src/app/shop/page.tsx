@@ -5,24 +5,19 @@ import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, Crown, Gem, Rocket, Sparkles, Upload, Loader2, Package, HardDrive, AlertTriangle } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Check, Crown, Gem, Rocket, Sparkles, Upload, Loader2, Package, HardDrive, AlertTriangle, ShoppingCart } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/firestore';
 import { cn } from '@/lib/utils';
-import { getStripe } from '@/lib/stripe-client'; // Assurez-vous que ce fichier existe
 
-
-// Mettre les ID de prix ici pour la configuration.
-// Ces ID doivent correspondre à ceux de votre tableau de bord Stripe.
 const SUBSCRIPTION_IDS = {
     creator: 'price_1SXQhCCL0iCpjJii9y46m6uk',
     pro: 'price_1SXQh9CL0iCpjJiifbU0fjV9',
     master: 'price_1SXQh6CL0iCpjJiiSn7Jur4x',
-    // NOUVEAUX IDs DE STOCKAGE (à créer dans Stripe)
     storage_250: 'price_1SXQh0CL0iCpjJii8LKkxPgX',
     storage_500: 'price_1SXQgvCL0iCpjJiiwOXmyVjm',
     storage_1000: 'price_1SXQgsCL0iCpjJiizxBU54QP',
@@ -32,12 +27,12 @@ const PACK_IDS = {
     upload_s: 'price_1SXQkRCL0iCpjJii6jhlInvh',
     upload_m: 'price_1SXQkPCL0iCpjJiippSEbykn',
     upload_l: 'price_1SXQhSCL0iCpjJiiV16zv5oa',
-    upload_xl: 'price_1SXQgpCL0iCpjJiiAVWBKV1u', // ID pour le nouveau pack
+    upload_xl: 'price_1SXQgpCL0iCpjJiiAVWBKV1u',
     ai_s: 'price_1SXQhOCL0iCpjJiiviouOczZ',
     ai_m: 'price_1SXQhKCL0iCpjJii345BiFGt',
     ai_l: 'price_1SXQhGCL0iCpjJiiiAn9JQbW',
-    ai_xl: 'price_1SXQgmCL0iCpjJii024e3ntr', // Nouveau pack 500 tickets
-    ai_xxl: 'price_1SXQgcCL0iCpjJiiHvbVStUw', // Nouveau pack 1000 tickets
+    ai_xl: 'price_1SXQgmCL0iCpjJii024e3ntr',
+    ai_xxl: 'price_1SXQgcCL0iCpjJiiHvbVStUw',
 };
 
 
