@@ -188,7 +188,7 @@ setCurrentDescription(result.description);
                                                 <DropdownMenuTrigger asChild>
                                                     <Button variant="outline" className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity" disabled={isGeneratingDescription || isSavingDescription || totalAiTickets <= 0}>
                                                         {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4 text-amber-400" />}
-                                                        {isGeneratingDescription ? "Génération..." : "Générer pour..."}
+                                                        {isGeneratingDescription ? "Génération..." : "Générer pour... (1 Ticket IA)"}
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent className="w-56">
