@@ -111,7 +111,7 @@ export function ImageList() {
     const [hashtagsString, setHashtagsString] = useState('');
     
     const [isSavingDescription, setIsSavingDescription] = useState(false);
-    const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
+    const [generatingForPlatform, setGeneratingForPlatform] = useState<Platform | null>(null);
     const [wasGeneratedByAI, setWasGeneratedByAI] = useState(false);
 
     const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -314,7 +314,7 @@ export function ImageList() {
             return;
         }
 
-        setIsGeneratingDescription(true);
+        setGeneratingForPlatform(platform);
         setWasGeneratedByAI(false);
         try {
             const result = await generateImageDescription({ imageUrl: imageToEdit.directUrl, platform: platform });
@@ -330,7 +330,7 @@ export function ImageList() {
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur IA', description: "Le service de génération n'a pas pu répondre." });
         } finally {
-            setIsGeneratingDescription(false);
+            setGeneratingForPlatform(null);
         }
     };
 
@@ -760,7 +760,7 @@ export function ImageList() {
                                 placeholder="Titre de votre image..."
                                 value={currentTitle}
                                 onChange={(e) => setCurrentTitle(e.target.value)}
-                                disabled={isGeneratingDescription || isSavingDescription}
+                                disabled={!!generatingForPlatform || isSavingDescription}
                             />
                         </div>
                         
@@ -772,7 +772,7 @@ export function ImageList() {
                                 value={currentDescription}
                                 onChange={(e) => setCurrentDescription(e.target.value)}
                                 rows={4}
-                                disabled={isGeneratingDescription || isSavingDescription}
+                                disabled={!!generatingForPlatform || isSavingDescription}
                             />
                         </div>
                         
@@ -784,7 +784,7 @@ export function ImageList() {
                                 value={hashtagsString}
                                 onChange={(e) => setHashtagsString(e.target.value)}
                                 rows={2}
-                                disabled={isGeneratingDescription || isSavingDescription}
+                                disabled={!!generatingForPlatform || isSavingDescription}
                             />
                         </div>
 
@@ -809,10 +809,10 @@ export function ImageList() {
                                             key={id}
                                             variant="outline"
                                             onClick={() => handleGenerateDescription(id as Platform)}
-                                            disabled={isGeneratingDescription || isSavingDescription || !hasAiTickets}
+                                            disabled={!!generatingForPlatform || isSavingDescription || !hasAiTickets}
                                             className="justify-start"
                                         >
-                                            {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Icon className="mr-2 h-4 w-4" />}
+                                            {generatingForPlatform === id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Icon className="mr-2 h-4 w-4" />}
                                             {label}
                                         </Button>
                                     ))}
@@ -822,7 +822,7 @@ export function ImageList() {
                     </div>
                     <DialogFooter>
                         <Button variant="secondary" onClick={() => setShowEditDialog(false)} disabled={isSavingDescription}>Annuler</Button>
-                        <Button onClick={handleSaveDescription} disabled={isSavingDescription || isGeneratingDescription}>
+                        <Button onClick={handleSaveDescription} disabled={isSavingDescription || !!generatingForPlatform}>
                             {isSavingDescription && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                             Enregistrer
                         </Button>

@@ -41,7 +41,7 @@ export function CreationHub({ lastImage }: CreationHubProps) {
     const { user, firestore } = useFirebase();
 
     const [isDescriptionDialogOpen, setIsDescriptionDialogOpen] = useState(false);
-    const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
+    const [generatingForPlatform, setGeneratingForPlatform] = useState<Platform | null>(null);
     const [isSavingDescription, setIsSavingDescription] = useState(false);
     const [currentTitle, setCurrentTitle] = useState('');
     const [currentDescription, setCurrentDescription] = useState('');
@@ -76,12 +76,12 @@ export function CreationHub({ lastImage }: CreationHubProps) {
             return;
         }
 
-        setIsGeneratingDescription(true);
+        setGeneratingForPlatform(platform);
         setWasGeneratedByAI(false);
         try {
             const result = await generateImageDescription({ imageUrl: lastImage.directUrl, platform: platform });
             setCurrentTitle(result.title);
-setCurrentDescription(result.description);
+            setCurrentDescription(result.description);
             setHashtagsString(result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' '));
             setWasGeneratedByAI(true);
             
@@ -92,7 +92,7 @@ setCurrentDescription(result.description);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur IA', description: "Le service de génération n'a pas pu répondre." });
         } finally {
-            setIsGeneratingDescription(false);
+            setGeneratingForPlatform(null);
         }
     };
 
@@ -174,15 +174,15 @@ setCurrentDescription(result.description);
                                     <div className="space-y-4 py-4">
                                         <div className="space-y-2">
                                             <Label htmlFor="title">Titre</Label>
-                                            <Input id="title" placeholder="Titre généré..." value={currentTitle} onChange={(e) => setCurrentTitle(e.target.value)} disabled={isGeneratingDescription || isSavingDescription} />
+                                            <Input id="title" placeholder="Titre généré..." value={currentTitle} onChange={(e) => setCurrentTitle(e.target.value)} disabled={!!generatingForPlatform || isSavingDescription} />
                                         </div>
                                         <div className="space-y-2">
                                             <Label htmlFor="description">Description</Label>
-                                            <Textarea id="description" placeholder="Description générée..." value={currentDescription} onChange={(e) => setCurrentDescription(e.target.value)} rows={4} disabled={isGeneratingDescription || isSavingDescription} />
+                                            <Textarea id="description" placeholder="Description générée..." value={currentDescription} onChange={(e) => setCurrentDescription(e.target.value)} rows={4} disabled={!!generatingForPlatform || isSavingDescription} />
                                         </div>
                                         <div className="space-y-2">
                                             <Label htmlFor="hashtags">Hashtags</Label>
-                                            <Textarea id="hashtags" placeholder="#hashtags #générés..." value={hashtagsString} onChange={(e) => setHashtagsString(e.target.value)} rows={2} disabled={isGeneratingDescription || isSavingDescription} />
+                                            <Textarea id="hashtags" placeholder="#hashtags #générés..." value={hashtagsString} onChange={(e) => setHashtagsString(e.target.value)} rows={2} disabled={!!generatingForPlatform || isSavingDescription} />
                                         </div>
                                         <Separator />
                                         <div className="space-y-2">
@@ -199,10 +199,10 @@ setCurrentDescription(result.description);
                                                         key={id}
                                                         variant="outline"
                                                         onClick={() => handleGenerateDescription(id as Platform)}
-                                                        disabled={isGeneratingDescription || isSavingDescription || totalAiTickets <= 0}
+                                                        disabled={!!generatingForPlatform || isSavingDescription || totalAiTickets <= 0}
                                                         className="justify-start"
                                                     >
-                                                        {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Icon className="mr-2 h-4 w-4" />}
+                                                        {generatingForPlatform === id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Icon className="mr-2 h-4 w-4" />}
                                                         {label}
                                                     </Button>
                                                 ))}
@@ -211,7 +211,7 @@ setCurrentDescription(result.description);
                                     </div>
                                     <DialogFooter>
                                         <Button variant="secondary" onClick={() => setIsDescriptionDialogOpen(false)} disabled={isSavingDescription}>Annuler</Button>
-                                        <Button onClick={handleSaveDescription} disabled={isSavingDescription || isGeneratingDescription}>
+                                        <Button onClick={handleSaveDescription} disabled={isSavingDescription || !!generatingForPlatform}>
                                             {isSavingDescription && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                             Enregistrer
                                         </Button>

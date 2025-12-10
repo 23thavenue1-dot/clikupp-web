@@ -55,7 +55,7 @@ export default function ImageDetailPage() {
 
     // --- State pour la génération de description ---
     const [isDescriptionDialogOpen, setIsDescriptionDialogOpen] = useState(false);
-    const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
+    const [generatingForPlatform, setGeneratingForPlatform] = useState<Platform | null>(null);
     const [isSavingDescription, setIsSavingDescription] = useState(false);
     const [currentTitle, setCurrentTitle] = useState('');
     const [currentDescription, setCurrentDescription] = useState('');
@@ -138,7 +138,7 @@ export default function ImageDetailPage() {
             return;
         }
 
-        setIsGeneratingDescription(true);
+        setGeneratingForPlatform(platform);
         setWasGeneratedByAI(false);
         try {
             const result = await generateImageDescription({ imageUrl: image.directUrl, platform: platform });
@@ -153,7 +153,7 @@ export default function ImageDetailPage() {
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur IA', description: "Le service de génération n'a pas pu répondre." });
         } finally {
-            setIsGeneratingDescription(false);
+            setGeneratingForPlatform(null);
         }
     };
 
@@ -430,7 +430,7 @@ export default function ImageDetailPage() {
                                     placeholder="Titre de votre publication..."
                                     value={currentTitle}
                                     onChange={(e) => setCurrentTitle(e.target.value)}
-                                    disabled={isGeneratingDescription || isSavingDescription}
+                                    disabled={!!generatingForPlatform || isSavingDescription}
                                 />
                             </div>
                             <div className="space-y-2">
@@ -441,7 +441,7 @@ export default function ImageDetailPage() {
                                     value={currentDescription}
                                     onChange={(e) => setCurrentDescription(e.target.value)}
                                     rows={4}
-                                    disabled={isGeneratingDescription || isSavingDescription}
+                                    disabled={!!generatingForPlatform || isSavingDescription}
                                 />
                             </div>
                             <div className="space-y-2">
@@ -452,7 +452,7 @@ export default function ImageDetailPage() {
                                     value={hashtagsString}
                                     onChange={(e) => setHashtagsString(e.target.value)}
                                     rows={2}
-                                    disabled={isGeneratingDescription || isSavingDescription}
+                                    disabled={!!generatingForPlatform || isSavingDescription}
                                 />
                             </div>
                             <Separator />
@@ -469,10 +469,10 @@ export default function ImageDetailPage() {
                                             key={id}
                                             variant="outline"
                                             onClick={() => handleGenerateDescription(id as Platform)}
-                                            disabled={isGeneratingDescription || isSavingDescription || !hasAiTickets}
+                                            disabled={!!generatingForPlatform || isSavingDescription || !hasAiTickets}
                                             className="justify-start"
                                         >
-                                            {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Icon className="mr-2 h-4 w-4" />}
+                                            {generatingForPlatform === id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Icon className="mr-2 h-4 w-4" />}
                                             {label}
                                         </Button>
                                     ))}
@@ -481,7 +481,7 @@ export default function ImageDetailPage() {
                         </div>
                         <DialogFooter>
                             <Button variant="secondary" onClick={() => setIsDescriptionDialogOpen(false)} disabled={isSavingDescription}>Annuler</Button>
-                            <Button onClick={handleSaveDescription} disabled={isSavingDescription || isGeneratingDescription}>
+                            <Button onClick={handleSaveDescription} disabled={isSavingDescription || !!generatingForPlatform}>
                                 {isSavingDescription && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Enregistrer les modifications
                             </Button>
