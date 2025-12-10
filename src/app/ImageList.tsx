@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -792,7 +793,7 @@ export function ImageList() {
 
                         <div className="space-y-2">
                              <div className="flex items-center justify-between">
-                                <Label>Génération par IA (1 Ticket)</Label>
+                                <Label>Optimisation par IA (1 Ticket)</Label>
                                 <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
                                     <Ticket className="h-4 w-4" />
                                     <span>{totalAiTickets} restants</span>
@@ -809,7 +810,7 @@ export function ImageList() {
                                             key={id}
                                             variant="outline"
                                             onClick={() => handleGenerateDescription(id as Platform)}
-                                            disabled={!!generatingForPlatform || isSavingDescription || !hasAiTickets}
+                                            disabled={generatingForPlatform === id || isSavingDescription || !hasAiTickets}
                                             className="justify-start"
                                         >
                                             {generatingForPlatform === id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Icon className="mr-2 h-4 w-4" />}

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -187,7 +188,7 @@ export function CreationHub({ lastImage }: CreationHubProps) {
                                         <Separator />
                                         <div className="space-y-2">
                                             <div className="flex items-center justify-between">
-                                                <Label>Génération par IA (1 Ticket)</Label>
+                                                <Label>Optimisation par IA (1 Ticket)</Label>
                                                 <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
                                                     <Ticket className="h-4 w-4" />
                                                     <span>{totalAiTickets} restants</span>
@@ -199,7 +200,7 @@ export function CreationHub({ lastImage }: CreationHubProps) {
                                                         key={id}
                                                         variant="outline"
                                                         onClick={() => handleGenerateDescription(id as Platform)}
-                                                        disabled={!!generatingForPlatform || isSavingDescription || totalAiTickets <= 0}
+                                                        disabled={generatingForPlatform === id || isSavingDescription || totalAiTickets <= 0}
                                                         className="justify-start"
                                                     >
                                                         {generatingForPlatform === id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Icon className="mr-2 h-4 w-4" />}

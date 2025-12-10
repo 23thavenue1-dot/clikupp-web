@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useUser, useFirestore, useCollection, useMemoFirebase, useFirebase, useDoc } from '@/firebase';
@@ -570,7 +571,7 @@ export default function GalleryDetailPage() {
                     <DialogHeader>
                     <DialogTitle>Modifier et Générer</DialogTitle>
                     <DialogDescription>
-                        Laissez l'IA générer un contenu optimisé pour vos réseaux sociaux.
+                        Laissez l'IA rédiger un contenu optimisé pour vos réseaux sociaux.
                     </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
@@ -614,7 +615,7 @@ export default function GalleryDetailPage() {
 
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <Label>Génération par IA (1 Ticket)</Label>
+                                <Label>Optimisation par IA (1 Ticket)</Label>
                                 <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
                                     <Ticket className="h-4 w-4" />
                                     <span>{(userProfile?.aiTicketCount ?? 0) + (userProfile?.subscriptionAiTickets ?? 0) + (userProfile?.packAiTickets ?? 0)} restants</span>
@@ -626,7 +627,7 @@ export default function GalleryDetailPage() {
                                         key={id}
                                         variant="outline"
                                         onClick={() => handleGenerateDescription(id as Platform)}
-                                        disabled={!!generatingForPlatform || isSavingDescription || !hasAiTickets}
+                                        disabled={generatingForPlatform === id || isSavingDescription || !hasAiTickets}
                                         className="justify-start"
                                     >
                                         {generatingForPlatform === id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Icon className="mr-2 h-4 w-4" />}

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -458,7 +459,7 @@ export default function ImageDetailPage() {
                             <Separator />
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <Label>Génération par IA (1 Ticket)</Label>
+                                    <Label>Optimisation par IA (1 Ticket)</Label>
                                     <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
                                         <span className="text-primary">{totalAiTickets}</span> tickets restants
                                     </div>
