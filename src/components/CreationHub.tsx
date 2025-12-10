@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -188,7 +186,7 @@ export function CreationHub({ lastImage }: CreationHubProps) {
                                         <Separator />
                                         <div className="space-y-2">
                                             <div className="flex items-center justify-between">
-                                                <Label>Optimisation par IA (1 Ticket)</Label>
+                                                <Label>Optimisation IA pour... (1 Ticket)</Label>
                                                 <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
                                                     <Ticket className="h-4 w-4" />
                                                     <span>{totalAiTickets} restants</span>

@@ -615,7 +615,7 @@ export default function GalleryDetailPage() {
 
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <Label>Optimisation par IA (1 Ticket)</Label>
+                                <Label>Optimisation IA pour... (1 Ticket)</Label>
                                 <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
                                     <Ticket className="h-4 w-4" />
                                     <span>{(userProfile?.aiTicketCount ?? 0) + (userProfile?.subscriptionAiTickets ?? 0) + (userProfile?.packAiTickets ?? 0)} restants</span>

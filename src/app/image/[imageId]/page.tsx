@@ -459,7 +459,7 @@ export default function ImageDetailPage() {
                             <Separator />
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <Label>Optimisation par IA (1 Ticket)</Label>
+                                    <Label>Optimisation IA pour... (1 Ticket)</Label>
                                     <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
                                         <span className="text-primary">{totalAiTickets}</span> tickets restants
                                     </div>
@@ -470,7 +470,7 @@ export default function ImageDetailPage() {
                                             key={id}
                                             variant="outline"
                                             onClick={() => handleGenerateDescription(id as Platform)}
-                                            disabled={!!generatingForPlatform || isSavingDescription || !hasAiTickets}
+                                            disabled={generatingForPlatform === id || isSavingDescription || !hasAiTickets}
                                             className="justify-start"
                                         >
                                             {generatingForPlatform === id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Icon className="mr-2 h-4 w-4" />}
