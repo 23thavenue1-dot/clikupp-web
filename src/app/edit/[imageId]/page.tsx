@@ -528,7 +528,7 @@ export default function EditImagePage() {
                          {monthlyLimitReached ? ( <p className="text-center text-sm text-primary font-semibold"> Limite mensuelle de tickets gratuits atteinte. Prochaine recharge le {nextRefillDate}. </p>) : (
                             <Button size="lg" onClick={() => handleGenerateImage()} disabled={!prompt || !prompt.trim() || isGenerating || isSaving || !hasAiTickets} className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity">
                                 {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5 text-amber-300" />}
-                                {isGenerating ? 'Génération en cours...' : 'Générer l\'image'}
+                                {isGenerating ? 'Génération en cours...' : 'Générer (1 Ticket IA)'}
                             </Button>
                         )}
                         {!hasAiTickets && !isGenerating && !monthlyLimitReached && (
@@ -644,10 +644,10 @@ export default function EditImagePage() {
                                                 disabled={isGeneratingDescription || !hasAiTickets}
                                             >
                                                 {isGeneratingDescription ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4 text-amber-400"/>}
-                                                {isGeneratingDescription ? "Génération..." : "Générer pour..."}
+                                                {isGeneratingDescription ? "Génération..." : "Générer pour... (1 Ticket IA)"}
                                             </Button>
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent className="w-56">
+                                         <DropdownMenuContent className="w-56">
                                             <DropdownMenuItem onClick={() => handleGenerateDescription('ecommerce')}><ShoppingCart className="mr-2 h-4 w-4" /> Annonce E-commerce</DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem onClick={() => handleGenerateDescription('instagram')}><Instagram className="mr-2 h-4 w-4" /> Instagram</DropdownMenuItem>
@@ -698,9 +698,7 @@ export default function EditImagePage() {
             
             <Dialog open={isEditPromptDialogOpen} onOpenChange={setIsEditPromptDialogOpen}>
                 <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Renommer le prompt</DialogTitle>
-                    </DialogHeader>
+                    <DialogHeader><DialogTitle>Renommer le prompt</DialogTitle></DialogHeader>
                     <div className="py-4 space-y-2">
                         <Label htmlFor="edit-prompt-name">Nouveau nom</Label>
                         <Input
@@ -711,9 +709,7 @@ export default function EditImagePage() {
                         />
                     </div>
                     <DialogFooter>
-                        <DialogClose asChild>
-                            <Button variant="secondary" disabled={isEditingPrompt}>Annuler</Button>
-                        </DialogClose>
+                        <DialogClose asChild><Button variant="secondary" disabled={isEditingPrompt}>Annuler</Button></DialogClose>
                         <Button onClick={handleEditPrompt} disabled={isEditingPrompt || !editedPromptName.trim()}>
                             {isEditingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Enregistrer
