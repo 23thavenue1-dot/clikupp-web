@@ -29,7 +29,7 @@ import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { generateImageDescription } from '@/ai/flows/generate-description-flow';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
 
@@ -406,13 +406,17 @@ export default function EditImagePage() {
             <main className="flex-1 flex flex-col overflow-auto">
                 <header className="sticky top-0 bg-background/80 backdrop-blur-sm border-b z-20">
                     <div className="container mx-auto p-3 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <Button variant="ghost" size="sm" asChild>
+                        <div className="flex items-center gap-2">
+                             <Button variant="ghost" size="sm" asChild>
                                 <Link href="/">
                                     <ArrowLeft className="mr-2 h-4 w-4"/>
                                     Retour
                                 </Link>
                             </Button>
+                             <div>
+                                <h1 className="text-lg font-semibold tracking-tight">Éditeur IA</h1>
+                                <p className="text-xs text-muted-foreground">Transformez vos images avec le langage.</p>
+                            </div>
                         </div>
                         <div className="flex items-center gap-4">
                             <Badge variant="outline" className="h-8 text-sm">
@@ -617,7 +621,7 @@ export default function EditImagePage() {
                                 <DialogHeader>
                                     <DialogTitle>Générer une description</DialogTitle>
                                     <DialogDescription>
-                                        Laissez l'IA générer un contenu optimisé pour vos réseaux sociaux.
+                                        Laissez l'IA rédiger un contenu optimisé pour vos réseaux sociaux.
                                     </DialogDescription>
                                 </DialogHeader>
                                 <div className="space-y-4 py-4">
