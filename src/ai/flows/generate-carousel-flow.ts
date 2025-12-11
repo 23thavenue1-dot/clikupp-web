@@ -38,7 +38,7 @@ const generateCarouselFlow = ai.defineFlow(
                     : `Tu dois analyser l'image "Avant" et appliquer la transformation la plus pertinente.
                       - **Si l'image est un portrait :** Ta mission est de réaliser une transformation radicale. 1. Augmente la qualité globale de l'image : contraste, luminosité, définition. 2. Ton équipe installe un éclairage de studio professionnel avec des effets de lumière subtils pour sculpter le visage. 3. Ton retoucheur corrige les imperfections de la peau (acné, rougeurs) pour un teint unifié, tout en conservant une texture naturelle. 4. Assure-toi que les couleurs sont riches et vibrantes. 5. Le sujet doit rester parfaitement reconnaissable, mais le résultat doit être visiblement optimisé.
                       - **Si l'image est une pièce d'intérieur :** Ta mission est double. 1. D'abord, range la pièce pour qu'elle paraisse propre et ordonnée. 2. Ensuite, ajoute subtilement 2 ou 3 éléments de décoration tendance (ex: une plante verte, une bougie, un livre d'art) pour créer une ambiance zen et minimaliste. Améliore l'éclairage pour que la pièce soit plus accueillante.
-                      - **Si l'image met en valeur un objet :** Ta mission est de créer un "packshot" de qualité e-commerce. 1. Détoure parfaitement l'objet pour le séparer de son arrière-plan. 2. Place-le sur un fond uni, moderne et neutre (par exemple, un gris clair #f0f0f0). 3. Ajoute une ombre portée réaliste et douce sous l'objet pour lui donner du volume et un aspect professionnel. 4. Applique un éclairage de studio qui met en valeur la texture du produit sans créer de reflets parasites.
+                      - **Si l'image met en valeur un objet :** Ta mission est de créer une mise en scène "lifestyle" inspirante et réaliste pour vendre le produit. 1. Intègre l'objet dans un décor quotidien qui correspond à son usage (par exemple, un sac à main sur l'épaule d'une personne dans une rue chic, un carnet sur un bureau design avec une tasse de café, une montre au poignet). 2. L'éclairage doit être naturel et flatteur, créant une ambiance authentique et désirable. 3. Assure-toi que l'objet reste le point focal de l'image tout en s'intégrant naturellement dans son environnement. Le résultat doit donner envie de posséder l'objet.
                       - **Si l'image est un paysage ou autre chose :** Ta mission est d'améliorer la qualité technique et esthétique de l'image. Augmente la clarté, le contraste, et la vibrance des couleurs. Optimise l'éclairage global pour rendre la scène plus impactante et professionnelle. Le sujet doit rester le même, mais le résultat doit être visiblement optimisé.`
                 }
             `},
@@ -57,21 +57,21 @@ const generateCarouselFlow = ai.defineFlow(
     const textGeneration = await ai.generate({
         model: 'googleai/gemini-2.5-flash',
         prompt: `
-            **Rôle :** Tu es un social media manager expert en storytelling pour ${platform || 'un réseau social'}.
+            **Rôle :** Tu es un social media manager expert en storytelling et copywriting pour ${platform || 'un réseau social'}. Ton objectif est de séduire le lecteur.
             **Objectif :** Rédige 4 descriptions très courtes et percutantes pour un carrousel "Avant/Après". Sépare chaque description par '---'.
             
             **Règle impérative :** Ne préfixe JAMAIS tes descriptions par "Description 1", "Texte 2:", "**Texte 3:**" etc. Le ton doit être engageant et adapté à ${platform || 'un réseau social'}.
             
             **Contexte :**
-            - Image Avant : Une photo de base.
-            - Image Après : La même photo, mais améliorée et plus professionnelle.
-            - Directive de l'utilisateur : "${userDirective || "Améliorer l'image pour un résultat professionnel et esthétique."}"
+            - Image Avant : Une photo de base, souvent un objet seul.
+            - Image Après : La même photo, mais l'objet est maintenant dans une mise en scène "lifestyle" professionnelle.
+            - Directive de l'utilisateur : "${userDirective || "Mettre l'objet en valeur dans une scène réaliste pour donner envie de l'acheter."}"
             
             **Descriptions à rédiger :**
-            *   **Description 1 (Avant) :** Décris le point de départ, l'image originale. Sois factuel mais intriguant.
-            *   **Description 2 (Pendant) :** Explique brièvement le défi créatif, la transformation qui va être opérée. Crée du suspense.
-            *   **Description 3 (Après) :** Décris le résultat final, en mettant en valeur le bénéfice de la transformation. Utilise un ton enthousiaste.
-            *   **Description 4 (Question) :** Rédige une question ouverte et engageante liée à l'image ou à la transformation, pour inciter les commentaires (style Instagram).
+            *   **Description 1 (Avant - Le Produit) :** Décris l'objet de manière factuelle mais élégante. Présente-le.
+            *   **Description 2 (Pendant - La Vision) :** Explique la transformation à venir. Ne te contente pas de dire "on va l'améliorer". Dis plutôt : "Et si cet objet prenait vie dans votre quotidien ?". Crée du désir et du suspense.
+            *   **Description 3 (Après - Le Bénéfice) :** Décris la scène "lifestyle". Ne décris pas seulement l'image, mais l'ÉMOTION et le BÉNÉFICE qu'elle procure. Par exemple, au lieu de "la montre est au poignet", dis "L'élégance à votre poignet, à chaque instant de la journée.".
+            *   **Description 4 (Question - L'Appel à l'Action) :** Rédige une question ouverte qui incite à se projeter avec l'objet ou à donner son avis. Exemple : "Où emmèneriez-vous ce sac pour votre prochaine aventure ?" ou "Quel est le détail qui vous séduit le plus ?".
         `
     });
 
