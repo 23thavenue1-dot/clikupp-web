@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -912,6 +911,15 @@ export default function EditImagePage() {
                                     {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5 text-amber-300" />}
                                     {isGenerating ? 'Génération en cours...' : 'Générer (1 Ticket IA)'}
                                 </Button>
+
+                                 <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline" className="w-full" disabled={isGenerating || isSaving}>
+                                            <Text className="mr-2 h-4 w-4"/> Rédiger Titre &amp; Description
+                                        </Button>
+                                    </DialogTrigger>
+                                </Dialog>
+
                                 <Button onClick={handleSaveAiCreation} disabled={isSaving || isGenerating || !currentHistoryItem} className="w-full" variant="secondary">
                                     {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
                                     Enregistrer la création
@@ -985,67 +993,6 @@ export default function EditImagePage() {
                                 );
                             })}
                         </Accordion>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                       <CardHeader>
-                         <CardTitle className="flex items-center gap-2 text-lg">
-                           <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">3</span>
-                           <span>Contenu</span>
-                         </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
-                            <DialogTrigger asChild>
-                                <Button variant="outline" className="w-full" disabled={isGenerating || isSaving}>
-                                    <Text className="mr-2 h-4 w-4"/> Rédiger Titre & Description
-                                </Button>
-                            </DialogTrigger>
-                             <DialogContent className="sm:max-w-md">
-                                <DialogHeader>
-                                    <DialogTitle>Générer ou Modifier le Contenu</DialogTitle>
-                                    <DialogDescription>
-                                        Laissez l'IA rédiger un contenu optimisé, ou modifiez-le manuellement.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <div className="space-y-4 py-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="gen-title">Titre</Label>
-                                        <Input id="gen-title" value={generatedTitle} onChange={(e) => setGeneratedTitle(e.target.value)} disabled={isGeneratingDescription}/>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="gen-desc">Description</Label>
-                                        <Textarea id="gen-desc" value={generatedDescription} onChange={(e) => setGeneratedDescription(e.target.value)} disabled={isGeneratingDescription} rows={4}/>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="gen-tags">Hashtags</Label>
-                                        <Textarea id="gen-tags" value={generatedHashtags} onChange={(e) => setGeneratedHashtags(e.target.value)} disabled={isGeneratingDescription} rows={2}/>
-                                    </div>
-                                    <Separator/>
-                                    <div className="space-y-2">
-                                        <div className="flex items-center justify-between">
-                                            <Label>Optimisation IA pour... (1 Ticket)</Label>
-                                            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                                                <span className="text-primary">{totalAiTickets}</span> tickets restants
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <Button variant="outline" onClick={() => handleGenerateDescription('instagram')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><Instagram className="mr-2 h-4 w-4"/>Instagram</Button>
-                                            <Button variant="outline" onClick={() => handleGenerateDescription('facebook')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><Facebook className="mr-2 h-4 w-4"/>Facebook</Button>
-                                            <Button variant="outline" onClick={() => handleGenerateDescription('x')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><MessageSquare className="mr-2 h-4 w-4"/>X (Twitter)</Button>
-                                            <Button variant="outline" onClick={() => handleGenerateDescription('tiktok')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><VenetianMask className="mr-2 h-4 w-4"/>TikTok</Button>
-                                            <Button variant="outline" onClick={() => handleGenerateDescription('ecommerce')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><ShoppingCart className="mr-2 h-4 w-4"/>E-commerce</Button>
-                                            <Button variant="outline" onClick={() => handleGenerateDescription('generic')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><Wand2 className="mr-2 h-4 w-4"/>Générique</Button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <DialogFooter>
-                                     <DialogClose asChild><Button variant="secondary">Fermer</Button></DialogClose>
-                                    <Button onClick={handleConfirmDescription}>Valider le Contenu</Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
                       </CardContent>
                     </Card>
                     
@@ -1168,7 +1115,51 @@ export default function EditImagePage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-
+            <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
+               <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Générer ou Modifier le Contenu</DialogTitle>
+                        <DialogDescription>
+                            Laissez l'IA rédiger un contenu optimisé, ou modifiez-le manuellement.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="gen-title">Titre</Label>
+                            <Input id="gen-title" value={generatedTitle} onChange={(e) => setGeneratedTitle(e.target.value)} disabled={isGeneratingDescription}/>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="gen-desc">Description</Label>
+                            <Textarea id="gen-desc" value={generatedDescription} onChange={(e) => setGeneratedDescription(e.target.value)} disabled={isGeneratingDescription} rows={4}/>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="gen-tags">Hashtags</Label>
+                            <Textarea id="gen-tags" value={generatedHashtags} onChange={(e) => setGeneratedHashtags(e.target.value)} disabled={isGeneratingDescription} rows={2}/>
+                        </div>
+                        <Separator/>
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <Label>Optimisation IA pour... (1 Ticket)</Label>
+                                <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                                    <span className="text-primary">{totalAiTickets}</span> tickets restants
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <Button variant="outline" onClick={() => handleGenerateDescription('instagram')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><Instagram className="mr-2 h-4 w-4"/>Instagram</Button>
+                                <Button variant="outline" onClick={() => handleGenerateDescription('facebook')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><Facebook className="mr-2 h-4 w-4"/>Facebook</Button>
+                                <Button variant="outline" onClick={() => handleGenerateDescription('x')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><MessageSquare className="mr-2 h-4 w-4"/>X (Twitter)</Button>
+                                <Button variant="outline" onClick={() => handleGenerateDescription('tiktok')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><VenetianMask className="mr-2 h-4 w-4"/>TikTok</Button>
+                                <Button variant="outline" onClick={() => handleGenerateDescription('ecommerce')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><ShoppingCart className="mr-2 h-4 w-4"/>E-commerce</Button>
+                                <Button variant="outline" onClick={() => handleGenerateDescription('generic')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><Wand2 className="mr-2 h-4 w-4"/>Générique</Button>
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                         <DialogClose asChild><Button variant="secondary">Fermer</Button></DialogClose>
+                        <Button onClick={handleConfirmDescription}>Valider le Contenu</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
