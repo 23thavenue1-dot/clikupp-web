@@ -43,9 +43,10 @@ const generateCarouselFlow = ai.defineFlow(
 
                 3.  **Génère une unique image "Après"** qui représente cette transformation de la manière la plus qualitative possible.
                 
-                4.  **Rédige 2 descriptions très courtes et percutantes** pour raconter cette histoire, une pour chaque étape du carrousel. Sépare chaque description par '---'.
+                4.  **Rédige 3 descriptions très courtes et percutantes** pour raconter cette histoire, une pour chaque étape du carrousel. Sépare chaque description par '---'.
                     *   **Description 1 (Avant) :** Décris le point de départ, l'image originale.
-                    *   **Description 2 (Après) :** Décris le résultat final, en mettant en valeur le bénéfice de la transformation.
+                    *   **Description 2 (Pendant) :** Explique brièvement l'intention créative, la transformation que tu vas opérer.
+                    *   **Description 3 (Après) :** Décris le résultat final, en mettant en valeur le bénéfice de la transformation.
             `},
         ],
         config: {
@@ -58,8 +59,8 @@ const generateCarouselFlow = ai.defineFlow(
     }
     
     const descriptions = text.split('---').map(d => d.trim());
-    if (descriptions.length < 2) {
-      throw new Error("L'IA n'a pas retourné les 2 descriptions attendues.");
+    if (descriptions.length < 3) {
+      throw new Error("L'IA n'a pas retourné les 3 descriptions attendues.");
     }
     
     const finalImageUrl = media.url;
@@ -68,6 +69,7 @@ const generateCarouselFlow = ai.defineFlow(
         slides: [
             { imageUrl: baseImageUrl, description: descriptions[0] },
             { imageUrl: finalImageUrl, description: descriptions[1] },
+            { imageUrl: finalImageUrl, description: descriptions[2] }, // On utilise la même image finale pour "pendant" et "après" dans la data, le front simulera la différence
         ]
     };
   }

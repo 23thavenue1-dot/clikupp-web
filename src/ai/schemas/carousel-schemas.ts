@@ -1,3 +1,4 @@
+
 // This file does not contain 'use server' and can be imported by both client and server components.
 
 import { z } from 'genkit';
@@ -18,6 +19,6 @@ export type GenerateCarouselInput = z.infer<typeof GenerateCarouselInputSchema>;
 
 // Schéma de sortie du flow
 export const GenerateCarouselOutputSchema = z.object({
-  slides: z.array(CarouselSlideSchema).length(2).describe("Un tableau contenant exactement 2 diapositives (slides) pour le carrousel : Avant et Après."),
+  slides: z.array(CarouselSlideSchema).length(3).describe("Un tableau contenant exactement 3 diapositives (slides) pour le carrousel : Avant, Pendant, Après."),
 });
 export type GenerateCarouselOutput = z.infer<typeof GenerateCarouselOutputSchema>;

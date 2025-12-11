@@ -826,32 +826,6 @@ export default function EditImagePage() {
                 </div>
             </aside>
             
-            <Dialog open={isSavePromptDialogOpen} onOpenChange={setIsSavePromptDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Sauvegarder le prompt</DialogTitle>
-                        <DialogDescription>Donnez un nom à cette instruction pour la retrouver facilement plus tard.</DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="prompt-name">Nom du prompt</Label>
-                            <Input id="prompt-name" value={newPromptName} onChange={(e) => setNewPromptName(e.target.value)} placeholder="Ex: Style super-héros" disabled={isSavingPrompt}/>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Instruction</Label>
-                            <Textarea value={promptToSave} readOnly disabled rows={4} className="bg-muted"/>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <DialogClose asChild><Button variant="secondary" disabled={isSavingPrompt}>Annuler</Button></DialogClose>
-                        <Button onClick={handleSavePrompt} disabled={isSavingPrompt || !newPromptName.trim()}>
-                            {isSavingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                            Sauvegarder
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-            
             <AlertDialog open={isDeletePromptDialogOpen} onOpenChange={setIsDeletePromptDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -894,7 +868,7 @@ export default function EditImagePage() {
 
             {/* NOUVEAU: Boîte de dialogue pour le carrousel */}
             <Dialog open={isCarouselDialogOpen} onOpenChange={setIsCarouselDialogOpen}>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="max-w-4xl">
                     <DialogHeader>
                         <DialogTitle>Résultat du Carrousel</DialogTitle>
                         <DialogDescription>
@@ -908,18 +882,32 @@ export default function EditImagePage() {
                                 <p className="mt-4 text-muted-foreground">Génération du carrousel en cours...</p>
                             </div>
                         ) : carouselResult ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {carouselResult.slides.map((slide, i) => (
-                                    <div key={i} className="flex flex-col gap-2">
-                                        <CardHeader className="p-0 text-center mb-2">
-                                            <CardTitle className="text-sm font-semibold">{i === 0 ? 'Avant' : 'Après'}</CardTitle>
-                                        </CardHeader>
-                                        <div className="aspect-square bg-muted rounded-lg flex items-center justify-center text-muted-foreground overflow-hidden relative">
-                                            <Image src={slide.imageUrl} alt={`Étape ${i + 1}`} fill className="object-cover" unoptimized/>
-                                        </div>
-                                        <p className="text-xs p-2 bg-muted/50 rounded text-center h-16 flex items-center justify-center">{slide.description}</p>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {/* Étape 1 : Avant */}
+                                <div className="flex flex-col gap-2">
+                                    <CardHeader className="p-0 text-center mb-2"><CardTitle className="text-sm font-semibold">1. Avant</CardTitle></CardHeader>
+                                    <div className="aspect-square bg-muted rounded-lg flex items-center justify-center text-muted-foreground overflow-hidden relative">
+                                        <Image src={originalImage.directUrl} alt="Étape 1 : Avant" fill className="object-cover" unoptimized/>
                                     </div>
-                                ))}
+                                    <p className="text-xs p-2 bg-muted/50 rounded text-center h-16 flex items-center justify-center">{carouselResult.slides[0].description}</p>
+                                </div>
+                                {/* Étape 2 : Pendant (simulée) */}
+                                <div className="flex flex-col gap-2">
+                                    <CardHeader className="p-0 text-center mb-2"><CardTitle className="text-sm font-semibold">2. Pendant</CardTitle></CardHeader>
+                                    <div className="aspect-square bg-muted rounded-lg flex items-center justify-center text-muted-foreground overflow-hidden relative">
+                                        <Image src={originalImage.directUrl} alt="Étape 2 : Pendant" fill className="object-cover blur-[2px] brightness-75 transition-all" unoptimized/>
+                                        <Wand2 className="h-10 w-10 text-white/80 absolute" />
+                                    </div>
+                                    <p className="text-xs p-2 bg-muted/50 rounded text-center h-16 flex items-center justify-center">{carouselResult.slides[1].description}</p>
+                                </div>
+                                {/* Étape 3 : Après */}
+                                 <div className="flex flex-col gap-2">
+                                    <CardHeader className="p-0 text-center mb-2"><CardTitle className="text-sm font-semibold">3. Après</CardTitle></CardHeader>
+                                    <div className="aspect-square bg-muted rounded-lg flex items-center justify-center text-muted-foreground overflow-hidden relative border-2 border-primary">
+                                        <Image src={carouselResult.slides[1].imageUrl} alt="Étape 3 : Après" fill className="object-cover" unoptimized/>
+                                    </div>
+                                    <p className="text-xs p-2 bg-muted/50 rounded text-center h-16 flex items-center justify-center">{carouselResult.slides[2].description}</p>
+                                </div>
                             </div>
                         ) : (
                              <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
