@@ -1083,7 +1083,7 @@ export default function EditImagePage() {
                     <DialogHeader>
                         <DialogTitle>Résultat du Carrousel</DialogTitle>
                         <DialogDescription>
-                            Voici les images et les textes générés pour votre carrousel. Vous pouvez modifier les textes des diapositives 2 et 4.
+                            Voici les images et les textes générés. Vous pouvez <span className="text-green-600 font-semibold">modifier les textes</span> des diapositives textuelles.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
@@ -1201,3 +1201,4 @@ export default function EditImagePage() {
         </div>
     );
 }
+
