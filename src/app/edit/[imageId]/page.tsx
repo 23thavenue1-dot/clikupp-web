@@ -9,7 +9,7 @@ import type { ImageMetadata, UserProfile, CustomPrompt, Gallery } from '@/lib/fi
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2, Star, Trash2, Pencil, Tag, X, GalleryHorizontal, Clapperboard, Film, HelpCircle, ChevronDown, Library } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Star, Trash2, Pencil, Tag, X, GalleryHorizontal, Clapperboard, Film, HelpCircle, ChevronDown, Library } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -90,14 +90,14 @@ async function createTextToImage(text: string, width: number, height: number): P
     ctx.textBaseline = 'middle';
     
     // Logique pour ajuster la taille de la police
-    let fontSize = width / 12; // Taille de base réduite
+    let fontSize = Math.min(width / 18, 60); // Taille de base réduite avec un maximum
     ctx.font = `bold ${fontSize}px "Inter", sans-serif`;
 
     // Fonction pour découper le texte en lignes
     const getLines = (currentText: string, maxWidth: number) => {
         const words = currentText.split(' ');
         const lines = [];
-        let currentLine = words[0];
+        let currentLine = words[0] || '';
 
         for (let i = 1; i < words.length; i++) {
             const word = words[i];
@@ -1127,5 +1127,3 @@ export default function EditImagePage() {
         </div>
     );
 }
-
-
