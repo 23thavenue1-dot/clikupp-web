@@ -9,7 +9,7 @@ import type { ImageMetadata, UserProfile, CustomPrompt, Gallery } from '@/lib/fi
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Star, Trash2, Pencil, Tag, X, GalleryHorizontal, Clapperboard, Film, HelpCircle, ChevronDown, Library, Text, Facebook, Instagram, MessageSquare, VenetianMask } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Star, Trash2, Pencil, Tag, X, GalleryHorizontal, Clapperboard, Film, HelpCircle, ChevronDown, Library, Text, Facebook, Instagram, MessageSquare, VenetianMask, Ticket } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -484,7 +484,7 @@ export default function EditImagePage() {
             setGeneratedDescription(newDesc);
             setGeneratedHashtags(newHashtags);
             
-            await decrementAiTicketCount(firestore, user.uid, userProfile, 'description');
+            await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             toast({ title: "Contenu généré !", description: `Publication pour ${platform} prête. Un ticket IA a été utilisé.` });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur IA', description: "Le service de génération n'a pas pu répondre." });
@@ -676,10 +676,49 @@ export default function EditImagePage() {
                        <h1 className="text-lg font-semibold tracking-tight">Éditeur d'Image par IA</h1>
                        <p className="text-xs text-muted-foreground">Transformez vos images en décrivant simplement les changements souhaités.</p>
                    </div>
-                    <Badge variant="outline" className="h-8 text-sm">
-                       <Sparkles className="mr-2 h-4 w-4 text-primary" />
-                       {totalAiTickets} Tickets IA
-                   </Badge>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                             <Button variant="outline" className="h-8 text-sm">
+                               <Ticket className="mr-2 h-4 w-4 text-primary" />
+                               {totalAiTickets} Tickets IA
+                           </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                                <DialogTitle>Détail de vos Tickets IA</DialogTitle>
+                                <DialogDescription>
+                                    Vos tickets sont utilisés pour toutes les actions IA (génération d'image, de description, audit, etc.). L'ordre de consommation est : gratuits, abonnements, puis packs.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="py-4 space-y-2">
+                                <div className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md">
+                                    <span>Gratuits (quotidiens)</span>
+                                    <span className="font-bold">{userProfile?.aiTicketCount ?? 0}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md">
+                                    <span>Abonnement (mensuels)</span>
+                                    <span className="font-bold">{userProfile?.subscriptionAiTickets ?? 0}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md">
+                                    <span>Packs (achetés)</span>
+                                    <span className="font-bold">{userProfile?.packAiTickets ?? 0}</span>
+                                </div>
+                                <Separator className="my-3"/>
+                                 <div className="flex justify-between items-center text-sm p-2">
+                                    <span className="font-semibold">Total</span>
+                                    <span className="font-bold text-primary text-lg">{totalAiTickets}</span>
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button asChild>
+                                    <Link href="/shop">
+                                        <ShoppingCart className="mr-2 h-4 w-4" />
+                                        Visiter la boutique
+                                    </Link>
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
                 </header>
 
                 <Card>
@@ -1117,7 +1156,7 @@ export default function EditImagePage() {
             <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
                <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Générer ou Modifier le Contenu</DialogTitle>
+                        <DialogTitle>Modifier ou générer une descrption IA</DialogTitle>
                         <DialogDescription>
                             Laissez l'IA rédiger un contenu optimisé, ou modifiez-le manuellement.
                         </DialogDescription>
