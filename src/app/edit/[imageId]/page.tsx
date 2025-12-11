@@ -890,7 +890,7 @@ export default function EditImagePage() {
                 </DialogContent>
             </Dialog>
 
-             <Dialog open={isCarouselDialogOpen} onOpenChange={setIsCarouselDialogOpen}>
+            <Dialog open={isCarouselDialogOpen} onOpenChange={setIsCarouselDialogOpen}>
                 <DialogContent className="max-w-4xl">
                     <DialogHeader>
                         <DialogTitle>Résultat du Carrousel</DialogTitle>
@@ -907,22 +907,16 @@ export default function EditImagePage() {
                         ) : carouselResult ? (
                             <div className="grid grid-cols-4 gap-4">
                                 {carouselResult.slides.map((slide, index) => (
-                                    <div key={index} className="flex flex-col gap-2">
-                                        <div className="aspect-square bg-muted rounded-lg flex items-center justify-center text-foreground overflow-hidden relative">
-                                             {slide.imageUrl ? (
+                                    <div key={index} className="flex flex-col gap-2 group">
+                                        <div className="aspect-square rounded-lg flex items-center justify-center overflow-hidden relative text-white bg-black">
+                                            {slide.imageUrl ? (
                                                 <Image src={slide.imageUrl} alt={`Étape ${index + 1}`} fill className="object-contain" unoptimized/>
                                             ) : (
-                                                <div className="p-4 text-center">
-                                                    <Wand2 className="h-8 w-8 text-primary mx-auto mb-2" />
-                                                    <p className="text-sm font-semibold">"{slide.description}"</p>
+                                                <div className="p-4 text-center flex flex-col items-center justify-center h-full bg-gradient-to-br from-gray-900 to-black">
+                                                    <p className="text-xl font-bold tracking-tight font-headline">"{slide.description}"</p>
                                                 </div>
                                             )}
                                         </div>
-                                         {slide.imageUrl && (
-                                            <p className="text-xs text-center text-muted-foreground bg-muted/50 p-2 rounded-md h-16 flex items-center justify-center">
-                                                {slide.description}
-                                            </p>
-                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -945,5 +939,4 @@ export default function EditImagePage() {
         </div>
     );
 }
-
 
