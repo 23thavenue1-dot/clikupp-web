@@ -281,7 +281,7 @@ export default function ImageDetailPage() {
                                 <div className="p-2 bg-primary/10 text-primary rounded-lg">
                                     <Sparkles className="h-6 w-6" />
                                 </div>
-                                <span className="font-semibold">Éditer avec l'IA</span>
+                                <span className="font-semibold">Éditer, Modifier l'image avec l'IA</span>
                                 <p className="text-xs text-muted-foreground">Modifiez votre image en décrivant les changements en langage naturel.</p>
                             </div>
                         </Link>
