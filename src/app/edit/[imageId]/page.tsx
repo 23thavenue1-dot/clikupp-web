@@ -69,7 +69,7 @@ async function dataUriToBlob(dataUri: string): Promise<Blob> {
     return blob;
 }
 
-// --- Helper pour créer une image à partir de texte ---
+// --- Helper pour créer une image à partir de texte (AMÉLIORÉ) ---
 async function createTextToImage(text: string, width: number, height: number): Promise<string> {
     const canvas = document.createElement('canvas');
     canvas.width = width;
@@ -90,35 +90,43 @@ async function createTextToImage(text: string, width: number, height: number): P
     ctx.textBaseline = 'middle';
     
     // Logique pour ajuster la taille de la police
-    let fontSize = width / 10; // Taille de base
+    let fontSize = width / 10; // Taille de base augmentée
     ctx.font = `bold ${fontSize}px "Inter", sans-serif`;
 
-    // Réduire la taille si le texte est trop large
-    while (ctx.measureText(text).width > width * 0.8 && fontSize > 10) {
-        fontSize -= 2;
-        ctx.font = `bold ${fontSize}px "Inter", sans-serif`;
-    }
+    // Fonction pour découper le texte en lignes
+    const getLines = (currentText: string, maxWidth: number) => {
+        const words = currentText.split(' ');
+        const lines = [];
+        let currentLine = words[0];
 
-    // Gérer les sauts de ligne
-    const words = text.split(' ');
-    const lines = [];
-    let currentLine = words[0];
-
-    for (let i = 1; i < words.length; i++) {
-        const word = words[i];
-        const widthTest = ctx.measureText(currentLine + " " + word).width;
-        if (widthTest > width * 0.8 && i > 0) {
-            lines.push(currentLine);
-            currentLine = word;
-        } else {
-            currentLine += " " + word;
+        for (let i = 1; i < words.length; i++) {
+            const word = words[i];
+            const widthTest = ctx.measureText(currentLine + " " + word).width;
+            if (widthTest > maxWidth && i > 0) {
+                lines.push(currentLine);
+                currentLine = word;
+            } else {
+                currentLine += " " + word;
+            }
         }
+        lines.push(currentLine);
+        return lines;
     }
-    lines.push(currentLine);
 
+    let lines = getLines(text, width * 0.8);
+    let textHeight = lines.length * (fontSize * 1.2);
+
+    // Réduire la taille de la police si le texte est trop haut pour le canvas
+    while (textHeight > height * 0.8 && fontSize > 12) {
+        fontSize -= 4; // Réduction plus agressive
+        ctx.font = `bold ${fontSize}px "Inter", sans-serif`;
+        lines = getLines(text, width * 0.8);
+        textHeight = lines.length * (fontSize * 1.2);
+    }
+    
     const lineHeight = fontSize * 1.2;
     const totalTextHeight = lines.length * lineHeight;
-    const startY = (height - totalTextHeight) / 2;
+    const startY = (height - totalTextHeight) / 2 + (lineHeight / 2);
 
     lines.forEach((line, index) => {
         ctx.fillText(line, width / 2, startY + (index * lineHeight));
@@ -334,10 +342,14 @@ export default function EditImagePage() {
     
         setIsSaving(true);
         try {
+            // Utilise la nouvelle fonction améliorée pour créer les images de texte
+            const textImage2 = await createTextToImage(carouselResult.slides[1].description, 800, 1000);
+            const textImage4 = await createTextToImage(carouselResult.slides[3].description, 800, 1000);
+
             const imageUrlsToSave: (string | null)[] = [
-                carouselResult.slides[1]?.imageUrl || await createTextToImage(carouselResult.slides[1].description, 800, 1000), // Pendant
+                textImage2,
                 carouselResult.slides[2]?.imageUrl || null, // Après
-                carouselResult.slides[3]?.imageUrl || await createTextToImage(carouselResult.slides[3].description, 800, 1000), // Question
+                textImage4
             ];
 
             const savedImageIds = await Promise.all(
@@ -357,6 +369,7 @@ export default function EditImagePage() {
             const galleryDescription = carouselResult.slides.map((s, i) => `ÉTAPE ${i+1}: ${s.description}`).join('\n---\n');
             const newGalleryDocRef = await createGallery(firestore, user.uid, galleryName, galleryDescription);
     
+            // Ajoute l'image originale + les 3 nouvelles
             await addMultipleImagesToGalleries(firestore, user.uid, [originalImage.id, ...validImageIds], [newGalleryDocRef.id]);
     
             toast({
@@ -1109,3 +1122,4 @@ export default function EditImagePage() {
         </div>
     );
 }
+
