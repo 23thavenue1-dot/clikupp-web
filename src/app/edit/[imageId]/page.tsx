@@ -9,7 +9,7 @@ import type { ImageMetadata, UserProfile, CustomPrompt } from '@/lib/firestore';
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2, Star, Trash2, Pencil, Tag, X, GalleryHorizontal, Clapperboard, Film } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2, Star, Trash2, Pencil, Tag, X, GalleryHorizontal, Clapperboard, Film, HelpCircle } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -890,34 +890,32 @@ export default function EditImagePage() {
                         ) : carouselResult ? (
                            <Carousel className="w-full">
                                 <CarouselContent>
-                                    <CarouselItem>
-                                        <div className="flex flex-col gap-2 text-center">
-                                            <CardHeader className="p-0 mb-2"><CardTitle className="text-base font-semibold">1. Avant</CardTitle></CardHeader>
-                                            <div className="aspect-square bg-muted rounded-lg flex items-center justify-center text-muted-foreground overflow-hidden relative">
-                                                <Image src={originalImage.directUrl} alt="Étape 1 : Avant" fill className="object-cover" unoptimized/>
+                                    {carouselResult.slides.map((slide, index) => (
+                                        <CarouselItem key={index}>
+                                            <div className="flex flex-col gap-2 text-center">
+                                                <CardHeader className="p-0 mb-2">
+                                                    <CardTitle className="text-base font-semibold">
+                                                        {index === 0 ? '1. Avant' : index === 1 ? '2. Pendant' : index === 2 ? '3. Après' : '4. À vous de jouer !'}
+                                                    </CardTitle>
+                                                </CardHeader>
+                                                <div className="aspect-square bg-muted rounded-lg flex items-center justify-center text-foreground overflow-hidden relative p-4">
+                                                    {slide.imageUrl ? (
+                                                        <Image src={slide.imageUrl} alt={`Étape ${index + 1}`} fill className="object-cover" unoptimized/>
+                                                    ) : (
+                                                        <div className="flex flex-col items-center justify-center h-full text-center">
+                                                            <Wand2 className="h-10 w-10 text-primary mb-4" />
+                                                            <p className="text-lg font-semibold">"{slide.description}"</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {slide.imageUrl && (
+                                                    <p className="text-xs p-2 bg-muted/50 rounded h-16 flex items-center justify-center">
+                                                        {slide.description}
+                                                    </p>
+                                                )}
                                             </div>
-                                            <p className="text-xs p-2 bg-muted/50 rounded h-16 flex items-center justify-center">{carouselResult.slides[0].description}</p>
-                                        </div>
-                                    </CarouselItem>
-                                    <CarouselItem>
-                                         <div className="flex flex-col gap-2 text-center">
-                                            <CardHeader className="p-0 mb-2"><CardTitle className="text-base font-semibold">2. Pendant</CardTitle></CardHeader>
-                                            <div className="aspect-square bg-muted rounded-lg flex flex-col items-center justify-center text-foreground overflow-hidden relative p-4">
-                                                <Wand2 className="h-10 w-10 text-primary mb-4" />
-                                                <p className="text-lg font-semibold">"{carouselResult.slides[1].description}"</p>
-                                            </div>
-                                            <p className="text-xs p-2 bg-muted/50 rounded h-16 flex items-center justify-center invisible">Placeholder</p>
-                                        </div>
-                                    </CarouselItem>
-                                    <CarouselItem>
-                                        <div className="flex flex-col gap-2 text-center">
-                                            <CardHeader className="p-0 mb-2"><CardTitle className="text-base font-semibold">3. Après</CardTitle></CardHeader>
-                                            <div className="aspect-square bg-muted rounded-lg flex items-center justify-center text-muted-foreground overflow-hidden relative border-2 border-primary">
-                                                <Image src={carouselResult.slides[2].imageUrl} alt="Étape 3 : Après" fill className="object-cover" unoptimized/>
-                                            </div>
-                                            <p className="text-xs p-2 bg-muted/50 rounded h-16 flex items-center justify-center">{carouselResult.slides[2].description}</p>
-                                        </div>
-                                    </CarouselItem>
+                                        </CarouselItem>
+                                    ))}
                                 </CarouselContent>
                                 <CarouselPrevious />
                                 <CarouselNext />
