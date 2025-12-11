@@ -1119,7 +1119,7 @@ export default function EditImagePage() {
                         <DialogTitle>Résultat du Carrousel</DialogTitle>
                         <DialogDescription>
                             Voici les images et les textes générés. Vous pouvez <span className="text-green-600 font-semibold">modifier les textes</span> en cliquant simplement dessus pour les personnaliser. 
-                            Utilisez l'icône <Wand2 className="inline h-4 w-4 text-primary" /> pour obtenir de nouvelles suggestions de l'IA.
+                            Utilisez l'icône <Wand2 className="inline h-4 w-4 text-primary" /> pour obtenir de nouvelles suggestions de l'IA et renforcer la cohérence entre vos images et votre message.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
