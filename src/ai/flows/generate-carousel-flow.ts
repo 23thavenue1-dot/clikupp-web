@@ -27,15 +27,17 @@ const generateCarouselFlow = ai.defineFlow(
         prompt: [
             { media: { url: baseImageUrl } },
             { text: `
-                **Contexte :** L'image fournie est une photo "Avant", de type amateur. Pour l'image "Après" que tu vas créer, tu incarnes un photographe de renom avec son équipe de professionnels (styliste, éclairagiste, maquilleur, retoucheur) qui prend le relais.
+                **Contexte :** L'image fournie est une photo "Avant", de type amateur. Pour l'image "Après" que tu vas créer, tu incarnes un photographe et directeur artistique de renom avec son équipe de professionnels (styliste, éclairagiste, retoucheur) qui prend le relais.
                 
-                **Objectif :** Transformer ce portrait amateur en une photo spectaculaire et de haute qualité, comme si elle sortait d'un studio professionnel. La différence doit être flagrante.
+                **Objectif :** Transformer cette photo amateur en une photo spectaculaire et de haute qualité, comme si elle sortait d'un studio professionnel. La différence doit être flagrante.
                 ${subjectPrompt ? `Le sujet principal est : ${subjectPrompt}.` : ''}
 
                 **Instruction de transformation :** 
                 ${userDirective 
                     ? `L'utilisateur a donné une directive claire : "${userDirective}". Ton équipe et toi DEVEZ suivre cette instruction à la lettre.`
-                    : "Ta mission est de réaliser une transformation radicale. 1. Augmente la qualité globale de l'image : contraste, luminosité, définition. 2. Ton équipe installe un éclairage de studio professionnel avec des effets de lumière subtils pour sculpter le visage. 3. Ton retoucheur corrige les imperfections de la peau (acné, rougeurs) pour un teint unifié, tout en conservant une texture naturelle. 4. Assure-toi que les couleurs sont riches et vibrantes. 5. Le sujet doit rester parfaitement reconnaissable, mais le résultat doit être visiblement optimisé."
+                    : `Tu dois analyser l'image "Avant" et appliquer la transformation la plus pertinente.
+                      - **Si l'image est un portrait :** Ta mission est de réaliser une transformation radicale. 1. Augmente la qualité globale de l'image : contraste, luminosité, définition. 2. Ton équipe installe un éclairage de studio professionnel avec des effets de lumière subtils pour sculpter le visage. 3. Ton retoucheur corrige les imperfections de la peau (acné, rougeurs) pour un teint unifié, tout en conservant une texture naturelle. 4. Assure-toi que les couleurs sont riches et vibrantes. 5. Le sujet doit rester parfaitement reconnaissable, mais le résultat doit être visiblement optimisé.
+                      - **Si l'image est un paysage, un objet ou autre chose :** Ta mission est d'améliorer la qualité technique et esthétique de l'image. Augmente la clarté, le contraste, et la vibrance des couleurs. Optimise l'éclairage global pour rendre la scène plus impactante et professionnelle. Le sujet doit rester le même, mais le résultat doit être visiblement optimisé.`
                 }
             `},
         ],
