@@ -1,10 +1,10 @@
-
 'use client';
 
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject, type StorageReference, type UploadTask, listAll } from 'firebase/storage';
 import type { User } from 'firebase/auth';
 import type { ImageMetadata } from './firestore';
 import { initializeFirebase } from '@/firebase';
+import heic2any from './heic-converter'; // MODIFIÉ
 
 // -----------------------------
 // Config côté client (guards)
@@ -30,9 +30,7 @@ export async function convertHeicToJpeg(file: File): Promise<File> {
   }
 
   try {
-    // Dynamic import to ensure heic2any is only loaded on the client
-    const heic2any = (await import('heic2any')).default;
-    
+    // Utilisation du module chargé dynamiquement
     const conversionResult = await heic2any({
       blob: file,
       toType: "image/jpeg",
