@@ -4,7 +4,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useFirebase, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { doc, addDoc, collection, getDoc, DocumentReference } from 'firebase/firestore';
+import { doc, addDoc, collection, getDoc, DocumentReference, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile, CustomPrompt } from '@/lib/firestore';
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { editImage, generateImage } from '@/ai/flows/generate-image-flow';
 import { generateCarousel } from '@/ai/flows/generate-carousel-flow';
 import type { GenerateCarouselOutput } from '@/ai/schemas/carousel-schemas';
-import { decrementAiTicketCount, saveImageMetadata, updateImageDescription } from '@/lib/firestore';
+import { decrementAiTicketCount, saveImageMetadata, updateImageDescription, saveCustomPrompt, deleteCustomPrompt, updateCustomPrompt } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
 import { Badge } from '@/components/ui/badge';
@@ -367,7 +367,9 @@ export default function EditImagePage() {
         };
 
         try {
-            await saveCustomPrompt(firestore, user.uid, newCustomPrompt);
+            await updateDoc(userDocRef, {
+                customPrompts: arrayUnion(newCustomPrompt)
+            });
             toast({ title: "Prompt sauvegardé", description: `"${newPromptName}" a été ajouté à 'Mes Prompts'.` });
             setIsSavePromptDialogOpen(false);
         } catch (error) {
@@ -387,7 +389,9 @@ export default function EditImagePage() {
         setIsDeletingPrompt(true);
 
         try {
-            await deleteCustomPrompt(firestore, user.uid, promptToDelete);
+            await updateDoc(userDocRef, {
+                customPrompts: arrayRemove(promptToDelete)
+            });
             toast({ title: "Prompt supprimé", description: `"${promptToDelete.name}" a été supprimé.` });
             setIsDeletePromptDialogOpen(false);
             setPromptToDelete(null);
@@ -405,13 +409,26 @@ export default function EditImagePage() {
     };
 
     const handleEditPrompt = async () => {
-        if (!promptToEdit || !editedPromptName.trim() || !user || !firestore) return;
+        if (!promptToEdit || !editedPromptName.trim() || !user || !firestore || !userProfile) return;
         setIsEditingPrompt(true);
 
         const updatedPrompt = { ...promptToEdit, name: editedPromptName };
 
         try {
-            await updateCustomPrompt(firestore, user.uid, updatedPrompt);
+            const currentPrompts = userProfile.customPrompts || [];
+            const promptIndex = currentPrompts.findIndex(p => p.id === promptToEdit.id);
+
+            if (promptIndex === -1) {
+                throw new Error("Prompt non trouvé.");
+            }
+
+            const newPrompts = [...currentPrompts];
+            newPrompts[promptIndex] = updatedPrompt;
+
+            await updateDoc(userDocRef, {
+                customPrompts: newPrompts
+            });
+
             toast({ title: "Prompt renommé", description: `Le prompt a été renommé en "${editedPromptName}".` });
             setIsEditPromptDialogOpen(false);
             setPromptToEdit(null);
