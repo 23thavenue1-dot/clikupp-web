@@ -9,7 +9,7 @@ import type { ImageMetadata, UserProfile, CustomPrompt } from '@/lib/firestore';
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2, Star, Trash2, Pencil, Tag, X, GalleryHorizontal, Clapperboard, Film, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Text, Instagram, Facebook, MessageSquare, VenetianMask, RefreshCw, Undo2, Redo2, Star, Trash2, Pencil, Tag, X, GalleryHorizontal, Clapperboard, Film, HelpCircle, ChevronDown } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -266,6 +266,43 @@ export default function EditImagePage() {
             setIsCarouselDialogOpen(false);
         } finally {
             setIsGeneratingCarousel(false);
+        }
+    };
+
+    const handleSaveCarouselToLibrary = async () => {
+        if (!carouselResult || !user || !firebaseApp || !firestore) return;
+        
+        const finalImageSlide = carouselResult.slides[2];
+        if (!finalImageSlide || !finalImageSlide.imageUrl) {
+            toast({ variant: 'destructive', title: 'Erreur', description: "L'image finale du carrousel est manquante." });
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            const storage = getStorage(firebaseApp);
+            const blob = await dataUriToBlob(finalImageSlide.imageUrl);
+            const newFileName = `carousel-creation-${Date.now()}.png`;
+            const imageFile = new File([blob], newFileName, { type: blob.type });
+
+            const fullDescription = carouselResult.slides.map((slide, index) => `Étape ${index + 1}: ${slide.description}`).join('\n\n');
+
+            const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `Carrousel: ${carouselResult.slides[0].description}`, () => {});
+            
+            await saveImageMetadata(firestore, user, { 
+                ...metadata,
+                title: `Carrousel : ${carouselResult.slides[0].description}`,
+                description: fullDescription,
+                generatedByAI: true
+            });
+
+            toast({ title: "Création sauvegardée !", description: "L'image finale et les textes du carrousel ont été ajoutés à votre galerie." });
+            setIsCarouselDialogOpen(false);
+        } catch (error) {
+            console.error("Erreur lors de la sauvegarde du carrousel :", error);
+            toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: 'Impossible d\'enregistrer la création.' });
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -908,9 +945,9 @@ export default function EditImagePage() {
                              <div className="grid grid-cols-4 gap-4">
                                 {carouselResult.slides.map((slide, index) => (
                                     <div key={index} className="flex flex-col gap-2 group">
-                                        <div className="aspect-square rounded-lg flex items-center justify-center overflow-hidden relative text-white bg-black">
-                                            {slide.imageUrl && index !== 1 && index !== 3 ? (
-                                                <Image src={slide.imageUrl} alt={`Étape ${index + 1}`} fill className="object-contain" unoptimized/>
+                                        <div className="aspect-[4/5] rounded-lg flex items-center justify-center overflow-hidden relative text-white bg-black">
+                                            {(slide.imageUrl && index === 0) || (slide.imageUrl && index === 2) ? (
+                                                <Image src={slide.imageUrl} alt={`Étape ${index + 1}`} fill className="object-cover" unoptimized/>
                                             ) : (
                                                 <div className="p-4 text-center flex flex-col items-center justify-center h-full bg-gradient-to-br from-gray-900 to-black">
                                                     <p className="text-xl font-bold tracking-tight font-headline">{slide.description}</p>
@@ -928,10 +965,22 @@ export default function EditImagePage() {
                     </div>
                     <DialogFooter>
                         <Button variant="secondary" onClick={() => setIsCarouselDialogOpen(false)}>Fermer</Button>
-                        <Button disabled={isGeneratingCarousel || !carouselResult}>
-                            <Save className="mr-2 h-4 w-4" />
-                            Sauvegarder au Planificateur
-                        </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button disabled={isGeneratingCarousel || !carouselResult || isSaving}>
+                                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                                    Exporter le Carrousel
+                                    <ChevronDown className="ml-2 h-4 w-4"/>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={handleSaveCarouselToLibrary}>
+                                    Sauvegarder la création
+                                </DropdownMenuItem>
+                                <DropdownMenuItem disabled>Créer une galerie dédiée</DropdownMenuItem>
+                                <DropdownMenuItem disabled>Télécharger les diapositives</DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -939,5 +988,6 @@ export default function EditImagePage() {
         </div>
     );
 }
+
 
 
