@@ -7,3 +7,5 @@ import './flows/social-audit-flow';
 import './schemas/social-audit-schemas';
 import './flows/generate-video-flow';
 import './flows/generate-carousel-flow';
+import './flows/regenerate-carousel-text-flow';
+import './schemas/carousel-schemas';

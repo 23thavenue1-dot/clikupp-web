@@ -22,3 +22,21 @@ export const GenerateCarouselOutputSchema = z.object({
   slides: z.array(CarouselSlideSchema).length(4).describe("Un tableau contenant exactement 4 diapositives (slides) pour le carrousel : Avant, Pendant, Après, Question."),
 });
 export type GenerateCarouselOutput = z.infer<typeof GenerateCarouselOutputSchema>;
+
+
+// --- Schémas pour la regénération ---
+
+export const RegenerateTextInputSchema = z.object({
+    baseImageUrl: z.string().describe("URL de l'image 'Avant'."),
+    afterImageUrl: z.string().describe("URL de l'image 'Après'."),
+    slideIndex: z.number().min(0).max(3).describe("L'index de la diapositive à regénérer (0 à 3)."),
+    currentText: z.string().describe("Le texte actuel de la diapositive que l'utilisateur souhaite améliorer."),
+    platform: z.string().optional().describe("La plateforme cible pour adapter le ton."),
+});
+export type RegenerateTextInput = z.infer<typeof RegenerateTextInputSchema>;
+
+
+export const RegenerateTextOutputSchema = z.object({
+    newText: z.string().describe("La nouvelle version du texte pour la diapositive."),
+});
+export type RegenerateTextOutput = z.infer<typeof RegenerateTextOutputSchema>;
