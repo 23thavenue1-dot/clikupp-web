@@ -30,7 +30,7 @@ const generateCarouselFlow = ai.defineFlow(
             { text: `
                 **Rôle :** Tu es un directeur artistique expert et un retoucheur photo.
                 
-                **Objectif :** En te basant sur l'image fournie, tu vas créer une histoire de transformation "Avant/Après" en 2 étapes sous forme de carrousel.
+                **Objectif :** En te basant sur l'image fournie, tu vas créer une histoire de transformation "Avant/Après" en 3 étapes sous forme de carrousel.
 
                 **Instructions détaillées :**
                 1.  **Analyse l'image de base.** Identifie sa nature (portrait, paysage, objet...). ${subjectPrompt ? `Le sujet principal est : ${subjectPrompt}.` : ''}
@@ -69,7 +69,7 @@ const generateCarouselFlow = ai.defineFlow(
         slides: [
             { imageUrl: baseImageUrl, description: descriptions[0] },
             { imageUrl: finalImageUrl, description: descriptions[1] },
-            { imageUrl: finalImageUrl, description: descriptions[2] }, // On utilise la même image finale pour "pendant" et "après" dans la data, le front simulera la différence
+            { imageUrl: finalImageUrl, description: descriptions[2] }, 
         ]
     };
   }

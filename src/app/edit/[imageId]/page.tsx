@@ -34,6 +34,13 @@ import { generateImageDescription } from '@/ai/flows/generate-description-flow';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel"
 
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
@@ -866,7 +873,6 @@ export default function EditImagePage() {
                 </DialogContent>
             </Dialog>
 
-            {/* NOUVEAU: Boîte de dialogue pour le carrousel */}
             <Dialog open={isCarouselDialogOpen} onOpenChange={setIsCarouselDialogOpen}>
                 <DialogContent className="max-w-4xl">
                     <DialogHeader>
@@ -882,33 +888,40 @@ export default function EditImagePage() {
                                 <p className="mt-4 text-muted-foreground">Génération du carrousel en cours...</p>
                             </div>
                         ) : carouselResult ? (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                {/* Étape 1 : Avant */}
-                                <div className="flex flex-col gap-2">
-                                    <CardHeader className="p-0 text-center mb-2"><CardTitle className="text-sm font-semibold">1. Avant</CardTitle></CardHeader>
-                                    <div className="aspect-square bg-muted rounded-lg flex items-center justify-center text-muted-foreground overflow-hidden relative">
-                                        <Image src={originalImage.directUrl} alt="Étape 1 : Avant" fill className="object-cover" unoptimized/>
-                                    </div>
-                                    <p className="text-xs p-2 bg-muted/50 rounded text-center h-16 flex items-center justify-center">{carouselResult.slides[0].description}</p>
-                                </div>
-                                {/* Étape 2 : Pendant (simulée) */}
-                                <div className="flex flex-col gap-2">
-                                    <CardHeader className="p-0 text-center mb-2"><CardTitle className="text-sm font-semibold">2. Pendant</CardTitle></CardHeader>
-                                    <div className="aspect-square bg-muted rounded-lg flex items-center justify-center text-muted-foreground overflow-hidden relative">
-                                        <Image src={originalImage.directUrl} alt="Étape 2 : Pendant" fill className="object-cover blur-[2px] brightness-75 transition-all" unoptimized/>
-                                        <Wand2 className="h-10 w-10 text-white/80 absolute" />
-                                    </div>
-                                    <p className="text-xs p-2 bg-muted/50 rounded text-center h-16 flex items-center justify-center">{carouselResult.slides[1].description}</p>
-                                </div>
-                                {/* Étape 3 : Après */}
-                                 <div className="flex flex-col gap-2">
-                                    <CardHeader className="p-0 text-center mb-2"><CardTitle className="text-sm font-semibold">3. Après</CardTitle></CardHeader>
-                                    <div className="aspect-square bg-muted rounded-lg flex items-center justify-center text-muted-foreground overflow-hidden relative border-2 border-primary">
-                                        <Image src={carouselResult.slides[1].imageUrl} alt="Étape 3 : Après" fill className="object-cover" unoptimized/>
-                                    </div>
-                                    <p className="text-xs p-2 bg-muted/50 rounded text-center h-16 flex items-center justify-center">{carouselResult.slides[2].description}</p>
-                                </div>
-                            </div>
+                           <Carousel className="w-full">
+                                <CarouselContent>
+                                    <CarouselItem>
+                                        <div className="flex flex-col gap-2 text-center">
+                                            <CardHeader className="p-0 mb-2"><CardTitle className="text-base font-semibold">1. Avant</CardTitle></CardHeader>
+                                            <div className="aspect-square bg-muted rounded-lg flex items-center justify-center text-muted-foreground overflow-hidden relative">
+                                                <Image src={originalImage.directUrl} alt="Étape 1 : Avant" fill className="object-cover" unoptimized/>
+                                            </div>
+                                            <p className="text-xs p-2 bg-muted/50 rounded h-16 flex items-center justify-center">{carouselResult.slides[0].description}</p>
+                                        </div>
+                                    </CarouselItem>
+                                    <CarouselItem>
+                                         <div className="flex flex-col gap-2 text-center">
+                                            <CardHeader className="p-0 mb-2"><CardTitle className="text-base font-semibold">2. Pendant</CardTitle></CardHeader>
+                                            <div className="aspect-square bg-muted rounded-lg flex flex-col items-center justify-center text-foreground overflow-hidden relative p-4">
+                                                <Wand2 className="h-10 w-10 text-primary mb-4" />
+                                                <p className="text-lg font-semibold">"{carouselResult.slides[1].description}"</p>
+                                            </div>
+                                            <p className="text-xs p-2 bg-muted/50 rounded h-16 flex items-center justify-center invisible">Placeholder</p>
+                                        </div>
+                                    </CarouselItem>
+                                    <CarouselItem>
+                                        <div className="flex flex-col gap-2 text-center">
+                                            <CardHeader className="p-0 mb-2"><CardTitle className="text-base font-semibold">3. Après</CardTitle></CardHeader>
+                                            <div className="aspect-square bg-muted rounded-lg flex items-center justify-center text-muted-foreground overflow-hidden relative border-2 border-primary">
+                                                <Image src={carouselResult.slides[2].imageUrl} alt="Étape 3 : Après" fill className="object-cover" unoptimized/>
+                                            </div>
+                                            <p className="text-xs p-2 bg-muted/50 rounded h-16 flex items-center justify-center">{carouselResult.slides[2].description}</p>
+                                        </div>
+                                    </CarouselItem>
+                                </CarouselContent>
+                                <CarouselPrevious />
+                                <CarouselNext />
+                            </Carousel>
                         ) : (
                              <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
                                 <p>Aucun résultat à afficher.</p>
