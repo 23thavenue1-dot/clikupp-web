@@ -16,7 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { editImage, generateImage } from '@/ai/flows/generate-image-flow';
 import { generateCarousel } from '@/ai/flows/generate-carousel-flow';
-import type { GenerateCarouselOutput } from '@/ai/schemas/carousel-schemas';
+import type { GenerateCarouselOutput, CarouselApi } from '@/ai/schemas/carousel-schemas';
 import { decrementAiTicketCount, saveImageMetadata, updateImageDescription, saveCustomPrompt, deleteCustomPrompt, updateCustomPrompt } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
@@ -118,6 +118,8 @@ export default function EditImagePage() {
     const [isGeneratingCarousel, setIsGeneratingCarousel] = useState(false);
     const [carouselResult, setCarouselResult] = useState<GenerateCarouselOutput | null>(null);
     const [carouselUserDirective, setCarouselUserDirective] = useState('');
+    const [carouselApi, setCarouselApi] = useState<CarouselApi>()
+    const [currentSlide, setCurrentSlide] = useState(0)
 
 
     const imageDocRef = useMemoFirebase(() => {
@@ -163,6 +165,20 @@ export default function EditImagePage() {
             setGeneratedHashtags(originalImage.hashtags || '');
         }
     }, [currentHistoryItem, originalImage]);
+    
+    // Pour les miniatures du carrousel
+    useEffect(() => {
+        if (!carouselApi) return
+        
+        setCurrentSlide(carouselApi.selectedScrollSnap())
+        const onSelect = () => {
+          setCurrentSlide(carouselApi.selectedScrollSnap())
+        }
+        carouselApi.on("select", onSelect)
+        return () => {
+          carouselApi.off("select", onSelect)
+        }
+    }, [carouselApi]);
 
 
     const handleGenerateImage = async () => {
@@ -883,45 +899,65 @@ export default function EditImagePage() {
                     </DialogHeader>
                     <div className="py-4">
                         {isGeneratingCarousel ? (
-                            <div className="flex flex-col items-center justify-center h-64">
+                            <div className="flex flex-col items-center justify-center h-96">
                                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
                                 <p className="mt-4 text-muted-foreground">Génération du carrousel en cours...</p>
                             </div>
                         ) : carouselResult ? (
-                           <Carousel className="w-full">
-                                <CarouselContent>
-                                    {carouselResult.slides.map((slide, index) => (
-                                        <CarouselItem key={index}>
-                                            <div className="flex flex-col gap-2 text-center">
-                                                <CardHeader className="p-0 mb-2">
-                                                    <CardTitle className="text-base font-semibold">
-                                                        {index === 0 ? '1. Avant' : index === 1 ? '2. Pendant' : index === 2 ? '3. Après' : '4. À vous de jouer !'}
-                                                    </CardTitle>
-                                                </CardHeader>
-                                                <div className="aspect-square bg-muted rounded-lg flex items-center justify-center text-foreground overflow-hidden relative p-4">
-                                                    {slide.imageUrl ? (
-                                                        <Image src={slide.imageUrl} alt={`Étape ${index + 1}`} fill className="object-cover" unoptimized/>
-                                                    ) : (
-                                                        <div className="flex flex-col items-center justify-center h-full text-center">
-                                                            <Wand2 className="h-10 w-10 text-primary mb-4" />
-                                                            <p className="text-lg font-semibold">"{slide.description}"</p>
-                                                        </div>
+                           <div className="space-y-4">
+                                <Carousel setApi={setCarouselApi} className="w-full">
+                                    <CarouselContent>
+                                        {carouselResult.slides.map((slide, index) => (
+                                            <CarouselItem key={index}>
+                                                <div className="flex flex-col gap-2 text-center">
+                                                    <CardHeader className="p-0 mb-2">
+                                                        <CardTitle className="text-base font-semibold">
+                                                            {index === 0 ? '1. Avant' : index === 1 ? '2. Pendant' : index === 2 ? '3. Après' : '4. À vous de jouer !'}
+                                                        </CardTitle>
+                                                    </CardHeader>
+                                                    <div className="aspect-square bg-muted rounded-lg flex items-center justify-center text-foreground overflow-hidden relative p-4">
+                                                        {slide.imageUrl ? (
+                                                            <Image src={slide.imageUrl} alt={`Étape ${index + 1}`} fill className="object-contain" unoptimized/>
+                                                        ) : (
+                                                            <div className="flex flex-col items-center justify-center h-full text-center">
+                                                                <Wand2 className="h-10 w-10 text-primary mb-4" />
+                                                                <p className="text-lg font-semibold">"{slide.description}"</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    {slide.imageUrl && (
+                                                        <p className="text-xs p-2 bg-muted/50 rounded h-16 flex items-center justify-center">
+                                                            {slide.description}
+                                                        </p>
                                                     )}
                                                 </div>
-                                                {slide.imageUrl && (
-                                                    <p className="text-xs p-2 bg-muted/50 rounded h-16 flex items-center justify-center">
-                                                        {slide.description}
-                                                    </p>
+                                            </CarouselItem>
+                                        ))}
+                                    </CarouselContent>
+                                    <CarouselPrevious />
+                                    <CarouselNext />
+                                </Carousel>
+                                <div className="flex items-center justify-center gap-2">
+                                    {carouselResult.slides.map((slide, index) => (
+                                        <button 
+                                            key={index}
+                                            onClick={() => carouselApi?.scrollTo(index)}
+                                            className="w-16 h-16 rounded-md overflow-hidden border-2 transition-all"
+                                        >
+                                            <div className="relative w-full h-full bg-muted flex items-center justify-center">
+                                                 {slide.imageUrl ? (
+                                                    <Image src={slide.imageUrl} alt={`Miniature ${index + 1}`} fill className="object-cover" />
+                                                ) : (
+                                                    <Wand2 className="h-6 w-6 text-muted-foreground" />
                                                 )}
+                                                {currentSlide !== index && <div className="absolute inset-0 bg-black/50"/>}
                                             </div>
-                                        </CarouselItem>
+                                        </button>
                                     ))}
-                                </CarouselContent>
-                                <CarouselPrevious />
-                                <CarouselNext />
-                            </Carousel>
+                                </div>
+                           </div>
                         ) : (
-                             <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+                             <div className="flex flex-col items-center justify-center h-96 text-muted-foreground">
                                 <p>Aucun résultat à afficher.</p>
                             </div>
                         )}
@@ -939,3 +975,4 @@ export default function EditImagePage() {
         </div>
     );
 }
+
