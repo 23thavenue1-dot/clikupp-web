@@ -562,7 +562,7 @@ export default function EditImagePage() {
                                     </Card>
                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30">
                                         <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><Film className="h-5 w-5" /></div><h4 className="font-semibold">Réel "Zoom & Révèle"</h4></div>
-                                        <p className="text-xs text-muted-foreground flex-grow">Crée une vidéo courte qui zoome sur un détail avant de révéler l'image complète.</p>
+                                        <p className="text-xs text-muted-foreground flex-grow">Crée une courte vidéo qui zoome sur un détail avant de révéler l'image complète.</p>
                                         <Button size="sm" disabled>Générer (5 Tickets)</Button>
                                     </Card>
                                 </div>
@@ -894,11 +894,11 @@ export default function EditImagePage() {
 
             {/* NOUVEAU: Boîte de dialogue pour le carrousel */}
             <Dialog open={isCarouselDialogOpen} onOpenChange={setIsCarouselDialogOpen}>
-                <DialogContent className="max-w-3xl">
+                <DialogContent className="max-w-2xl">
                     <DialogHeader>
                         <DialogTitle>Résultat du Carrousel</DialogTitle>
                         <DialogDescription>
-                            Voici les images et les textes générés pour votre carrousel.
+                            Voici l'histoire de la transformation de votre image.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
@@ -908,13 +908,16 @@ export default function EditImagePage() {
                                 <p className="mt-4 text-muted-foreground">Génération du carrousel en cours...</p>
                             </div>
                         ) : carouselResult ? (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {carouselResult.slides.map((slide, i) => (
                                     <div key={i} className="flex flex-col gap-2">
+                                        <CardHeader className="p-0 text-center mb-2">
+                                            <CardTitle className="text-sm font-semibold">{i === 0 ? 'Avant' : 'Après'}</CardTitle>
+                                        </CardHeader>
                                         <div className="aspect-square bg-muted rounded-lg flex items-center justify-center text-muted-foreground overflow-hidden relative">
                                             <Image src={slide.imageUrl} alt={`Étape ${i + 1}`} fill className="object-cover" unoptimized/>
                                         </div>
-                                        <p className="text-xs p-2 bg-muted/50 rounded">{slide.description}</p>
+                                        <p className="text-xs p-2 bg-muted/50 rounded text-center h-16 flex items-center justify-center">{slide.description}</p>
                                     </div>
                                 ))}
                             </div>
@@ -937,4 +940,3 @@ export default function EditImagePage() {
         </div>
     );
 }
-

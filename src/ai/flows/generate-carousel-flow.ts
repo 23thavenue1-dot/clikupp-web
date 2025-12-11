@@ -30,7 +30,7 @@ const generateCarouselFlow = ai.defineFlow(
             { text: `
                 **Rôle :** Tu es un directeur artistique expert et un retoucheur photo.
                 
-                **Objectif :** En te basant sur l'image fournie, tu vas créer une histoire de transformation en 3 étapes sous forme de carrousel.
+                **Objectif :** En te basant sur l'image fournie, tu vas créer une histoire de transformation "Avant/Après" en 2 étapes sous forme de carrousel.
 
                 **Instructions détaillées :**
                 1.  **Analyse l'image de base.** Identifie sa nature (portrait, paysage, objet...). ${subjectPrompt ? `Le sujet principal est : ${subjectPrompt}.` : ''}
@@ -43,10 +43,9 @@ const generateCarouselFlow = ai.defineFlow(
 
                 3.  **Génère une unique image "Après"** qui représente cette transformation de la manière la plus qualitative possible.
                 
-                4.  **Rédige 3 descriptions très courtes et percutantes** pour raconter cette histoire, une pour chaque étape du carrousel. Sépare chaque description par '---'.
+                4.  **Rédige 2 descriptions très courtes et percutantes** pour raconter cette histoire, une pour chaque étape du carrousel. Sépare chaque description par '---'.
                     *   **Description 1 (Avant) :** Décris le point de départ, l'image originale.
-                    *   **Description 2 (Pendant) :** Explique brièvement l'intention créative, la transformation que tu vas opérer (en te basant sur la directive de l'utilisateur si elle existe).
-                    *   **Description 3 (Après) :** Décris le résultat final, en mettant en valeur le bénéfice de la transformation.
+                    *   **Description 2 (Après) :** Décris le résultat final, en mettant en valeur le bénéfice de la transformation.
             `},
         ],
         config: {
@@ -59,19 +58,16 @@ const generateCarouselFlow = ai.defineFlow(
     }
     
     const descriptions = text.split('---').map(d => d.trim());
-    if (descriptions.length < 3) {
-      throw new Error("L'IA n'a pas retourné les 3 descriptions attendues.");
+    if (descriptions.length < 2) {
+      throw new Error("L'IA n'a pas retourné les 2 descriptions attendues.");
     }
     
     const finalImageUrl = media.url;
 
-    // SIMULATION: Comme le modèle ne retourne qu'une seule image (la version "Après"),
-    // on utilise la nouvelle image pour les étapes "pendant" et "après".
     return {
         slides: [
             { imageUrl: baseImageUrl, description: descriptions[0] },
             { imageUrl: finalImageUrl, description: descriptions[1] },
-            { imageUrl: finalImageUrl, description: descriptions[2] },
         ]
     };
   }
