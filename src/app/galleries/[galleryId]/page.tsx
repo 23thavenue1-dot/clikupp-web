@@ -502,7 +502,7 @@ export default function GalleryDetailPage() {
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuSeparator />
                                                                 <DropdownMenuItem asChild>
-                                                                    <Link href={`/edit/${image.id}`}><Sparkles className="mr-2 h-4 w-4" /><span>Éditer avec l'IA</span></Link>
+                                                                    <Link href={`/edit/${image.id}`}><Sparkles className="mr-2 h-4 w-4" /><span>Éditer, Modifier avec l'IA</span></Link>
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuItem onClick={() => openEditDialog(image)}><Wand2 className="mr-2 h-4 w-4" /><span>Générer une description</span></DropdownMenuItem>
                                                                 <DropdownMenuSeparator />
