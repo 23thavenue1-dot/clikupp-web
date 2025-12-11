@@ -905,7 +905,7 @@ export default function EditImagePage() {
                                 <p className="mt-4 text-muted-foreground">Génération du carrousel en cours...</p>
                             </div>
                         ) : carouselResult ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-4 gap-4">
                                 {carouselResult.slides.map((slide, index) => (
                                     <div key={index} className="flex flex-col gap-2">
                                         <div className="aspect-square bg-muted rounded-lg flex items-center justify-center text-foreground overflow-hidden relative">
@@ -945,4 +945,5 @@ export default function EditImagePage() {
         </div>
     );
 }
+
 
