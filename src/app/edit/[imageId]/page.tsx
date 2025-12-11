@@ -108,6 +108,7 @@ export default function EditImagePage() {
     const [isCarouselDialogOpen, setIsCarouselDialogOpen] = useState(false);
     const [isGeneratingCarousel, setIsGeneratingCarousel] = useState(false);
     const [carouselResult, setCarouselResult] = useState<GenerateCarouselOutput | null>(null);
+    const [carouselUserDirective, setCarouselUserDirective] = useState('');
 
 
     const imageDocRef = useMemoFirebase(() => {
@@ -206,7 +207,6 @@ export default function EditImagePage() {
         }
     };
     
-    // NOUVEAU: Gérer la génération de carrousel
     const handleGenerateCarousel = async () => {
         const CAROUSEL_COST = 3;
         if (!originalImage || !userProfile || totalAiTickets < CAROUSEL_COST) {
@@ -224,8 +224,8 @@ export default function EditImagePage() {
         try {
             const result = await generateCarousel({
                 baseImageUrl: originalImage.directUrl,
-                concept: 'tutoriel',
                 subjectPrompt: originalImage.description || originalImage.title,
+                userDirective: carouselUserDirective || undefined,
             });
 
             setCarouselResult(result);
@@ -237,7 +237,6 @@ export default function EditImagePage() {
         } catch (error) {
             console.error("Carousel generation error:", error);
             toast({ variant: 'destructive', title: 'Erreur de génération', description: "Le carrousel n'a pas pu être créé." });
-            // Fermer la modale en cas d'erreur pour que l'utilisateur puisse réessayer
             setIsCarouselDialogOpen(false);
         } finally {
             setIsGeneratingCarousel(false);
@@ -367,7 +366,7 @@ export default function EditImagePage() {
         };
 
         try {
-            await updateDoc(userDocRef, {
+            await updateDoc(doc(firestore, `users/${user.uid}`), {
                 customPrompts: arrayUnion(newCustomPrompt)
             });
             toast({ title: "Prompt sauvegardé", description: `"${newPromptName}" a été ajouté à 'Mes Prompts'.` });
@@ -389,7 +388,7 @@ export default function EditImagePage() {
         setIsDeletingPrompt(true);
 
         try {
-            await updateDoc(userDocRef, {
+            await updateDoc(doc(firestore, `users/${user.uid}`), {
                 customPrompts: arrayRemove(promptToDelete)
             });
             toast({ title: "Prompt supprimé", description: `"${promptToDelete.name}" a été supprimé.` });
@@ -425,7 +424,7 @@ export default function EditImagePage() {
             const newPrompts = [...currentPrompts];
             newPrompts[promptIndex] = updatedPrompt;
 
-            await updateDoc(userDocRef, {
+            await updateDoc(doc(firestore, `users/${user.uid}`), {
                 customPrompts: newPrompts
             });
 
@@ -536,8 +535,19 @@ export default function EditImagePage() {
                             <TabsContent value="instagram" className="pt-6">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30">
-                                        <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><GalleryHorizontal className="h-5 w-5" /></div><h4 className="font-semibold">Carrousel "Tutoriel"</h4></div>
-                                        <p className="text-xs text-muted-foreground flex-grow">Génère une séquence de 3 images pour un tutoriel (ex: Avant, Pendant, Après).</p>
+                                        <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><GalleryHorizontal className="h-5 w-5" /></div><h4 className="font-semibold">Carrousel Narratif</h4></div>
+                                        <p className="text-xs text-muted-foreground flex-grow">L'IA analyse l'image et génère un carrousel "Avant/Après" avec une histoire pour captiver votre audience.</p>
+                                        <div className="space-y-2 pt-2">
+                                            <Label htmlFor="carousel-directive" className="text-xs font-semibold">Directive (optionnel)</Label>
+                                            <Input 
+                                                id="carousel-directive"
+                                                placeholder="Ex: Rends le tout plus dramatique..." 
+                                                value={carouselUserDirective}
+                                                onChange={(e) => setCarouselUserDirective(e.target.value)}
+                                                className="h-8 text-xs"
+                                                disabled={isGeneratingCarousel}
+                                            />
+                                        </div>
                                         <Button size="sm" onClick={handleGenerateCarousel} disabled={isGeneratingCarousel}>
                                             {isGeneratingCarousel ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
                                             Générer (3 Tickets)
@@ -840,14 +850,14 @@ export default function EditImagePage() {
                 </DialogContent>
             </Dialog>
             
-            <Dialog open={isDeletePromptDialogOpen} onOpenChange={setIsDeletePromptDialogOpen}>
+            <AlertDialog open={isDeletePromptDialogOpen} onOpenChange={setIsDeletePromptDialogOpen}>
                 <DialogContent>
-                    <DialogHeader>
+                    <AlertDialogHeader>
                         <DialogTitle>Supprimer le prompt "{promptToDelete?.name}" ?</DialogTitle>
                         <DialogDescription>
                             Cette action est irréversible et supprimera définitivement ce prompt de votre liste.
                         </DialogDescription>
-                    </DialogHeader>
+                    </AlertDialogHeader>
                     <DialogFooter>
                         <Button variant="secondary" onClick={() => setIsDeletePromptDialogOpen(false)}>Annuler</Button>
                          <Button variant="destructive" onClick={handleDeletePrompt} disabled={isDeletingPrompt}>
@@ -856,7 +866,7 @@ export default function EditImagePage() {
                         </Button>
                     </DialogFooter>
                 </DialogContent>
-            </Dialog>
+            </AlertDialog>
             
             <Dialog open={isEditPromptDialogOpen} onOpenChange={setIsEditPromptDialogOpen}>
                 <DialogContent>
@@ -925,4 +935,5 @@ export default function EditImagePage() {
         </div>
     );
 }
+
 

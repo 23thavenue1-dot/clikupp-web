@@ -19,8 +19,10 @@ const generateCarouselFlow = ai.defineFlow(
     inputSchema: GenerateCarouselInputSchema,
     outputSchema: GenerateCarouselOutputSchema,
   },
-  async ({ baseImageUrl, concept, subjectPrompt }) => {
+  async ({ baseImageUrl, subjectPrompt, userDirective }) => {
     
+    // Le modèle ne supporte pas le mode JSON, nous retirons donc la demande de formatage JSON.
+    // Nous allons demander une seule image améliorée et du texte, puis construire le carrousel.
     const { media, text } = await ai.generate({
         model: 'googleai/gemini-2.5-flash-image-preview',
         prompt: [
@@ -31,12 +33,19 @@ const generateCarouselFlow = ai.defineFlow(
                 **Objectif :** En te basant sur l'image fournie, tu vas créer une histoire de transformation en 3 étapes sous forme de carrousel.
 
                 **Instructions détaillées :**
-                1.  **Analyse l'image de base.** Identifie sa nature (portrait, paysage, objet...) et son potentiel d'amélioration le plus pertinent et impactant. ${subjectPrompt ? `Le sujet principal est : ${subjectPrompt}.` : ''}
-                2.  **Imagine la transformation :** Quelle est LA modification clé qui sublimerait cette image ? (Ex: améliorer l'éclairage d'un portrait, rendre un ciel plus dramatique, changer une ambiance de couleur, etc.).
+                1.  **Analyse l'image de base.** Identifie sa nature (portrait, paysage, objet...). ${subjectPrompt ? `Le sujet principal est : ${subjectPrompt}.` : ''}
+                
+                2.  **Imagine la transformation :** 
+                    ${userDirective 
+                        ? `L'utilisateur a donné une directive claire : "${userDirective}". Ta transformation DOIT suivre cette instruction.`
+                        : "Quelle est LA modification clé qui sublimerait cette image ? (Ex: améliorer l'éclairage d'un portrait, rendre un ciel plus dramatique, changer une ambiance de couleur, etc.)."
+                    }
+
                 3.  **Génère une unique image "Après"** qui représente cette transformation de la manière la plus qualitative possible.
+                
                 4.  **Rédige 3 descriptions très courtes et percutantes** pour raconter cette histoire, une pour chaque étape du carrousel. Sépare chaque description par '---'.
                     *   **Description 1 (Avant) :** Décris le point de départ, l'image originale.
-                    *   **Description 2 (Pendant) :** Explique brièvement l'intention créative, la transformation que tu vas opérer.
+                    *   **Description 2 (Pendant) :** Explique brièvement l'intention créative, la transformation que tu vas opérer (en te basant sur la directive de l'utilisateur si elle existe).
                     *   **Description 3 (Après) :** Décris le résultat final, en mettant en valeur le bénéfice de la transformation.
             `},
         ],
@@ -56,6 +65,8 @@ const generateCarouselFlow = ai.defineFlow(
     
     const finalImageUrl = media.url;
 
+    // SIMULATION: Comme le modèle ne retourne qu'une seule image (la version "Après"),
+    // on utilise la nouvelle image pour les étapes "pendant" et "après".
     return {
         slides: [
             { imageUrl: baseImageUrl, description: descriptions[0] },

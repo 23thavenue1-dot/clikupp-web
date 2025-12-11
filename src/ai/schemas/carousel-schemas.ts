@@ -11,8 +11,8 @@ const CarouselSlideSchema = z.object({
 // Schéma d'entrée du flow
 export const GenerateCarouselInputSchema = z.object({
   baseImageUrl: z.string().describe("L'URL de l'image de base pour la transformation."),
-  concept: z.enum(['tutoriel', 'avant-apres', 'zoom-details']).describe("Le concept du carrousel à générer."),
   subjectPrompt: z.string().optional().describe("Optionnel. Une description du sujet principal pour aider l'IA à le reconnaître."),
+  userDirective: z.string().optional().describe("Optionnel. Une instruction directe de l'utilisateur pour guider la transformation."),
 });
 export type GenerateCarouselInput = z.infer<typeof GenerateCarouselInputSchema>;
 
@@ -21,5 +21,3 @@ export const GenerateCarouselOutputSchema = z.object({
   slides: z.array(CarouselSlideSchema).length(3).describe("Un tableau contenant exactement 3 diapositives (slides) pour le carrousel, chacune avec une URL d'image et une description."),
 });
 export type GenerateCarouselOutput = z.infer<typeof GenerateCarouselOutputSchema>;
-
-    
