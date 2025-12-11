@@ -907,10 +907,16 @@ export default function EditImagePage() {
                             </Dialog>
                          </div>
                          {monthlyLimitReached ? ( <p className="text-center text-sm text-primary font-semibold"> Limite mensuelle de tickets gratuits atteinte. Prochaine recharge le {nextRefillDate}. </p>) : (
-                            <Button size="lg" onClick={() => handleGenerateImage()} disabled={!prompt || !prompt.trim() || isGenerating || isSaving || !hasAiTickets} className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity">
-                                {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5 text-amber-300" />}
-                                {isGenerating ? 'Génération en cours...' : 'Générer (1 Ticket IA)'}
-                            </Button>
+                             <div className="space-y-2">
+                                <Button size="lg" onClick={() => handleGenerateImage()} disabled={!prompt || !prompt.trim() || isGenerating || isSaving || !hasAiTickets} className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity">
+                                    {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5 text-amber-300" />}
+                                    {isGenerating ? 'Génération en cours...' : 'Générer (1 Ticket IA)'}
+                                </Button>
+                                <Button onClick={handleSaveAiCreation} disabled={isSaving || isGenerating || !currentHistoryItem} className="w-full" variant="secondary">
+                                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                                    Enregistrer la création
+                                </Button>
+                             </div>
                         )}
                         {!hasAiTickets && !isGenerating && !monthlyLimitReached && (
                             <Button variant="link" asChild className="text-sm font-semibold text-primary w-full">
@@ -986,14 +992,14 @@ export default function EditImagePage() {
                        <CardHeader>
                          <CardTitle className="flex items-center gap-2 text-lg">
                            <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">3</span>
-                           <span>Finalisation</span>
+                           <span>Contenu</span>
                          </CardTitle>
                       </CardHeader>
-                      <CardContent className="grid grid-cols-2 gap-2">
+                      <CardContent>
                         <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
                             <DialogTrigger asChild>
                                 <Button variant="outline" className="w-full" disabled={isGenerating || isSaving}>
-                                    <Text className="mr-2 h-4 w-4"/> Rédiger
+                                    <Text className="mr-2 h-4 w-4"/> Rédiger Titre & Description
                                 </Button>
                             </DialogTrigger>
                              <DialogContent className="sm:max-w-md">
@@ -1040,10 +1046,6 @@ export default function EditImagePage() {
                                 </DialogFooter>
                             </DialogContent>
                         </Dialog>
-                         <Button onClick={handleSaveAiCreation} disabled={isSaving || isGenerating} className="w-full">
-                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
-                            Enregistrer
-                        </Button>
                       </CardContent>
                     </Card>
                     
