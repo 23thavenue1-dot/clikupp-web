@@ -254,7 +254,7 @@ export default function EditImagePage() {
 
     const handleRedoGeneration = () => {
         if (historyIndex < generatedImageHistory.length - 1) {
-            setHistoryIndex(prev => prev - 1);
+            setHistoryIndex(prev => prev + 1);
         }
     };
 
@@ -853,21 +853,21 @@ export default function EditImagePage() {
             </Dialog>
             
             <AlertDialog open={isDeletePromptDialogOpen} onOpenChange={setIsDeletePromptDialogOpen}>
-                <DialogContent>
+                <AlertDialogContent>
                     <AlertDialogHeader>
-                        <DialogTitle>Supprimer le prompt "{promptToDelete?.name}" ?</DialogTitle>
+                        <AlertDialogTitle>Supprimer le prompt "{promptToDelete?.name}" ?</AlertDialogTitle>
                         <AlertDialogDescription>
                             Cette action est irréversible et supprimera définitivement ce prompt de votre liste.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <DialogFooter>
-                        <Button variant="secondary" onClick={() => setIsDeletePromptDialogOpen(false)}>Annuler</Button>
-                         <Button variant="destructive" onClick={handleDeletePrompt} disabled={isDeletingPrompt}>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeletingPrompt}>Annuler</AlertDialogCancel>
+                         <AlertDialogAction onClick={handleDeletePrompt} disabled={isDeletingPrompt} className="bg-destructive hover:bg-destructive/90">
                             {isDeletingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Supprimer
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
             </AlertDialog>
             
             <Dialog open={isEditPromptDialogOpen} onOpenChange={setIsEditPromptDialogOpen}>
@@ -937,6 +937,4 @@ export default function EditImagePage() {
         </div>
     );
 }
-
-
 
