@@ -4,7 +4,7 @@ import { z } from 'genkit';
 
 // Schéma de sortie pour une seule image du carrousel
 const CarouselSlideSchema = z.object({
-  imageUrl: z.string().describe("L'URL de l'image générée pour cette étape, encodée en data URI."),
+  imageUrl: z.string().nullable().describe("L'URL de l'image générée pour cette étape (peut être null pour les diapositives textuelles)."),
   description: z.string().describe("La description courte et engageante pour cette étape du carrousel."),
 });
 

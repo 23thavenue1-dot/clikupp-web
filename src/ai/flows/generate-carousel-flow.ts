@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Flow Genkit pour la génération de carrousels d'images en 4 étapes.
@@ -21,7 +20,28 @@ const generateCarouselFlow = ai.defineFlow(
   },
   async ({ baseImageUrl, subjectPrompt, userDirective, platform }) => {
     
-    // --- APPEL 1: Génération de l'image "Après" ---
+    // --- ÉTAPE 1: Générer l'image "Après" ET les 4 descriptions textuelles en un seul appel ---
+    const mainGeneration = await ai.generate({
+        model: 'googleai/gemini-2.5-flash', // Modèle texte puissant
+        prompt: `
+            **Rôle :** Tu es un social media manager expert en storytelling pour ${platform}.
+            **Objectif :** Rédige 4 descriptions très courtes et percutantes pour un carrousel "Avant/Après". Sépare chaque description par '---'.
+            
+            **Règle impérative :** Ne préfixe JAMAIS tes descriptions par "Texte 1", "Description 2", etc. Le ton doit être engageant et adapté à ${platform || 'un réseau social'}.
+            
+            **Contexte :**
+            - Image Avant : Une photo de base.
+            - Image Après : La même photo, mais améliorée et plus professionnelle.
+            - Directive de l'utilisateur : "${userDirective || "Embellir le portrait pour un résultat professionnel et esthétique."}"
+            
+            **Descriptions à rédiger :**
+            *   **Description 1 (Avant) :** Décris le point de départ, l'image originale. Sois factuel mais intriguant.
+            *   **Description 2 (Pendant) :** Explique brièvement le défi créatif, la transformation qui va être opérée. Crée du suspense.
+            *   **Description 3 (Après) :** Décris le résultat final, en mettant en valeur le bénéfice de la transformation. Utilise un ton enthousiaste.
+            *   **Description 4 (Question) :** Rédige une question ouverte et engageante liée à l'image ou à la transformation, pour inciter les commentaires (style Instagram).
+        `
+    });
+
     const afterImageGeneration = await ai.generate({
         model: 'googleai/gemini-2.5-flash-image-preview',
         prompt: [
@@ -46,74 +66,27 @@ const generateCarouselFlow = ai.defineFlow(
         },
     });
 
-    if (!afterImageGeneration.media || !afterImageGeneration.media.url) {
-      throw new Error("L'IA n'a pas pu générer l'image 'Après'.");
-    }
-    const afterImageUrl = afterImageGeneration.media.url;
-
-
-    // --- APPEL 2: Génération des 4 descriptions textuelles ---
-    const textGeneration = await ai.generate({
-        model: 'googleai/gemini-2.5-flash',
-        prompt: `
-            **Rôle :** Tu es un social media manager expert en storytelling, spécialisé pour la plateforme **${platform || 'générique'}**.
-            **Objectif :** Rédige 4 descriptions très courtes et percutantes pour un carrousel "Avant/Après". Sépare chaque description par '---'.
-            
-            **Règle impérative :** Ne préfixe JAMAIS tes descriptions par "Texte 1", "Texte 2", etc. Le ton doit être engageant et adapté à **${platform || 'un réseau social'}**.
-            
-            **Contexte :**
-            - Image Avant : Une photo de base.
-            - Image Après : La même photo, mais améliorée et plus professionnelle.
-            
-            **Descriptions à rédiger :**
-            *   **Description 1 (Avant) :** Décris le point de départ, l'image originale. Sois factuel mais intriguant.
-            *   **Description 2 (Pendant) :** Explique brièvement le défi créatif, la transformation qui va être opérée. Crée du suspense.
-            *   **Description 3 (Après) :** Décris le résultat final, en mettant en valeur le bénéfice de la transformation. Utilise un ton enthousiaste.
-            *   **Description 4 (Question) :** Rédige une question ouverte et engageante liée à l'image ou à la transformation, pour inciter les commentaires (style Instagram).
-        `
-    });
-
-    if (!textGeneration.text) {
-        throw new Error("L'IA n'a pas pu générer les descriptions du carrousel.");
+    if (!afterImageGeneration.media || !afterImageGeneration.media.url || !mainGeneration.text) {
+      throw new Error("L'IA n'a pas pu générer le contenu principal du carrousel.");
     }
     
-    const descriptions = textGeneration.text.split('---').map(d => d.replace(/^\*+Texte\s\d+\s?\**[:\s]*/i, '').trim());
+    // Nettoyer les descriptions pour enlever les préfixes potentiels (ex: "Description 1 (Avant):", "**Texte 2:**")
+    const descriptions = mainGeneration.text.split('---').map(d => d.replace(/^\*+ *(?:Description|Texte) \d+[^:]*:[ \n]*/i, '').trim());
+
     if (descriptions.length < 4) {
       throw new Error("L'IA n'a pas retourné les 4 descriptions attendues.");
     }
-    
 
-    // --- APPEL 3: Génération de l'image "Pendant" ---
-    const duringGeneration = await ai.generate({
-        model: 'googleai/imagen-4.0-fast-generate-001',
-        prompt: `Crée une image conceptuelle et stylisée qui représente l'idée de "transformation créative" ou de "processus d'amélioration". Le style doit être graphique et moderne, avec des éléments comme des lignes d'énergie, des particules de lumière, ou des formes abstraites qui évoquent le changement. L'image doit être visuellement intéressante mais pas trop chargée, pour accompagner le texte : "${descriptions[1]}"`,
-        config: { aspectRatio: '3:4' }
-    });
+    const afterImageUrl = afterImageGeneration.media.url;
 
-    if (!duringGeneration.media || !duringGeneration.media.url) {
-        throw new Error("L'IA n'a pas pu générer l'image 'Pendant'.");
-    }
-    const duringImageUrl = duringGeneration.media.url;
-
-
-    // --- APPEL 4: Génération de l'image "Question" ---
-    const questionGeneration = await ai.generate({
-        model: 'googleai/imagen-4.0-fast-generate-001',
-        prompt: `Crée une image graphique simple et élégante pour un post de réseau social. Au centre, sur un fond texturé subtil (comme du papier ou un mur de couleur neutre), écris en grosses lettres lisibles et stylées le texte suivant : "${descriptions[3]}"`,
-        config: { aspectRatio: '3:4' }
-    });
-
-    if (!questionGeneration.media || !questionGeneration.media.url) {
-        throw new Error("L'IA n'a pas pu générer l'image 'Question'.");
-    }
-    const questionImageUrl = questionGeneration.media.url;
-
+    // Pour les slides 2 et 4, on ne retourne pas d'URL d'image, seul le texte compte.
+    // L'image sera construite côté client.
     return {
         slides: [
             { imageUrl: baseImageUrl, description: descriptions[0] },
-            { imageUrl: duringImageUrl, description: descriptions[1] },
+            { imageUrl: null, description: descriptions[1] },
             { imageUrl: afterImageUrl, description: descriptions[2] }, 
-            { imageUrl: questionImageUrl, description: descriptions[3] },
+            { imageUrl: null, description: descriptions[3] },
         ]
     };
   }

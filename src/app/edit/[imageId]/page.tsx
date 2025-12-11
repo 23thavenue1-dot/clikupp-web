@@ -69,6 +69,65 @@ async function dataUriToBlob(dataUri: string): Promise<Blob> {
     return blob;
 }
 
+// --- Helper pour créer une image à partir de texte ---
+async function createTextToImage(text: string, width: number, height: number): Promise<string> {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas context not available');
+
+    // Fond noir avec dégradé subtil
+    const gradient = ctx.createLinearGradient(0, 0, 0, height);
+    gradient.addColorStop(0, '#1a1a1a');
+    gradient.addColorStop(1, '#000000');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+
+    // Style du texte
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    // Logique pour ajuster la taille de la police
+    let fontSize = width / 10; // Taille de base
+    ctx.font = `bold ${fontSize}px "Inter", sans-serif`;
+
+    // Réduire la taille si le texte est trop large
+    while (ctx.measureText(text).width > width * 0.8 && fontSize > 10) {
+        fontSize -= 2;
+        ctx.font = `bold ${fontSize}px "Inter", sans-serif`;
+    }
+
+    // Gérer les sauts de ligne
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = words[0];
+
+    for (let i = 1; i < words.length; i++) {
+        const word = words[i];
+        const widthTest = ctx.measureText(currentLine + " " + word).width;
+        if (widthTest > width * 0.8 && i > 0) {
+            lines.push(currentLine);
+            currentLine = word;
+        } else {
+            currentLine += " " + word;
+        }
+    }
+    lines.push(currentLine);
+
+    const lineHeight = fontSize * 1.2;
+    const totalTextHeight = lines.length * lineHeight;
+    const startY = (height - totalTextHeight) / 2;
+
+    lines.forEach((line, index) => {
+        ctx.fillText(line, width / 2, startY + (index * lineHeight));
+    });
+
+    return canvas.toDataURL('image/png');
+}
+
+
 export default function EditImagePage() {
     const params = useParams();
     const router = useRouter();
@@ -234,7 +293,7 @@ export default function EditImagePage() {
     };
     
     const handleGenerateCarousel = async (platform: string) => {
-        const CAROUSEL_COST = 3;
+        const CAROUSEL_COST = 1; // Coût ajusté
         if (!originalImage || !userProfile || totalAiTickets < CAROUSEL_COST) {
             toast({ 
                 variant: 'destructive', 
@@ -260,7 +319,7 @@ export default function EditImagePage() {
             for (let i = 0; i < CAROUSEL_COST; i++) {
                 await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             }
-            toast({ title: 'Carrousel généré !', description: `${CAROUSEL_COST} tickets IA ont été utilisés.` });
+            toast({ title: 'Carrousel généré !', description: `${CAROUSEL_COST} ticket(s) IA utilisé(s).` });
         } catch (error) {
             console.error("Carousel generation error:", error);
             toast({ variant: 'destructive', title: 'Erreur de génération', description: "Le carrousel n'a pas pu être créé." });
@@ -275,46 +334,35 @@ export default function EditImagePage() {
     
         setIsSaving(true);
         try {
-             // 1. Sauvegarder les 3 images générées
-            const storage = getStorage(firebaseApp);
-            const savedImageUrls = await Promise.all(
-                carouselResult.slides.slice(1).map(async (slide, index) => {
-                    if (!slide.imageUrl) return null;
-                    const blob = await dataUriToBlob(slide.imageUrl);
+            const imageUrlsToSave: (string | null)[] = [
+                carouselResult.slides[1]?.imageUrl || await createTextToImage(carouselResult.slides[1].description, 800, 1000), // Pendant
+                carouselResult.slides[2]?.imageUrl || null, // Après
+                carouselResult.slides[3]?.imageUrl || await createTextToImage(carouselResult.slides[3].description, 800, 1000), // Question
+            ];
+
+            const savedImageIds = await Promise.all(
+                imageUrlsToSave.map(async (imageUrl, index) => {
+                    if (!imageUrl) return null;
+                    const blob = await dataUriToBlob(imageUrl);
                     const newFileName = `carousel-${index + 2}-${Date.now()}.png`;
                     const imageFile = new File([blob], newFileName, { type: blob.type });
-                    const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `Carrousel Étape ${index + 2}`, () => {});
+                    const metadata = await uploadFileAndGetMetadata(getStorage(firebaseApp), user, imageFile, `Carrousel Étape ${index + 2}`, () => {});
                     const docRef = await saveImageMetadata(firestore, user, { ...metadata, generatedByAI: true });
                     return docRef.id;
                 })
             );
-            const validImageIds = savedImageUrls.filter((id): id is string => !!id);
+            const validImageIds = savedImageIds.filter((id): id is string => !!id);
 
-            // 2. Créer la galerie
             const galleryName = `Carrousel: ${originalImage.title || `Transformation du ${format(new Date(), 'd MMM')}`}`;
-            const galleryDescription = `Histoire du Carrousel :
----
-ÉTAPE 1 (AVANT) :
-${carouselResult.slides[0].description}
----
-ÉTAPE 2 (PENDANT) :
-${carouselResult.slides[1].description}
----
-ÉTAPE 3 (APRÈS) :
-${carouselResult.slides[2].description}
----
-ÉTAPE 4 (INTERACTION) :
-${carouselResult.slides[3].description}`;
+            const galleryDescription = carouselResult.slides.map((s, i) => `ÉTAPE ${i+1}: ${s.description}`).join('\n---\n');
             const newGalleryDocRef = await createGallery(firestore, user.uid, galleryName, galleryDescription);
     
-            // 3. Ajouter les 4 images (l'originale + les 3 générées) à la galerie
             await addMultipleImagesToGalleries(firestore, user.uid, [originalImage.id, ...validImageIds], [newGalleryDocRef.id]);
     
             toast({
                 title: "Galerie créée avec succès !",
                 description: (
-                    <p>
-                        La galerie "{galleryName}" a été créée avec les 4 images.
+                    <p>La galerie "{galleryName}" a été créée avec les 4 images.
                         <Link href={`/galleries/${newGalleryDocRef.id}`} className="font-bold text-primary underline ml-1">
                             Y aller
                         </Link>
@@ -330,6 +378,7 @@ ${carouselResult.slides[3].description}`;
             setIsSaving(false);
         }
     };
+
 
     const handleSaveCarouselToLibrary = async () => {
         if (!carouselResult || !user || !firebaseApp || !firestore) return;
@@ -675,7 +724,7 @@ ${carouselResult.slides[3].description}`;
                                         </div>
                                         <Button size="sm" onClick={() => handleGenerateCarousel('instagram')} disabled={isGeneratingCarousel}>
                                             {isGeneratingCarousel ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
-                                            Générer (3 Tickets)
+                                            Générer (1 Ticket)
                                         </Button>
                                     </Card>
                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30">
@@ -1006,12 +1055,11 @@ ${carouselResult.slides[3].description}`;
                         ) : carouselResult ? (
                              <div className="grid grid-cols-4 gap-4">
                                 {carouselResult.slides.map((slide, index) => {
-                                   const isTextOnlySlide = index === 1;
-                                   const isFinalSlideText = index === 3;
+                                   const isTextOnlySlide = index === 1 || index === 3;
                                    return (
                                         <div key={index} className="flex flex-col gap-2 group">
                                              <div className="aspect-[4/5] rounded-lg flex items-center justify-center overflow-hidden relative text-white bg-black">
-                                                {isTextOnlySlide || isFinalSlideText ? (
+                                                {isTextOnlySlide ? (
                                                     <div className="p-4 text-center flex flex-col items-center justify-center h-full bg-gradient-to-br from-gray-900 to-black">
                                                         <p className="text-xl font-bold tracking-tight font-headline">{slide.description}</p>
                                                     </div>
