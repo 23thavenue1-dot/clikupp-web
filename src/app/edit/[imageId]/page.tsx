@@ -272,26 +272,25 @@ export default function EditImagePage() {
     const handleCreateGalleryFromCarousel = async () => {
         if (!carouselResult || !originalImage || !user || !firebaseApp || !firestore) return;
     
-        const finalImageSlide = carouselResult.slides.find(s => s.imageUrl && s.imageUrl !== originalImage.directUrl);
-        if (!finalImageSlide) {
-            toast({ variant: 'destructive', title: 'Erreur', description: "L'image 'Après' du carrousel est manquante." });
-            return;
-        }
-    
         setIsSaving(true);
         try {
-            // 1. Sauvegarder l'image "Après" dans la bibliothèque pour obtenir son ID
+             // 1. Sauvegarder les 3 images générées
             const storage = getStorage(firebaseApp);
-            const blob = await dataUriToBlob(finalImageSlide.imageUrl);
-            const newFileName = `carousel-after-${Date.now()}.png`;
-            const imageFile = new File([blob], newFileName, { type: blob.type });
-            const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `Image "Après" du carrousel`, () => {});
-            const newImageDocRef = await saveImageMetadata(firestore, user, { ...metadata, generatedByAI: true });
-    
-            // 2. Créer une nouvelle galerie
+            const savedImageUrls = await Promise.all(
+                carouselResult.slides.slice(1).map(async (slide, index) => {
+                    if (!slide.imageUrl) return null;
+                    const blob = await dataUriToBlob(slide.imageUrl);
+                    const newFileName = `carousel-${index + 2}-${Date.now()}.png`;
+                    const imageFile = new File([blob], newFileName, { type: blob.type });
+                    const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `Carrousel Étape ${index + 2}`, () => {});
+                    const docRef = await saveImageMetadata(firestore, user, { ...metadata, generatedByAI: true });
+                    return docRef.id;
+                })
+            );
+            const validImageIds = savedImageUrls.filter((id): id is string => !!id);
+
+            // 2. Créer la galerie
             const galleryName = `Carrousel: ${originalImage.title || `Transformation du ${format(new Date(), 'd MMM')}`}`;
-            
-            // Formatage de la description pour plus de clarté
             const galleryDescription = `Histoire du Carrousel :
 ---
 ÉTAPE 1 (AVANT) :
@@ -305,17 +304,16 @@ ${carouselResult.slides[2].description}
 ---
 ÉTAPE 4 (INTERACTION) :
 ${carouselResult.slides[3].description}`;
-
             const newGalleryDocRef = await createGallery(firestore, user.uid, galleryName, galleryDescription);
     
-            // 3. Ajouter les deux images (Avant et Après) à la nouvelle galerie
-            await addMultipleImagesToGalleries(firestore, user.uid, [originalImage.id, newImageDocRef.id], [newGalleryDocRef.id]);
+            // 3. Ajouter les 4 images (l'originale + les 3 générées) à la galerie
+            await addMultipleImagesToGalleries(firestore, user.uid, [originalImage.id, ...validImageIds], [newGalleryDocRef.id]);
     
             toast({
                 title: "Galerie créée avec succès !",
                 description: (
                     <p>
-                        La galerie "{galleryName}" a été créée avec les images avant/après.
+                        La galerie "{galleryName}" a été créée avec les 4 images.
                         <Link href={`/galleries/${newGalleryDocRef.id}`} className="font-bold text-primary underline ml-1">
                             Y aller
                         </Link>
@@ -335,8 +333,8 @@ ${carouselResult.slides[3].description}`;
     const handleSaveCarouselToLibrary = async () => {
         if (!carouselResult || !user || !firebaseApp || !firestore) return;
         
-        const finalImageSlide = carouselResult.slides.find(s => s.imageUrl && s.imageUrl !== originalImage?.directUrl);
-        if (!finalImageSlide) {
+        const finalImageSlide = carouselResult.slides[2];
+        if (!finalImageSlide || !finalImageSlide.imageUrl) {
             toast({ variant: 'destructive', title: 'Erreur', description: "L'image finale du carrousel est manquante." });
             return;
         }
@@ -354,7 +352,7 @@ ${carouselResult.slides[3].description}`;
             
             await saveImageMetadata(firestore, user, { 
                 ...metadata,
-                title: `Carrousel : ${carouselResult.slides[0].description}`,
+                title: `Carrousel : ${carouselResult.slides[2].description}`,
                 description: fullDescription,
                 generatedByAI: true
             });
