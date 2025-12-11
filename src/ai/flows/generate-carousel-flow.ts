@@ -69,7 +69,7 @@ const generateCarouselFlow = ai.defineFlow(
     const duringGeneration = await ai.generate({
         model: 'googleai/imagen-4.0-fast-generate-001',
         prompt: `Crée une image conceptuelle et stylisée qui représente l'idée de "transformation créative" ou de "processus d'amélioration". Le style doit être graphique et moderne, avec des éléments comme des lignes d'énergie, des particules de lumière, ou des formes abstraites qui évoquent le changement. L'image doit être visuellement intéressante mais pas trop chargée, pour accompagner le texte : "${descriptions[1]}"`,
-        config: { aspectRatio: '4:5' }
+        config: { aspectRatio: '3:4' }
     });
 
     if (!duringGeneration.media || !duringGeneration.media.url) {
@@ -81,7 +81,7 @@ const generateCarouselFlow = ai.defineFlow(
     const questionGeneration = await ai.generate({
         model: 'googleai/imagen-4.0-fast-generate-001',
         prompt: `Crée une image graphique simple et élégante pour un post de réseau social. Au centre, sur un fond texturé subtil (comme du papier ou un mur de couleur neutre), écris en grosses lettres lisibles et stylées la question : "${descriptions[3]}". L'ambiance doit être engageante et inciter à la réponse.`,
-        config: { aspectRatio: '4:5' }
+        config: { aspectRatio: '3:4' }
     });
 
     if (!questionGeneration.media || !questionGeneration.media.url) {
