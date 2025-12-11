@@ -1,7 +1,7 @@
 
 'use server';
 /**
- * @fileOverview Flow Genkit pour la génération de carrousels d'images.
+ * @fileOverview Flow Genkit pour la génération de carrousels d'images en 4 étapes.
  */
 
 import { ai } from '@/ai/genkit';
@@ -21,7 +21,8 @@ const generateCarouselFlow = ai.defineFlow(
   },
   async ({ baseImageUrl, subjectPrompt, userDirective }) => {
     
-    const { media, text } = await ai.generate({
+    // --- APPEL 1: Génération du texte et de l'image "Après" ---
+    const mainGeneration = await ai.generate({
         model: 'googleai/gemini-2.5-flash-image-preview',
         prompt: [
             { media: { url: baseImageUrl } },
@@ -53,23 +54,47 @@ const generateCarouselFlow = ai.defineFlow(
         },
     });
 
-    if (!media || !media.url || !text) {
-      throw new Error("L'IA n'a pas pu générer le carrousel.");
+    if (!mainGeneration.media || !mainGeneration.media.url || !mainGeneration.text) {
+      throw new Error("L'IA n'a pas pu générer le contenu principal du carrousel.");
     }
     
-    const descriptions = text.split('---').map(d => d.trim());
+    const descriptions = mainGeneration.text.split('---').map(d => d.trim());
     if (descriptions.length < 4) {
       throw new Error("L'IA n'a pas retourné les 4 descriptions attendues.");
     }
     
-    const finalImageUrl = media.url;
+    const afterImageUrl = mainGeneration.media.url;
+
+    // --- APPEL 2: Génération de l'image "Pendant" ---
+    const duringGeneration = await ai.generate({
+        model: 'googleai/imagen-4.0-fast-generate-001',
+        prompt: `Crée une image conceptuelle et stylisée qui représente l'idée de "transformation créative" ou de "processus d'amélioration". Le style doit être graphique et moderne, avec des éléments comme des lignes d'énergie, des particules de lumière, ou des formes abstraites qui évoquent le changement. L'image doit être visuellement intéressante mais pas trop chargée, pour accompagner le texte : "${descriptions[1]}"`,
+        config: { aspectRatio: '4:5' }
+    });
+
+    if (!duringGeneration.media || !duringGeneration.media.url) {
+        throw new Error("L'IA n'a pas pu générer l'image 'Pendant'.");
+    }
+    const duringImageUrl = duringGeneration.media.url;
+
+    // --- APPEL 3: Génération de l'image "Question" ---
+    const questionGeneration = await ai.generate({
+        model: 'googleai/imagen-4.0-fast-generate-001',
+        prompt: `Crée une image graphique simple et élégante pour un post de réseau social. Au centre, sur un fond texturé subtil (comme du papier ou un mur de couleur neutre), écris en grosses lettres lisibles et stylées la question : "${descriptions[3]}". L'ambiance doit être engageante et inciter à la réponse.`,
+        config: { aspectRatio: '4:5' }
+    });
+
+    if (!questionGeneration.media || !questionGeneration.media.url) {
+        throw new Error("L'IA n'a pas pu générer l'image 'Question'.");
+    }
+    const questionImageUrl = questionGeneration.media.url;
 
     return {
         slides: [
             { imageUrl: baseImageUrl, description: descriptions[0] },
-            { imageUrl: '', description: descriptions[1] }, // Image vide pour l'étape "Pendant"
-            { imageUrl: finalImageUrl, description: descriptions[2] }, 
-            { imageUrl: finalImageUrl, description: descriptions[3] }, // 4ème slide avec la question
+            { imageUrl: duringImageUrl, description: descriptions[1] },
+            { imageUrl: afterImageUrl, description: descriptions[2] }, 
+            { imageUrl: questionImageUrl, description: descriptions[3] },
         ]
     };
   }
