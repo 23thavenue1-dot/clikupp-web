@@ -407,7 +407,7 @@ export default function EditImagePage() {
     return (
       <TooltipProvider>
         <div className="flex flex-col md:flex-row h-screen bg-muted/20">
-            {/* -- MAIN CONTENT (Images) -- */}
+            {/* -- MAIN CONTENT (Images & Complex Generation) -- */}
             <main className="flex-1 flex flex-col overflow-auto">
                 <header className="sticky top-0 bg-background/80 backdrop-blur-sm border-b z-20">
                     <div className="container mx-auto p-3 flex items-center justify-between">
@@ -432,7 +432,8 @@ export default function EditImagePage() {
                     </div>
                 </header>
 
-                <div className="flex-1 container mx-auto p-4 lg:p-6 flex flex-col items-center justify-center gap-6">
+                <div className="flex-1 container mx-auto p-4 lg:p-6 flex flex-col items-center gap-6">
+                    {/* -- Section Avant/Après -- */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 w-full max-w-7xl">
                         <div className="flex flex-col gap-2">
                              <Badge variant="secondary" className="w-fit mx-auto">AVANT</Badge>
@@ -472,7 +473,7 @@ export default function EditImagePage() {
                         </div>
                     </div>
                     
-                    {/* Section de création de contenu complexe */}
+                    {/* -- Section Création de Contenus Complexes -- */}
                     <Card className="w-full max-w-7xl">
                         <CardHeader>
                             <CardTitle>Création de Contenus Complexes</CardTitle>
@@ -514,7 +515,6 @@ export default function EditImagePage() {
                                         </div>
                                     </div>
                                 </TabsContent>
-                                {/* Les autres onglets peuvent être ajoutés ici sur le même modèle */}
                             </Tabs>
                         </CardContent>
                     </Card>
