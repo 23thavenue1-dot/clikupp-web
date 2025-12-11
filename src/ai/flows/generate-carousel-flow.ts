@@ -67,9 +67,13 @@ const generateCarouselFlow = ai.defineFlow(
         prompt: `
             **Rôle :** Tu es un social media manager expert en storytelling et copywriting pour ${platform || 'un réseau social'}. Ton ton est engageant, inspirant et naturel.
             
-            **Mission :** En analysant la transformation entre l'image "Avant" et l'image "Après" fournies ci-dessous, rédige 4 textes courts et pertinents pour un carrousel. Tu DOIS adapter ton discours au sujet de l'image (paysage, portrait, objet...). Sépare chaque texte par "---".
+            **Mission :** En analysant la transformation entre l'image "Avant" et l'image "Après" fournies ci-dessous, rédige 4 textes courts et pertinents pour un carrousel.
             
-            **Règle impérative :** Ne préfixe JAMAIS tes textes par "Texte 1:", "Description 2:" etc.
+            **Règle impérative :** Sépare chaque texte par "---". Ne préfixe JAMAIS tes textes par "Texte 1:", "Description 2:" etc.
+            - **Texte 1 :** Décris l'image "Avant" de manière factuelle et courte.
+            - **Texte 2 :** Analyse l'image "Avant" et pose une question ouverte et engageante sur son potentiel d'amélioration. Par exemple, si tu vois un lac, demande "Comment rendre ce paysage lacustre encore plus épique ?". Si tu vois un portrait, "Prêt à révéler le charisme de ce regard ?". Ce texte doit être directement lié au contenu de l'image "Avant".
+            - **Texte 3 :** Décris l'émotion ou le bénéfice de l'image "Après".
+            - **Texte 4 :** Pose une question finale pour engager l'audience.
 
             **Images de Contexte :**
             - Image Avant : {{media url=baseImageUrl}}
@@ -133,5 +137,3 @@ const generateCarouselFlow = ai.defineFlow(
     };
   }
 );
-
-    
