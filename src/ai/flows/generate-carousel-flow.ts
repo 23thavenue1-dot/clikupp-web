@@ -27,7 +27,7 @@ const generateCarouselFlow = ai.defineFlow(
         prompt: [
             { media: { url: baseImageUrl } },
             { text: `
-                **Contexte :** L'image fournie est une photo "Avant", de type amateur. Pour l'image "Après" que tu vas créer, tu incarnes un photographe et directeur artistique de renom avec son équipe de professionnels (styliste, éclairagiste, retoucheur) qui prend le relais.
+                **Contexte :** L'image fournie est une photo "Avant", souvent de type amateur. Pour l'image "Après" que tu vas créer, tu incarnes un photographe et directeur artistique de renom avec son équipe de professionnels (styliste, éclairagiste, retoucheur, décorateur d'intérieur) qui prend le relais.
                 
                 **Objectif :** Transformer cette photo amateur en une photo spectaculaire et de haute qualité, comme si elle sortait d'un studio professionnel. La différence doit être flagrante.
                 ${subjectPrompt ? `Le sujet principal est : ${subjectPrompt}.` : ''}
@@ -37,6 +37,7 @@ const generateCarouselFlow = ai.defineFlow(
                     ? `L'utilisateur a donné une directive claire : "${userDirective}". Ton équipe et toi DEVEZ suivre cette instruction à la lettre.`
                     : `Tu dois analyser l'image "Avant" et appliquer la transformation la plus pertinente.
                       - **Si l'image est un portrait :** Ta mission est de réaliser une transformation radicale. 1. Augmente la qualité globale de l'image : contraste, luminosité, définition. 2. Ton équipe installe un éclairage de studio professionnel avec des effets de lumière subtils pour sculpter le visage. 3. Ton retoucheur corrige les imperfections de la peau (acné, rougeurs) pour un teint unifié, tout en conservant une texture naturelle. 4. Assure-toi que les couleurs sont riches et vibrantes. 5. Le sujet doit rester parfaitement reconnaissable, mais le résultat doit être visiblement optimisé.
+                      - **Si l'image est une pièce d'intérieur :** Ta mission est double. 1. D'abord, range la pièce pour qu'elle paraisse propre et ordonnée. 2. Ensuite, ajoute subtilement 2 ou 3 éléments de décoration tendance (ex: une plante verte, une bougie, un livre d'art) pour créer une ambiance zen et minimaliste. Améliore l'éclairage pour que la pièce soit plus accueillante.
                       - **Si l'image est un paysage, un objet ou autre chose :** Ta mission est d'améliorer la qualité technique et esthétique de l'image. Augmente la clarté, le contraste, et la vibrance des couleurs. Optimise l'éclairage global pour rendre la scène plus impactante et professionnelle. Le sujet doit rester le même, mais le résultat doit être visiblement optimisé.`
                 }
             `},
@@ -55,7 +56,7 @@ const generateCarouselFlow = ai.defineFlow(
     const textGeneration = await ai.generate({
         model: 'googleai/gemini-2.5-flash',
         prompt: `
-            **Rôle :** Tu es un social media manager expert en storytelling pour ${platform}.
+            **Rôle :** Tu es un social media manager expert en storytelling pour ${platform || 'un réseau social'}.
             **Objectif :** Rédige 4 descriptions très courtes et percutantes pour un carrousel "Avant/Après". Sépare chaque description par '---'.
             
             **Règle impérative :** Ne préfixe JAMAIS tes descriptions par "Description 1", "Texte 2:", "**Texte 3:**" etc. Le ton doit être engageant et adapté à ${platform || 'un réseau social'}.
@@ -63,7 +64,7 @@ const generateCarouselFlow = ai.defineFlow(
             **Contexte :**
             - Image Avant : Une photo de base.
             - Image Après : La même photo, mais améliorée et plus professionnelle.
-            - Directive de l'utilisateur : "${userDirective || "Embellir le portrait pour un résultat professionnel et esthétique."}"
+            - Directive de l'utilisateur : "${userDirective || "Améliorer l'image pour un résultat professionnel et esthétique."}"
             
             **Descriptions à rédiger :**
             *   **Description 1 (Avant) :** Décris le point de départ, l'image originale. Sois factuel mais intriguant.
