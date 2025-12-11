@@ -15,8 +15,9 @@ import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { editImage, generateImage } from '@/ai/flows/generate-image-flow';
-import { decrementAiTicketCount, saveImageMetadata, saveCustomPrompt, deleteCustomPrompt, updateCustomPrompt, updateImageDescription } from '@/lib/firestore';
+import { editImage } from '@/ai/flows/generate-image-flow';
+import { generateCarousel, type GenerateCarouselOutput } from '@/ai/flows/generate-carousel-flow';
+import { decrementAiTicketCount, saveImageMetadata, updateImageDescription } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
 import { Badge } from '@/components/ui/badge';
@@ -30,9 +31,7 @@ import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { generateImageDescription } from '@/ai/flows/generate-description-flow';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
@@ -108,6 +107,7 @@ export default function EditImagePage() {
     // NOUVEAU: State pour le carrousel
     const [isCarouselDialogOpen, setIsCarouselDialogOpen] = useState(false);
     const [isGeneratingCarousel, setIsGeneratingCarousel] = useState(false);
+    const [carouselResult, setCarouselResult] = useState<GenerateCarouselOutput | null>(null);
 
 
     const imageDocRef = useMemoFirebase(() => {
@@ -208,21 +208,40 @@ export default function EditImagePage() {
     
     // NOUVEAU: Gérer la génération de carrousel
     const handleGenerateCarousel = async () => {
-        if (!originalImage || !userProfile || totalAiTickets < 3) {
-            toast({ variant: 'destructive', title: 'Action impossible', description: 'Image originale manquante, profil non chargé ou tickets IA insuffisants (3 requis).' });
+        const CAROUSEL_COST = 3;
+        if (!originalImage || !userProfile || totalAiTickets < CAROUSEL_COST) {
+            toast({ 
+                variant: 'destructive', 
+                title: 'Action impossible', 
+                description: `Image originale manquante, profil non chargé ou tickets IA insuffisants (${CAROUSEL_COST} requis).`
+            });
             return;
         }
         setIsGeneratingCarousel(true);
         setIsCarouselDialogOpen(true);
+        setCarouselResult(null);
         
-        // Simuler un appel IA pour le moment
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        // Mettre à jour avec un résultat factice
-        // TODO: Remplacer par un vrai appel au flow Genkit
-        
-        setIsGeneratingCarousel(false);
-        toast({ title: 'Carrousel généré !', description: '3 tickets IA ont été utilisés (simulation).' });
+        try {
+            const result = await generateCarousel({
+                baseImageUrl: originalImage.directUrl,
+                concept: 'tutoriel',
+                subjectPrompt: originalImage.description || originalImage.title,
+            });
+
+            setCarouselResult(result);
+
+            for (let i = 0; i < CAROUSEL_COST; i++) {
+                await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
+            }
+            toast({ title: 'Carrousel généré !', description: `${CAROUSEL_COST} tickets IA ont été utilisés.` });
+        } catch (error) {
+            console.error("Carousel generation error:", error);
+            toast({ variant: 'destructive', title: 'Erreur de génération', description: "Le carrousel n'a pas pu être créé." });
+            // Fermer la modale en cas d'erreur pour que l'utilisateur puisse réessayer
+            setIsCarouselDialogOpen(false);
+        } finally {
+            setIsGeneratingCarousel(false);
+        }
     };
 
     
@@ -234,7 +253,7 @@ export default function EditImagePage() {
 
     const handleRedoGeneration = () => {
         if (historyIndex < generatedImageHistory.length - 1) {
-            setHistoryIndex(prev => prev + 1);
+            setHistoryIndex(prev => prev - 1);
         }
     };
 
@@ -430,7 +449,6 @@ export default function EditImagePage() {
 
 
     return (
-      <TooltipProvider>
         <div className="flex flex-col md:flex-row h-screen bg-background">
             
             <main className="flex-1 flex flex-col p-4 lg:p-6 space-y-6 overflow-y-auto">
@@ -466,22 +484,12 @@ export default function EditImagePage() {
                                 <Badge className="w-fit mx-auto">APRÈS</Badge>
                                 {!isGenerating && generatedImageHistory.length > 0 && (
                                         <div className="absolute right-0 top-1/2 -translate-y-1/2 flex gap-1">
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                            <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="h-7 w-7 bg-background/80" aria-label="Annuler la dernière génération" disabled={historyIndex < 0}>
+                                            <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="h-7 w-7 bg-background/80" aria-label="Annuler" disabled={historyIndex < 0}>
                                                 <Undo2 className="h-4 w-4" />
                                             </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent><p>Annuler</p></TooltipContent>
-                                        </Tooltip>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                            <Button variant="outline" size="icon" onClick={handleRedoGeneration} className="h-7 w-7 bg-background/80" aria-label="Rétablir la génération" disabled={historyIndex >= generatedImageHistory.length - 1}>
+                                            <Button variant="outline" size="icon" onClick={handleRedoGeneration} className="h-7 w-7 bg-background/80" aria-label="Rétablir" disabled={historyIndex >= generatedImageHistory.length - 1}>
                                                 <Redo2 className="h-4 w-4" />
                                             </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent><p>Rétablir</p></TooltipContent>
-                                        </Tooltip>
                                         </div>
                                     )}
                                 </div>
@@ -494,7 +502,6 @@ export default function EditImagePage() {
                         </div>
                     </CardContent>
                 </Card>
-
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-lg">
@@ -505,7 +512,7 @@ export default function EditImagePage() {
                     </CardHeader>
                     <CardContent>
                         <Tabs defaultValue="instagram">
-                            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+                            <TabsList className="grid w-full grid-cols-4">
                                 <TabsTrigger value="instagram" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-orange-500 data-[state=active]:text-white"><Instagram className="mr-2" />Instagram</TabsTrigger>
                                 <TabsTrigger value="facebook" className="data-[state=active]:bg-[#1877F2] data-[state=active]:text-white"><Facebook className="mr-2" />Facebook</TabsTrigger>
                                 <TabsTrigger value="x" className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black"><MessageSquare className="mr-2" />X</TabsTrigger>
@@ -792,27 +799,49 @@ export default function EditImagePage() {
                 </div>
             </aside>
             
-            <AlertDialog open={isDeletePromptDialogOpen} onOpenChange={setIsDeletePromptDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Supprimer le prompt "{promptToDelete?.name}" ?</AlertDialogTitle>
-                        <AlertDialogDescription>
+            <Dialog>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Sauvegarder le prompt</DialogTitle>
+                        <DialogDescription>Donnez un nom à cette instruction pour la retrouver facilement plus tard.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="prompt-name">Nom du prompt</Label>
+                            <Input id="prompt-name" value={newPromptName} onChange={(e) => setNewPromptName(e.target.value)} placeholder="Ex: Style super-héros" disabled={isSavingPrompt}/>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Instruction</Label>
+                            <Textarea value={promptToSave} readOnly disabled rows={4} className="bg-muted"/>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild><Button variant="secondary" disabled={isSavingPrompt}>Annuler</Button></DialogClose>
+                        <Button onClick={handleSavePrompt} disabled={isSavingPrompt || !newPromptName.trim()}>
+                            {isSavingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                            Sauvegarder
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            
+            <Dialog open={isDeletePromptDialogOpen} onOpenChange={setIsDeletePromptDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Supprimer le prompt "{promptToDelete?.name}" ?</DialogTitle>
+                        <DialogDescription>
                             Cette action est irréversible et supprimera définitivement ce prompt de votre liste.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel disabled={isDeletingPrompt}>Annuler</AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={handleDeletePrompt}
-                            disabled={isDeletingPrompt}
-                            className="bg-destructive hover:bg-destructive/90"
-                        >
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="secondary" onClick={() => setIsDeletePromptDialogOpen(false)}>Annuler</Button>
+                         <Button variant="destructive" onClick={handleDeletePrompt} disabled={isDeletingPrompt}>
                             {isDeletingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Supprimer
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
             
             <Dialog open={isEditPromptDialogOpen} onOpenChange={setIsEditPromptDialogOpen}>
                 <DialogContent>
@@ -851,21 +880,26 @@ export default function EditImagePage() {
                                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
                                 <p className="mt-4 text-muted-foreground">Génération du carrousel en cours...</p>
                             </div>
-                        ) : (
+                        ) : carouselResult ? (
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                {/* Remplacer par les vrais résultats plus tard */}
-                                {[1, 2, 3].map(i => (
+                                {carouselResult.slides.map((slide, i) => (
                                     <div key={i} className="flex flex-col gap-2">
-                                        <div className="aspect-square bg-muted rounded-lg flex items-center justify-center text-muted-foreground">Image {i}</div>
-                                        <p className="text-xs p-2 bg-muted/50 rounded">Texte pour l'image {i}.</p>
+                                        <div className="aspect-square bg-muted rounded-lg flex items-center justify-center text-muted-foreground overflow-hidden relative">
+                                            <Image src={slide.imageUrl} alt={`Étape ${i + 1}`} fill className="object-cover" unoptimized/>
+                                        </div>
+                                        <p className="text-xs p-2 bg-muted/50 rounded">{slide.description}</p>
                                     </div>
                                 ))}
+                            </div>
+                        ) : (
+                             <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+                                <p>Aucun résultat à afficher.</p>
                             </div>
                         )}
                     </div>
                     <DialogFooter>
                         <Button variant="secondary" onClick={() => setIsCarouselDialogOpen(false)}>Fermer</Button>
-                        <Button disabled={isGeneratingCarousel}>
+                        <Button disabled={isGeneratingCarousel || !carouselResult}>
                             <Save className="mr-2 h-4 w-4" />
                             Sauvegarder au Planificateur
                         </Button>
@@ -874,8 +908,8 @@ export default function EditImagePage() {
             </Dialog>
 
         </div>
-      </TooltipProvider>
     );
 }
 
     
+

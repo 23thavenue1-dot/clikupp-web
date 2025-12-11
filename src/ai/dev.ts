@@ -6,3 +6,4 @@ import './flows/generate-image-flow';
 import './flows/social-audit-flow';
 import './schemas/social-audit-schemas';
 import './flows/generate-video-flow';
+import './flows/generate-carousel-flow';
