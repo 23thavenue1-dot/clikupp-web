@@ -73,7 +73,7 @@ const generateCarouselFlow = ai.defineFlow(
             - **Texte 1 :** Décris l'image "Avant" de manière factuelle et courte.
             - **Texte 2 :** Analyse l'image "Avant" et pose une question ouverte et engageante sur son potentiel d'amélioration. Par exemple, si tu vois un lac, demande "Comment rendre ce paysage lacustre encore plus épique ?". Si tu vois un portrait, "Prêt à révéler le charisme de ce regard ?". Ce texte doit être directement lié au contenu de l'image "Avant".
             - **Texte 3 :** Décris l'émotion ou le bénéfice de l'image "Après".
-            - **Texte 4 :** Pose une question finale pour engager l'audience.
+            - **Texte 4 :** Pose une question finale engageante, directement inspirée par le contenu de l'image "Après". Par exemple, si l'image "Après" est un coucher de soleil spectaculaire, demande "Cette nouvelle ambiance vous transporte où ?". Si c'est un portrait professionnel, "Quel est le changement qui vous marque le plus ?".
 
             **Images de Contexte :**
             - Image Avant : {{media url=baseImageUrl}}
