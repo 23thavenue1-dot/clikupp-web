@@ -61,4 +61,12 @@ Comprendre mon processus de "réflexion" lorsque je fais face à un bug vous aid
 
 *   **5. La Correction Holistique :** Je ne me contente pas de proposer un correctif. Mon but est d'expliquer **pourquoi** le bug est survenu et de proposer une solution qui non seulement le corrige, mais qui améliore aussi la robustesse du code pour éviter que des problèmes similaires ne se reproduisent.
 
-Ma vraie force est donc ma rapidité à connecter les points entre les différents fichiers du projet (code, règles, schémas) pour trouver la faille logique. En me donnant le rapport de bug parfait, vous me donnez tous les indices pour résoudre l'enquête le plus vite possible.
+### Exemple Concret : La Résolution du Bug HEIC
+
+Notre lutte avec le format HEIC est un cas d'école parfait :
+1.  **Hypothèses initiales (fausses) :** J'ai d'abord cru à un simple problème de type de fichier, et j'ai proposé des corrections rapides et isolées. Elles ont échoué, car je traitais le symptôme.
+2.  **Demande d'information cruciale :** C'est lorsque vous m'avez fourni l'erreur exacte de la **console du navigateur** (`window is not defined` puis les erreurs sur `layout` et `objectFit`) que j'ai eu la "carte" dont j'avais besoin.
+3.  **Diagnostic final (correct) :** Les erreurs m'ont permis de comprendre que le problème était double : une exécution de code client sur le serveur (SSR) ET une mauvaise utilisation du composant `Image` de Next.js. La cause racine n'était pas la conversion elle-même, mais son intégration dans l'écosystème Next.js.
+4.  **Solution holistique :** La solution finale n'a pas été de patcher une ligne, mais de **refondre l'approche** : isoler la bibliothèque `heic2any` via une importation dynamique et centraliser toute la logique de conversion et d'aperçu dans le composant client `Uploader.tsx`.
+
+Cet exemple prouve que ma vraie force est ma rapidité à connecter les points entre les différents fichiers du projet (code, règles, schémas) pour trouver la faille logique. En me donnant le rapport de bug parfait, vous me donnez tous les indices pour résoudre l'enquête le plus vite possible.
