@@ -1,11 +1,10 @@
 
-
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useFirebase, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { uploadFileAndGetMetadata } from '@/lib/storage';
+import { uploadFileAndGetMetadata, convertHeicToJpeg } from '@/lib/storage';
 import { saveImageMetadata, saveImageFromUrl, type UserProfile, type CustomPrompt, decrementTicketCount, decrementAiTicketCount, saveCustomPrompt, deleteCustomPrompt, updateCustomPrompt } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { doc } from 'firebase/firestore';
@@ -147,6 +146,10 @@ export function Uploader() {
   
   const [showRegenerateAlert, setShowRegenerateAlert] = useState(false);
   const [showResetAlert, setShowResetAlert] = useState(false);
+
+  // NOUVEAU: Pour la conversion HEIC
+  const [isConverting, setIsConverting] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   
   // --- States pour la gestion des prompts favoris ---
   const [isSavePromptDialogOpen, setIsSavePromptDialogOpen] = useState(false);
@@ -251,6 +254,8 @@ export function Uploader() {
     setGeneratedVideoUrl(null);
     setIsGeneratingVideo(false);
     setShowResetAlert(false); // Fermer l'alerte si elle était ouverte
+    setPreviewUrl(null); // Reset de l'aperçu
+    setIsConverting(false); // Reset du statut de conversion
     if (fileInputRef.current) {
         fileInputRef.current.value = '';
     }
@@ -266,7 +271,7 @@ export function Uploader() {
     setActiveTab(value);
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
         if (!looksLikeImage(file)) {
@@ -281,10 +286,25 @@ export function Uploader() {
             });
             return;
         }
+
+        setIsConverting(true);
+        setPreviewUrl(null);
         setSelectedFile(file);
+
+        try {
+            const convertedFile = await convertHeicToJpeg(file);
+            setPreviewUrl(URL.createObjectURL(convertedFile));
+            setSelectedFile(convertedFile); // Mettre à jour le fichier sélectionné avec la version convertie
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur de conversion', description: "Impossible de générer l'aperçu pour cette image." });
+            setPreviewUrl(null);
+        } finally {
+            setIsConverting(false);
+        }
         setStatus({ state: 'idle' });
     }
   };
+
 
   // Generic upload handler
   const handleUpload = async (uploadFn: () => Promise<void>, ticketType: 'upload' | 'none' = 'upload') => {
@@ -593,9 +613,22 @@ const handleGenerateVideo = async () => {
             accept="image/*,.heic,.heif"
             disabled={disabled}
             />
-            <UploadCloud className="h-12 w-12 text-muted-foreground" />
+
+            {isConverting ? (
+                <>
+                    <Loader2 className="h-12 w-12 text-primary animate-spin" />
+                    <p className="mt-4 text-sm font-medium text-foreground">Conversion en cours...</p>
+                </>
+            ) : previewUrl ? (
+                <div className="relative w-24 h-24 rounded-md overflow-hidden">
+                    <Image src={previewUrl} alt="Aperçu" layout="fill" objectFit="cover" />
+                </div>
+            ) : (
+                <UploadCloud className="h-12 w-12 text-muted-foreground" />
+            )}
+            
             <p className="mt-4 text-sm font-medium text-foreground">
-            {selectedFile ? `Fichier : ${selectedFile.name}` : 'Cliquez pour choisir un fichier'}
+                {selectedFile && !isConverting ? `Fichier : ${selectedFile.name}` : 'Cliquez pour choisir un fichier'}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               Taille max : 10 Mo. Formats HEIC/HEIF acceptés.
