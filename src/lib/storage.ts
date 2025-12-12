@@ -1,10 +1,11 @@
+
 'use client';
 
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject, type StorageReference, type UploadTask, listAll } from 'firebase/storage';
 import type { User } from 'firebase/auth';
 import type { ImageMetadata } from './firestore';
 import { initializeFirebase } from '@/firebase';
-import heic2any from './heic-converter'; // MODIFIÉ
+import heic2any from './heic-converter';
 
 // -----------------------------
 // Config côté client (guards)
@@ -41,7 +42,7 @@ export async function convertHeicToJpeg(file: File): Promise<File> {
     const newFileName = file.name.replace(/\.(heic|heif)$/i, '.jpeg');
     
     return new File([blob], newFileName, {
-      type: blob.type,
+      type: 'image/jpeg', // CORRECTION: Forcer le type pour éviter les erreurs
       lastModified: file.lastModified,
     });
 
