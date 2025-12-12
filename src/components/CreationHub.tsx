@@ -103,7 +103,7 @@ export function CreationHub({ lastImage }: CreationHubProps) {
             const result = await generateImageDescription({ imageUrl: lastImage.directUrl, platform: platform });
             setCurrentTitle(result.title);
             setCurrentDescription(result.description);
-            setHashtagsString(result.hashtags.map(h => `#${'h.replace(/^#/, \'\')'}`).join(' '));
+            setHashtagsString(result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' '));
             setWasGeneratedByAI(true);
             
             await decrementAiTicketCount(firestore, user.uid, userProfile, 'description');
@@ -156,7 +156,7 @@ export function CreationHub({ lastImage }: CreationHubProps) {
         
         if (!error) {
             if (scheduleDate) {
-                toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur pour le ${'format(scheduleDate, \'PPP\', { locale: fr })'}.` });
+                toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur pour le ${format(scheduleDate, 'PPP', { locale: fr })}.` });
             } else {
                 toast({ title: "Brouillon sauvegardé !", description: "Retrouvez-le dans votre Planificateur de contenu." });
             }
@@ -175,7 +175,7 @@ export function CreationHub({ lastImage }: CreationHubProps) {
                     Votre dernière création
                 </CardTitle>
                 <CardDescription>
-                    {lastImage.uploadTimestamp ? `Téléversée ${'formatDistanceToNow(lastImage.uploadTimestamp.toDate(), { addSuffix: true, locale: fr })'}.` : "Téléversement en cours..."}
+                    {lastImage.uploadTimestamp ? `Téléversée ${formatDistanceToNow(lastImage.uploadTimestamp.toDate(), { addSuffix: true, locale: fr })}.` : "Téléversement en cours..."}
                     {' '}Prête à être améliorée.
                 </CardDescription>
             </CardHeader>
