@@ -16,6 +16,17 @@ Ce document sert de point de sauvegarde et de journal de bord pour les grandes �
 
 Le chemin vers la stabilité a été marqué par la résolution de plusieurs problèmes critiques qui ont ont renforcé la qualité du code.
 
+### La Chasse au Bug HEIC : Un Problème en Deux Actes
+
+*   **Problème :** Le téléversement d'images au format HEIC (provenant d'iPhones) échouait systématiquement. L'aperçu ne s'affichait pas, et plusieurs erreurs `window is not defined` se produisaient.
+*   **Diagnostic Final :** Le problème était double :
+    1.  **Côté Serveur :** La bibliothèque de conversion `heic2any` était importée de manière statique, ce qui provoquait une erreur lors du rendu côté serveur de Next.js où l'objet `window` n'existe pas.
+    2.  **Côté Client :** La logique pour gérer la conversion, afficher un aperçu fiable et préparer le fichier converti pour le téléversement était défaillante et trop complexe.
+*   **Solution Appliquée (La Bonne) :**
+    1.  **Importation Dynamique :** La bibliothèque `heic2any` est désormais importée dynamiquement **uniquement** dans le composant client `Uploader.tsx` et **seulement** lorsqu'un fichier HEIC est détecté. Cela résout définitivement l'erreur `window is not defined`.
+    2.  **Centralisation et Fiabilisation :** Toute la logique de conversion (détection, affichage d'un loader, conversion en JPEG, création de l'URL d'aperçu) a été centralisée et simplifiée dans `Uploader.tsx` pour une gestion robuste et prévisible.
+*   **Résultat :** La conversion HEIC est maintenant fiable, rapide, et l'expérience utilisateur est fluide.
+
 ### L'Éradication des Bugs d'Interface et la Fiabilisation
 
 *   **Problème :** Plusieurs erreurs (`Invalid DOM property 'class'`, imports incorrects, boucles de rendu infinies) ont été détectées, causant des avertissements et des comportements instables.
