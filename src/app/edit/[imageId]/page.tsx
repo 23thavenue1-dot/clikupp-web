@@ -9,7 +9,7 @@ import type { ImageMetadata, UserProfile, CustomPrompt, Gallery } from '@/lib/fi
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Star, Trash2, Pencil, Tag, X, GalleryHorizontal, Clapperboard, Film, HelpCircle, ChevronDown, Library, Text, Facebook, Instagram, MessageSquare, VenetianMask, Ticket } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Star, Trash2, Pencil, Tag, X, GalleryHorizontal, Clapperboard, Film, HelpCircle, ChevronDown, Library, Text, Facebook, Instagram, MessageSquare, VenetianMask, Ticket, Lightbulb } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -1113,15 +1113,15 @@ export default function EditImagePage() {
                     <DialogHeader>
                         <DialogTitle>Résultat du Carrousel</DialogTitle>
                          <DialogDescription asChild>
-                            <div className="space-y-2">
-                                <p className="flex items-start gap-2">
-                                    <span className="flex-shrink-0 flex items-center justify-center h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs font-bold mt-0.5">1</span>
+                            <div className="space-y-3">
+                                <p className="flex items-start gap-3">
+                                    <Pencil className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                                     <span>
                                         Vous pouvez <span className="font-semibold text-green-600">modifier les textes</span> des diapositives 2 et 4 en cliquant simplement dessus.
                                     </span>
                                 </p>
-                                <p className="flex items-start gap-2">
-                                    <span className="flex-shrink-0 flex items-center justify-center h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs font-bold mt-0.5">2</span>
+                                <p className="flex items-start gap-3">
+                                    <Lightbulb className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                                     <span>
                                         Utilisez l'icône <Wand2 className="inline-block h-4 w-4 text-primary" /> pour demander à l'IA de <span className="font-semibold text-green-600">générer une nouvelle suggestion</span> de texte.
                                     </span>
@@ -1164,7 +1164,7 @@ export default function EditImagePage() {
                                                             <Button 
                                                                 size="icon" 
                                                                 variant="ghost" 
-                                                                className="absolute bottom-2 right-2 text-white/50 hover:text-white hover:bg-white/10"
+                                                                className="absolute bottom-2 right-2 text-white/50 hover:text-white hover:bg-white/10 rounded-full h-8 w-8 opacity-50 group-hover:opacity-100 transition-opacity"
                                                                 onClick={() => handleRegenerateText(index)}
                                                                 disabled={regeneratingSlideIndex !== null}
                                                             >
