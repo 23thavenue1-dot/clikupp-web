@@ -42,6 +42,37 @@ const platformOptions = [
     { id: 'generic', label: 'Générique', icon: Wand2 },
 ];
 
+const ActionCard = ({ children, className, ...props }: { children: React.ReactNode; className?: string; [key: string]: any }) => (
+    <div
+        className={cn(
+            "group relative p-4 border rounded-lg h-full flex flex-col items-start gap-2 transition-all duration-300 ease-out cursor-pointer overflow-hidden",
+            "bg-slate-900/50 border-slate-700/80 hover:border-purple-400/50 hover:shadow-2xl hover:shadow-purple-900/50",
+            className
+        )}
+        {...props}
+    >
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-950/40 to-blue-950 opacity-90 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div className="absolute -top-px -left-px -right-px h-px bg-gradient-to-r from-transparent via-purple-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div className="relative z-10 w-full h-full flex flex-col items-start gap-2">
+            {children}
+        </div>
+    </div>
+);
+
+const ActionIcon = ({ icon: Icon }: { icon: React.ElementType }) => (
+    <div className="p-2 bg-slate-800 border border-slate-700 text-purple-300 rounded-lg shadow-inner-lg transition-all duration-300 group-hover:bg-purple-950/50 group-hover:text-purple-200 group-hover:shadow-purple-500/20">
+        <Icon className="h-6 w-6 transition-transform duration-300 group-hover:scale-110" />
+    </div>
+);
+
+const ActionTitle = ({ children }: { children: React.ReactNode }) => (
+    <span className="font-semibold text-slate-100 transition-colors group-hover:text-white">{children}</span>
+);
+
+const ActionDescription = ({ children }: { children: React.ReactNode }) => (
+    <p className="text-xs text-slate-400 transition-colors group-hover:text-slate-300">{children}</p>
+);
+
 
 export default function ImageDetailPage() {
     const params = useParams();
@@ -145,7 +176,7 @@ export default function ImageDetailPage() {
             const result = await generateImageDescription({ imageUrl: image.directUrl, platform: platform });
             setCurrentTitle(result.title);
             setCurrentDescription(result.description);
-            setHashtagsString(result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' '));
+            setHashtagsString(result.hashtags.map(h => `#${'h.replace(/^#/, \'\')'}`).join(' '));
             setWasGeneratedByAI(true);
             
             await decrementAiTicketCount(firestore, user.uid, userProfile, 'description');
@@ -277,48 +308,38 @@ export default function ImageDetailPage() {
                     </CardHeader>
                     <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Link href={`/edit/${imageId}`} passHref>
-                            <div className="p-4 border rounded-lg h-full flex flex-col items-start gap-2 hover:bg-muted/50 hover:border-primary/50 transition-colors cursor-pointer">
-                                <div className="p-2 bg-primary/10 text-primary rounded-lg">
-                                    <Sparkles className="h-6 w-6" />
-                                </div>
-                                <span className="font-semibold">Éditer, Modifier l'image avec l'IA</span>
-                                <p className="text-xs text-muted-foreground">Modifiez votre image en décrivant les changements en langage naturel.</p>
-                            </div>
+                             <ActionCard>
+                                <ActionIcon icon={Sparkles} />
+                                <ActionTitle>Éditer, Modifier l'image avec l'IA</ActionTitle>
+                                <ActionDescription>Modifiez votre image en décrivant les changements en langage naturel.</ActionDescription>
+                            </ActionCard>
                         </Link>
 
-                        <div className="p-4 border rounded-lg h-full flex flex-col items-start gap-2 hover:bg-muted/50 hover:border-primary/50 transition-colors cursor-pointer" onClick={() => setIsDescriptionDialogOpen(true)} role="button">
-                            <div className="p-2 bg-primary/10 text-primary rounded-lg">
-                                <FileText className="h-6 w-6" />
-                            </div>
-                            <span className="font-semibold">Modifier ou générer une descrption IA</span>
-                            <p className="text-xs text-muted-foreground">Créez un titre, une description et des hashtags pertinents pour les réseaux sociaux.</p>
-                        </div>
+                        <ActionCard onClick={() => setIsDescriptionDialogOpen(true)} role="button">
+                            <ActionIcon icon={FileText} />
+                            <ActionTitle>Modifier ou générer une description IA</ActionTitle>
+                            <ActionDescription>Créez un titre, une description et des hashtags pertinents pour les réseaux sociaux.</ActionDescription>
+                        </ActionCard>
                         
-                         <div 
-                            className="p-4 border rounded-lg h-full flex flex-col items-start gap-2 hover:bg-muted/50 hover:border-primary/50 transition-colors cursor-pointer"
+                         <ActionCard 
                             onClick={handleCoachClick}
                             role="button"
                             tabIndex={0}
                         >
-                            <div className="p-2 bg-primary/10 text-primary rounded-lg">
-                                <LineChart className="h-6 w-6" />
-                            </div>
-                            <span className="font-semibold">Utiliser dans le Coach Stratégique</span>
-                            <p className="text-xs text-muted-foreground">Analysez cette image dans le cadre d'un audit de profil pour une stratégie de contenu sur-mesure.</p>
-                        </div>
+                            <ActionIcon icon={LineChart} />
+                            <ActionTitle>Utiliser dans le Coach Stratégique</ActionTitle>
+                            <ActionDescription>Analysez cette image dans le cadre d'un audit de profil pour une stratégie de contenu sur-mesure.</ActionDescription>
+                        </ActionCard>
                         
-                         <div 
-                            className="p-4 border rounded-lg h-full flex flex-col items-start gap-2 hover:bg-muted/50 hover:border-primary/50 transition-colors cursor-pointer"
+                         <ActionCard 
                             onClick={() => setScheduleDialogOpen(true)}
                             role="button"
                             tabIndex={0}
                         >
-                            <div className="p-2 bg-primary/10 text-primary rounded-lg">
-                                <FilePlusIcon className="h-6 w-6" />
-                            </div>
-                            <span className="font-semibold">Planifier / Brouillon</span>
-                            <p className="text-xs text-muted-foreground">Programmez cette image pour une publication future ou sauvegardez-la comme brouillon.</p>
-                        </div>
+                            <ActionIcon icon={FilePlusIcon} />
+                            <ActionTitle>Planifier / Brouillon</ActionTitle>
+                            <ActionDescription>Programmez cette image pour une publication future ou sauvegardez-la comme brouillon.</ActionDescription>
+                        </ActionCard>
                     </CardContent>
                 </Card>
                 
