@@ -48,15 +48,18 @@ interface CreationHubProps {
 const ActionCard = ({ children, className, ...props }: { children: React.ReactNode; className?: string; [key: string]: any }) => (
     <div
         className={cn(
-            "group relative p-4 border rounded-lg h-full flex flex-col items-start gap-2 transition-all duration-300 ease-out cursor-pointer", // Padding réduit
-            "bg-slate-900/50 border-slate-700/80 hover:border-purple-400/50 hover:shadow-2xl hover:shadow-purple-900/50", // Couleurs de base et au survol
+            "group relative p-3 border rounded-lg h-full flex flex-col items-start gap-2 transition-all duration-300 ease-out cursor-pointer overflow-hidden",
+            "border-slate-700/80 hover:border-purple-400/50 hover:shadow-2xl hover:shadow-purple-900/50",
             className
         )}
         {...props}
     >
-        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-purple-950/20 via-transparent to-slate-900/30 opacity-50 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 opacity-80 group-hover:opacity-100 transition-opacity duration-300"></div>
         <div className="absolute -top-px -left-px -right-px h-px bg-gradient-to-r from-transparent via-purple-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-        {children}
+        {/* Le contenu est maintenant au-dessus du dégradé */}
+        <div className="relative z-10 w-full h-full flex flex-col items-start gap-2">
+            {children}
+        </div>
     </div>
 );
 
@@ -225,7 +228,7 @@ export function CreationHub({ lastImage }: CreationHubProps) {
                             />
                         </div>
                     </Link>
-                    <div className="flex flex-col justify-center gap-4 h-full">
+                    <div className="flex flex-col h-full space-y-4">
                         <Link href={`/edit/${lastImage.id}`} passHref>
                             <ActionCard>
                                 <ActionIcon icon={Wand2} />
