@@ -505,7 +505,7 @@ export default function PlannerPage() {
 
     useEffect(() => {
         if (!isUserLoading && !user) {
-            router.push('/login?redirect=/planner');
+            router.push('/planner');
         }
     }, [user, isUserLoading, router]);
 
@@ -667,7 +667,7 @@ export default function PlannerPage() {
                          )}
                     </header>
 
-                    <Tabs defaultValue="list" className="w-full">
+                    <Tabs defaultValue="calendar" className="w-full">
                         <div className="flex justify-center mb-6"><TabsList><TabsTrigger value="list"><List className="mr-2 h-4 w-4" />Vue Liste</TabsTrigger><TabsTrigger value="calendar"><CalendarDays className="mr-2 h-4 w-4" />Vue Calendrier</TabsTrigger></TabsList></div>
                         <TabsContent value="list">
                             {!posts || posts.length === 0 ? (
