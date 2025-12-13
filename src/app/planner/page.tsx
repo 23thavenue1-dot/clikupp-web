@@ -495,6 +495,13 @@ export default function PlannerPage() {
 
     const scheduledPosts = useMemo(() => filteredPosts.filter(p => p.status === 'scheduled') || [], [filteredPosts]);
     const draftPosts = useMemo(() => filteredPosts.filter(p => p.status === 'draft') || [], [filteredPosts]);
+    const draftsForDialog = useMemo(() => {
+        if (selectedProfileId === 'all') {
+            return postsWithImages.filter(p => p.status === 'draft');
+        }
+        return draftPosts;
+    }, [postsWithImages, draftPosts, selectedProfileId]);
+
 
     useEffect(() => {
         if (!isUserLoading && !user) {
@@ -618,7 +625,7 @@ export default function PlannerPage() {
                 description: `Le post a été ajouté au calendrier.`
             });
             refetchPosts();
-            const remainingDrafts = draftPosts.filter(p => p.id !== post.id);
+            const remainingDrafts = draftsForDialog.filter(p => p.id !== post.id);
             if (remainingDrafts.length === 0) {
                  setAddDraftsDialogOpen(false);
             }
@@ -765,7 +772,7 @@ export default function PlannerPage() {
                     <div className="py-4">
                         <ScrollArea className="max-h-[60vh]">
                              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 pr-4">
-                                {(draftPostsWithImages.length > 0) ? draftPostsWithImages.map(draft => (
+                                {draftsForDialog.length > 0 ? draftsForDialog.map(draft => (
                                     <div key={draft.id} className="relative aspect-square group">
                                         <button
                                             onClick={() => handleScheduleDraftFromDialog(draft)}
@@ -797,5 +804,3 @@ export default function PlannerPage() {
         </DndContext>
     );
 }
-
-const draftPostsWithImages = []; // This should be populated with the actual data
