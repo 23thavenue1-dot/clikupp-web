@@ -44,6 +44,38 @@ interface CreationHubProps {
     lastImage: ImageMetadata;
 }
 
+// --- Nouveau composant pour les cartes d'action ---
+const ActionCard = ({ children, className, ...props }: { children: React.ReactNode; className?: string; [key: string]: any }) => (
+    <div
+        className={cn(
+            "group relative p-5 border rounded-lg h-full flex flex-col items-start gap-3 transition-all duration-300 ease-out cursor-pointer",
+            "bg-slate-900/50 border-slate-700/80 hover:border-purple-400/50 hover:shadow-2xl hover:shadow-purple-900/50", // Couleurs de base et au survol
+            className
+        )}
+        {...props}
+    >
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-purple-950/20 via-transparent to-slate-900/30 opacity-50 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div className="absolute -top-px -left-px -right-px h-px bg-gradient-to-r from-transparent via-purple-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        {children}
+    </div>
+);
+
+const ActionIcon = ({ icon: Icon }: { icon: React.ElementType }) => (
+    <div className="p-2 bg-slate-800 border border-slate-700 text-purple-300 rounded-lg shadow-inner-lg transition-all duration-300 group-hover:bg-purple-950/50 group-hover:text-purple-200 group-hover:shadow-purple-500/20">
+        <Icon className="h-6 w-6 transition-transform duration-300 group-hover:scale-110" />
+    </div>
+);
+
+const ActionTitle = ({ children }: { children: React.ReactNode }) => (
+    <span className="font-semibold text-slate-100 transition-colors group-hover:text-white">{children}</span>
+);
+
+const ActionDescription = ({ children }: { children: React.ReactNode }) => (
+    <p className="text-xs text-slate-400 transition-colors group-hover:text-slate-300">{children}</p>
+);
+// --- Fin des nouveaux composants ---
+
+
 export function CreationHub({ lastImage }: CreationHubProps) {
     const { toast } = useToast();
     const { user, firestore, firebaseApp } = useFirebase();
@@ -197,30 +229,24 @@ export function CreationHub({ lastImage }: CreationHubProps) {
                         <p className="text-sm text-muted-foreground">Que voulez-vous faire avec cette image ?</p>
                         <div className="grid grid-cols-1 gap-4">
                             <Link href={`/edit/${lastImage.id}`} passHref>
-                                <div className="p-4 border rounded-lg h-full flex flex-col items-start gap-2 hover:bg-muted/50 hover:border-primary/50 transition-colors cursor-pointer">
-                                    <div className="p-2 bg-primary/10 text-primary rounded-lg">
-                                        <Wand2 className="h-6 w-6" />
-                                    </div>
-                                    <span className="font-semibold">Éditer avec l'IA</span>
-                                    <p className="text-xs text-muted-foreground">Modifiez votre image en décrivant les changements en langage naturel.</p>
-                                </div>
+                                <ActionCard>
+                                    <ActionIcon icon={Wand2} />
+                                    <ActionTitle>Éditer avec l'IA</ActionTitle>
+                                    <ActionDescription>Modifiez votre image en décrivant les changements en langage naturel.</ActionDescription>
+                                </ActionCard>
                             </Link>
                             
-                             <div className="p-4 border rounded-lg h-full flex flex-col items-start gap-2 hover:bg-muted/50 hover:border-primary/50 transition-colors cursor-pointer" onClick={() => setIsDescriptionDialogOpen(true)}>
-                                <div className="p-2 bg-primary/10 text-primary rounded-lg">
-                                    <FileText className="h-6 w-6" />
-                                </div>
-                                <span className="font-semibold">Modifier ou générer une description IA</span>
-                                <p className="text-xs text-muted-foreground">Créez un titre, une description et des hashtags pertinents pour les réseaux sociaux.</p>
-                            </div>
+                             <ActionCard onClick={() => setIsDescriptionDialogOpen(true)}>
+                                <ActionIcon icon={FileText} />
+                                <ActionTitle>Modifier ou générer une description IA</ActionTitle>
+                                <ActionDescription>Créez un titre, une description et des hashtags pertinents pour les réseaux sociaux.</ActionDescription>
+                            </ActionCard>
                             
-                            <div className="p-4 border rounded-lg h-full flex flex-col items-start gap-2 hover:bg-muted/50 hover:border-primary/50 transition-colors cursor-pointer" onClick={() => setScheduleDialogOpen(true)}>
-                                <div className="p-2 bg-primary/10 text-primary rounded-lg">
-                                    <FilePlus className="h-6 w-6" />
-                                </div>
-                                <span className="font-semibold">Planifier / Brouillon</span>
-                                <p className="text-xs text-muted-foreground">Programmez cette image pour une publication future ou sauvegardez-la comme brouillon.</p>
-                            </div>
+                            <ActionCard onClick={() => setScheduleDialogOpen(true)}>
+                                <ActionIcon icon={FilePlus} />
+                                <ActionTitle>Planifier / Brouillon</ActionTitle>
+                                <ActionDescription>Programmez cette image pour une publication future ou sauvegardez-la comme brouillon.</ActionDescription>
+                            </ActionCard>
                         </div>
                     </div>
                 </div>
