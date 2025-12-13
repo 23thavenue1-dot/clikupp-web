@@ -75,8 +75,11 @@ const animateStoryFlow = ai.defineFlow(
     }
 
     const video = operation.output?.message?.content.find((p) => !!p.media && p.media.contentType?.startsWith('video/'));
+    
     if (!video) {
-        throw new Error("Aucune vidéo n'a été trouvée dans le résultat de l'opération.");
+        const errorDetails = JSON.stringify(operation.output, null, 2);
+        console.error("Résultat de l'opération inattendu:", errorDetails);
+        throw new Error("Aucune vidéo n'a été trouvée dans le résultat de l'opération. L'IA a peut-être refusé de générer le contenu.");
     }
 
     const videoDataUri = await downloadAndEncodeVideo(video);
