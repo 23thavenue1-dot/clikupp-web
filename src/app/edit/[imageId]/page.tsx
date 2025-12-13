@@ -84,6 +84,11 @@ async function createTextToImage(text: string, width: number, height: number): P
     gradient.addColorStop(1, '#000000');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
+    
+    // Si le texte est vide, on retourne un canvas noir
+    if (!text || text.trim() === '') {
+        return canvas.toDataURL('image/png');
+    }
 
     // Style du texte
     ctx.fillStyle = 'white';
@@ -325,17 +330,7 @@ export default function EditImagePage() {
                 platform: platform,
             });
 
-            // On ne génère plus les images textuelles ici, on les laisse en null
-            const resultForPreview: GenerateCarouselOutput = {
-                slides: [
-                    result.slides[0],
-                    { imageUrl: null, description: result.slides[1].description },
-                    result.slides[2],
-                    { imageUrl: null, description: result.slides[3].description },
-                ]
-            };
-
-            setCarouselResult(resultForPreview);
+            setCarouselResult(result);
             setEditableDescriptions(result.slides.map(s => s.description));
 
 
@@ -353,8 +348,8 @@ export default function EditImagePage() {
     };
     
     const handleRegenerateText = async (index: number) => {
-        if (!carouselResult || !originalImage || !userProfile || totalAiTickets < 1) {
-            toast({ variant: 'destructive', title: 'Action impossible', description: 'Données manquantes ou tickets IA insuffisants.' });
+        if (!carouselResult || !originalImage || !userProfile || totalAiTickets < 1 || regeneratingSlideIndex !== null) {
+            toast({ variant: 'destructive', title: 'Action impossible', description: 'Données manquantes, tickets IA insuffisants ou une autre génération est en cours.' });
             return;
         }
         
@@ -1139,22 +1134,26 @@ export default function EditImagePage() {
                                                      <Image src={slide.imageUrl} alt={`Étape ${index + 1}`} fill className="object-cover" unoptimized/>
                                                 ) : (
                                                     <div className="p-4 text-center flex flex-col items-center justify-center h-full w-full bg-gradient-to-br from-gray-900 to-black">
-                                                        <Textarea
-                                                            value={editableDescriptions[index] || ''}
-                                                            onChange={(e) => {
-                                                                const newDescriptions = [...editableDescriptions];
-                                                                newDescriptions[index] = e.target.value;
-                                                                setEditableDescriptions(newDescriptions);
-                                                            }}
-                                                            className="text-xl font-bold tracking-tight bg-transparent border-none text-white text-center focus-visible:ring-0 resize-none h-full w-full flex items-center justify-center"
-                                                        />
+                                                        {editableDescriptions[index] ? (
+                                                            <Textarea
+                                                                value={editableDescriptions[index] || ''}
+                                                                onChange={(e) => {
+                                                                    const newDescriptions = [...editableDescriptions];
+                                                                    newDescriptions[index] = e.target.value;
+                                                                    setEditableDescriptions(newDescriptions);
+                                                                }}
+                                                                className="text-xl font-bold tracking-tight bg-transparent border-none text-white text-center focus-visible:ring-0 resize-none h-full w-full flex items-center justify-center"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full" /> // Fond noir
+                                                        )}
                                                          {isEditable && (
                                                             <Button 
                                                                 size="icon" 
                                                                 variant="ghost" 
                                                                 className="absolute bottom-2 right-2 text-white/50 hover:text-white hover:bg-white/10"
                                                                 onClick={() => handleRegenerateText(index)}
-                                                                disabled={regeneratingSlideIndex === index}
+                                                                disabled={regeneratingSlideIndex !== null}
                                                             >
                                                                 {regeneratingSlideIndex === index ? <Loader2 className="h-4 w-4 animate-spin"/> : <Wand2 className="h-4 w-4"/>}
                                                             </Button>

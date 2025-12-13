@@ -61,53 +61,27 @@ const generateCarouselFlow = ai.defineFlow(
     }
     const afterImageUrl = afterImageGeneration.media.url;
 
-    // --- APPEL 2: Génération des 4 descriptions textuelles en se basant sur les deux images ---
+    // --- APPEL 2: Génération des descriptions pour les diapos 1 et 3 ---
     const textGeneration = await ai.generate({
         model: 'googleai/gemini-2.5-flash',
         prompt: `
-            **Rôle :** Tu es un social media manager expert en storytelling et copywriting pour ${platform || 'un réseau social'}. Ton ton est engageant, inspirant et naturel.
+            **Rôle :** Tu es un social media manager expert en storytelling et copywriting pour ${platform || 'un réseau social'}.
             
-            **Mission :** En analysant la transformation entre l'image "Avant" et l'image "Après" fournies ci-dessous, rédige 4 textes courts et pertinents pour un carrousel.
+            **Mission :** En analysant la transformation entre l'image "Avant" et l'image "Après" fournies, rédige 2 textes courts et pertinents.
             
-            **Règle impérative :** Sépare chaque texte par "---". Ne préfixe JAMAIS tes textes par "Texte 1:", "Description 2:" etc.
+            **Règle impérative :** Sépare chaque texte par "---". Ne préfixe JAMAIS tes textes par des numéros.
             - **Texte 1 :** Décris l'image "Avant" de manière factuelle et courte.
-            - **Texte 2 :** Analyse l'image "Avant" et pose une question ouverte et engageante sur son potentiel d'amélioration. Par exemple, si tu vois un lac, demande "Comment rendre ce paysage lacustre encore plus épique ?". Si tu vois un portrait, "Prêt à révéler le charisme de ce regard ?". Ce texte doit être directement lié au contenu de l'image "Avant".
-            - **Texte 3 :** Décris l'émotion ou le bénéfice de l'image "Après".
-            - **Texte 4 :** Pose une question finale engageante, directement inspirée par le contenu de l'image "Après". Par exemple, si l'image "Après" est un coucher de soleil spectaculaire, demande "Cette nouvelle ambiance vous transporte où ?". Si c'est un portrait professionnel, "Quel est le changement qui vous marque le plus ?".
+            - **Texte 2 :** Décris l'émotion ou le bénéfice de l'image "Après".
 
             **Images de Contexte :**
             - Image Avant : {{media url=baseImageUrl}}
             - Image Après : {{media url=afterImageUrl}}
 
             ---
-            **Exemple pour un PAYSAGE :**
+            **Exemple :**
             Un paysage brut, plein de potentiel.
             ---
-            Et si on lui donnait une lumière plus magique ?
-            ---
             La magie opère. Chaque couleur explose, chaque détail prend vie.
-            ---
-            Cette nouvelle ambiance vous transporte où ?
-            
-            ---
-            **Exemple pour un PORTRAIT :**
-            Un simple regard, une histoire à raconter.
-            ---
-            L'idée : révéler le charisme qui est déjà là, sans le transformer.
-            ---
-            Lumière, contraste, confiance. Parfois, tout est une question de détails.
-            ---
-            Quel est le changement qui vous marque le plus ?
-
-            ---
-            **Exemple pour un OBJET :**
-            Un objet du quotidien, une histoire à écrire.
-            ---
-            Et si on lui donnait vie dans une scène qui vous ressemble ?
-            ---
-            Le voilà, intégré à votre univers, prêt à vous accompagner.
-            ---
-            Qu'est-ce qu'il vous inspire de créer ou de vivre maintenant ?
         `,
         media: [
           { url: baseImageUrl },
@@ -119,20 +93,17 @@ const generateCarouselFlow = ai.defineFlow(
         throw new Error("L'IA n'a pas pu générer les textes du carrousel.");
     }
 
-    const descriptions = textGeneration.text.split('---').map(d => d.replace(/^\*+ *(?:Description|Texte) \d+[^:]*:[ \n]*/i, '').trim());
-
-    if (descriptions.length < 4) {
-      throw new Error("L'IA n'a pas retourné les 4 descriptions attendues.");
+    const descriptions = textGeneration.text.split('---').map(d => d.trim());
+    if (descriptions.length < 2) {
+      throw new Error("L'IA n'a pas retourné les 2 descriptions attendues.");
     }
     
-    // Pas de génération d'image pour les textes, on retourne null.
-    // L'image sera construite côté client.
     return {
         slides: [
             { imageUrl: baseImageUrl, description: descriptions[0] },
-            { imageUrl: null, description: descriptions[1] },
-            { imageUrl: afterImageUrl, description: descriptions[2] }, 
-            { imageUrl: null, description: descriptions[3] },
+            { imageUrl: null, description: "" }, // Diapo 2 vide
+            { imageUrl: afterImageUrl, description: descriptions[1] }, 
+            { imageUrl: null, description: "" }, // Diapo 4 vide
         ]
     };
   }
