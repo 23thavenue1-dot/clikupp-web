@@ -18,6 +18,7 @@ import { editImage, generateImage } from '@/ai/flows/generate-image-flow';
 import { generateCarousel } from '@/ai/flows/generate-carousel-flow';
 import type { GenerateCarouselOutput } from '@/ai/schemas/carousel-schemas';
 import { regenerateCarouselText } from '@/ai/flows/regenerate-carousel-text-flow';
+import { animateStory } from '@/ai/flows/animate-story-flow';
 import { decrementAiTicketCount, saveImageMetadata, updateImageDescription, saveCustomPrompt, deleteCustomPrompt, updateCustomPrompt, createGallery, addMultipleImagesToGalleries } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
@@ -196,6 +197,12 @@ export default function EditImagePage() {
     const [carouselApi, setCarouselApi] = useState<CarouselApi>()
     const [currentSlide, setCurrentSlide] = useState(0)
     const [regeneratingSlideIndex, setRegeneratingSlideIndex] = useState<number | null>(null);
+
+    // NOUVEAU: State pour la Story Animée
+    const [isStoryDialogOpen, setIsStoryDialogOpen] = useState(false);
+    const [storyAnimationPrompt, setStoryAnimationPrompt] = useState("");
+    const [isGeneratingStory, setIsGeneratingStory] = useState(false);
+    const [generatedStoryUrl, setGeneratedStoryUrl] = useState<string | null>(null);
 
 
     const imageDocRef = useMemoFirebase(() => {
@@ -431,7 +438,6 @@ export default function EditImagePage() {
         }
     };
 
-
     const handleSaveCarouselToLibrary = async () => {
         if (!carouselResult || !user || !firebaseApp || !firestore) return;
         
@@ -468,6 +474,37 @@ export default function EditImagePage() {
             setIsSaving(false);
         }
     };
+    
+    const handleGenerateStory = async () => {
+        if (!originalImage || !userProfile || !storyAnimationPrompt.trim()) return;
+
+        const STORY_COST = 5;
+        if (totalAiTickets < STORY_COST) {
+            toast({ variant: 'destructive', title: 'Tickets IA insuffisants', description: `${STORY_COST} tickets sont requis.` });
+            return;
+        }
+
+        setIsGeneratingStory(true);
+        setGeneratedStoryUrl(null);
+        try {
+            const result = await animateStory({
+                imageUrl: originalImage.directUrl,
+                prompt: storyAnimationPrompt,
+                aspectRatio: '9:16',
+            });
+            setGeneratedStoryUrl(result.videoUrl);
+
+            for (let i = 0; i < STORY_COST; i++) {
+                await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
+            }
+            toast({ title: 'Story animée générée !', description: `${STORY_COST} tickets IA ont été utilisés.` });
+        } catch (error) {
+            console.error("Story animation error:", error);
+            toast({ variant: 'destructive', title: 'Erreur de génération', description: "La story n'a pas pu être créée." });
+        } finally {
+            setIsGeneratingStory(false);
+        }
+    };
 
     
     const handleUndoGeneration = () => {
@@ -481,7 +518,6 @@ export default function EditImagePage() {
             setHistoryIndex(prev => prev + 1);
         }
     };
-
 
     const handleGenerateDescription = async (platform: Platform) => {
         const imageToDescribe = currentHistoryItem || originalImage;
@@ -498,7 +534,6 @@ export default function EditImagePage() {
 
         setIsGeneratingDescription(true);
         try {
-            // L'URL de l'image à décrire
             const imageUrlToProcess = currentHistoryItem?.imageUrl || originalImage?.directUrl;
             if (!imageUrlToProcess) {
                 throw new Error("Aucune URL d'image disponible pour la description.");
@@ -529,15 +564,14 @@ export default function EditImagePage() {
     };
 
     const handleSaveAiCreation = async () => {
-        const imageToSave = currentHistoryItem; // On ne sauvegarde que les nouvelles images
+        const imageToSave = currentHistoryItem;
         if (!imageToSave || !user || !firebaseApp || !firestore) {
-            // Si on clique sur enregistrer sans avoir généré d'image, on met à jour la description de l'originale
             if (originalImage) {
                  await updateImageDescription(firestore, user.uid, originalImage.id, {
                     title: generatedTitle,
                     description: generatedDescription,
                     hashtags: generatedHashtags,
-                }, false); // false car la description n'est pas forcément générée par IA
+                }, false);
                 refetchImage();
                 toast({ title: "Description mise à jour !", description: "La description de l'image originale a été modifiée." });
             }
@@ -563,9 +597,6 @@ export default function EditImagePage() {
             });
             toast({ title: "Nouvelle création enregistrée !", description: "Votre nouvelle image et sa description ont été ajoutées à votre galerie." });
 
-            // Ne pas rediriger, rester sur la page
-            // router.push('/'); 
-
         } catch (error) {
             console.error("Erreur lors de la sauvegarde :", error);
             toast({ variant: 'destructive', title: 'Erreur de sauvegarde', description: "Impossible d'enregistrer les modifications." });
@@ -577,7 +608,7 @@ export default function EditImagePage() {
     const openSavePromptDialog = () => {
         if (!prompt || !prompt.trim()) return;
         setPromptToSave(prompt);
-        setNewPromptName(""); // Reset name field
+        setNewPromptName("");
         setIsSavePromptDialogOpen(true);
     };
 
@@ -850,9 +881,55 @@ export default function EditImagePage() {
                                         </Button>
                                     </Card>
                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30">
-                                        <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><Clapperboard className="h-5 w-5" /></div><h4 className="font-semibold">Story Animée</h4></div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-primary/10 text-primary rounded-lg"><Clapperboard className="h-5 w-5" /></div>
+                                            <h4 className="font-semibold">Story Animée</h4>
+                                        </div>
                                         <p className="text-xs text-muted-foreground flex-grow">Transforme l'image en une vidéo de 5s avec des animations de texte et d'effets.</p>
-                                        <Button size="sm" disabled>Générer (5 Tickets)</Button>
+                                        <Dialog open={isStoryDialogOpen} onOpenChange={setIsStoryDialogOpen}>
+                                            <DialogTrigger asChild>
+                                                <Button size="sm" disabled={isGeneratingStory}>Générer (5 Tickets)</Button>
+                                            </DialogTrigger>
+                                            <DialogContent>
+                                                <DialogHeader>
+                                                    <DialogTitle>Créer une Story Animée</DialogTitle>
+                                                    <DialogDescription>Décrivez l'animation que vous souhaitez appliquer à votre image.</DialogDescription>
+                                                </DialogHeader>
+                                                <div className="py-4 space-y-4">
+                                                    <div className="aspect-video w-full rounded-lg bg-muted relative">
+                                                        {isGeneratingStory ? (
+                                                            <div className="flex flex-col items-center justify-center h-full text-primary gap-2">
+                                                                <Loader2 className="h-8 w-8 animate-spin" />
+                                                                <p className="text-sm font-medium">Génération en cours...</p>
+                                                                <p className="text-xs text-muted-foreground">Cela peut prendre jusqu'à 2 minutes.</p>
+                                                            </div>
+                                                        ) : generatedStoryUrl ? (
+                                                            <video src={generatedStoryUrl} controls autoPlay loop className="w-full h-full object-contain rounded-lg" />
+                                                        ) : (
+                                                             <Image src={originalImage.directUrl} alt="Aperçu de l'image" fill className="object-contain" />
+                                                        )}
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="story-prompt">Instruction d'animation</Label>
+                                                        <Textarea 
+                                                            id="story-prompt"
+                                                            placeholder="Ex: Fais tomber de la neige sur le paysage et zoome lentement."
+                                                            value={storyAnimationPrompt}
+                                                            onChange={e => setStoryAnimationPrompt(e.target.value)}
+                                                            rows={3}
+                                                            disabled={isGeneratingStory}
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <DialogFooter>
+                                                    <Button variant="secondary" onClick={() => setIsStoryDialogOpen(false)} disabled={isGeneratingStory}>Fermer</Button>
+                                                    <Button onClick={handleGenerateStory} disabled={!storyAnimationPrompt.trim() || isGeneratingStory || totalAiTickets < 5}>
+                                                        {isGeneratingStory ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4"/>}
+                                                        Générer la Story
+                                                    </Button>
+                                                </DialogFooter>
+                                            </DialogContent>
+                                        </Dialog>
                                     </Card>
                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30">
                                         <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><Film className="h-5 w-5" /></div><h4 className="font-semibold">Réel "Zoom & Révèle"</h4></div>
@@ -1117,13 +1194,13 @@ export default function EditImagePage() {
                                 <p className="flex items-start gap-3">
                                     <Pencil className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                                     <span>
-                                        Vous pouvez <span className="font-semibold text-green-600">modifier les textes</span> des diapositives 2 et 4 en cliquant simplement dessus.
+                                        Vous pouvez <span className="font-semibold text-green-600">modifier les textes</span> des diapositives en cliquant dessus.
                                     </span>
                                 </p>
                                 <p className="flex items-start gap-3">
-                                    <Lightbulb className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                                    <Wand2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                                     <span>
-                                        Utilisez l'icône <Wand2 className="inline-block h-4 w-4 text-primary" /> pour demander à l'IA de <span className="font-semibold text-green-600">générer une nouvelle suggestion</span> de texte.
+                                        Utilisez l'icône <Wand2 className="inline-block h-4 w-4 text-primary" /> pour demander à l'IA de <span className="font-semibold text-green-600">générer une nouvelle suggestion</span>.
                                     </span>
                                 </p>
                             </div>
@@ -1164,7 +1241,7 @@ export default function EditImagePage() {
                                                             <Button 
                                                                 size="icon" 
                                                                 variant="ghost" 
-                                                                className="absolute bottom-2 right-2 text-white/50 hover:text-white hover:bg-white/10 rounded-full h-8 w-8 opacity-50 group-hover:opacity-100 transition-opacity"
+                                                                className="absolute bottom-2 right-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full h-8 w-8"
                                                                 onClick={() => handleRegenerateText(index)}
                                                                 disabled={regeneratingSlideIndex !== null}
                                                             >

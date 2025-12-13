@@ -9,3 +9,5 @@ import './flows/generate-video-flow';
 import './flows/generate-carousel-flow';
 import './flows/regenerate-carousel-text-flow';
 import './schemas/carousel-schemas';
+import './flows/animate-story-flow';
+import './schemas/story-animation-schemas';
