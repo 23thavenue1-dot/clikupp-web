@@ -48,7 +48,7 @@ interface CreationHubProps {
 const ActionCard = ({ children, className, ...props }: { children: React.ReactNode; className?: string; [key: string]: any }) => (
     <div
         className={cn(
-            "group relative p-5 border rounded-lg h-full flex flex-col items-start gap-3 transition-all duration-300 ease-out cursor-pointer flex-grow", // Ajout de flex-grow
+            "group relative p-4 border rounded-lg h-full flex flex-col items-start gap-2 transition-all duration-300 ease-out cursor-pointer", // Padding réduit
             "bg-slate-900/50 border-slate-700/80 hover:border-purple-400/50 hover:shadow-2xl hover:shadow-purple-900/50", // Couleurs de base et au survol
             className
         )}
@@ -62,12 +62,12 @@ const ActionCard = ({ children, className, ...props }: { children: React.ReactNo
 
 const ActionIcon = ({ icon: Icon }: { icon: React.ElementType }) => (
     <div className="p-2 bg-slate-800 border border-slate-700 text-purple-300 rounded-lg shadow-inner-lg transition-all duration-300 group-hover:bg-purple-950/50 group-hover:text-purple-200 group-hover:shadow-purple-500/20">
-        <Icon className="h-6 w-6 transition-transform duration-300 group-hover:scale-110" />
+        <Icon className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
     </div>
 );
 
 const ActionTitle = ({ children }: { children: React.ReactNode }) => (
-    <span className="font-semibold text-slate-100 transition-colors group-hover:text-white">{children}</span>
+    <span className="font-semibold text-sm text-slate-100 transition-colors group-hover:text-white">{children}</span>
 );
 
 const ActionDescription = ({ children }: { children: React.ReactNode }) => (
@@ -135,7 +135,7 @@ export function CreationHub({ lastImage }: CreationHubProps) {
             const result = await generateImageDescription({ imageUrl: lastImage.directUrl, platform: platform });
             setCurrentTitle(result.title);
             setCurrentDescription(result.description);
-            setHashtagsString(result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' '));
+            setHashtagsString(result.hashtags.map(h => `#${'h.replace(/^#/, \'\')'}`).join(' '));
             setWasGeneratedByAI(true);
             
             await decrementAiTicketCount(firestore, user.uid, userProfile, 'description');
@@ -188,7 +188,7 @@ export function CreationHub({ lastImage }: CreationHubProps) {
         
         if (!error) {
             if (scheduleDate) {
-                toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur pour le ${format(scheduleDate, 'PPP', { locale: fr })}.` });
+                toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur pour le ${'format(scheduleDate, \'PPP\', { locale: fr })'}.` });
             } else {
                 toast({ title: "Brouillon sauvegardé !", description: "Retrouvez-le dans votre Planificateur de contenu." });
             }
@@ -207,12 +207,12 @@ export function CreationHub({ lastImage }: CreationHubProps) {
                     Votre dernière création
                 </CardTitle>
                 <CardDescription>
-                    {lastImage.uploadTimestamp ? `Téléversée ${formatDistanceToNow(lastImage.uploadTimestamp.toDate(), { addSuffix: true, locale: fr })}.` : "Téléversement en cours..."}
+                    {lastImage.uploadTimestamp ? `Téléversée ${'formatDistanceToNow(lastImage.uploadTimestamp.toDate(), { addSuffix: true, locale: fr })'}.` : "Téléversement en cours..."}
                     {' '}Prête à être améliorée.
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                     <Link href={`/image/${lastImage.id}`} passHref>
                         <div className="relative aspect-square rounded-lg overflow-hidden border shadow-md cursor-pointer group h-full">
                             <Image
@@ -225,7 +225,7 @@ export function CreationHub({ lastImage }: CreationHubProps) {
                             />
                         </div>
                     </Link>
-                    <div className="flex flex-col h-full gap-4">
+                    <div className="flex flex-col justify-center gap-4 h-full">
                         <Link href={`/edit/${lastImage.id}`} passHref>
                             <ActionCard>
                                 <ActionIcon icon={Wand2} />
