@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -35,6 +34,34 @@ const MAX_SUBJECT_IMAGES = 5;
 const AUDIT_COST = 5;
 
 const PREDEFINED_SOCIALS = ['Instagram', 'X (Twitter)', 'Facebook', 'LinkedIn', 'TikTok'];
+
+const Stepper = ({ currentStep, totalSteps }: { currentStep: number, totalSteps: number }) => (
+    <div className="flex items-center w-full mb-6">
+        {[...Array(totalSteps)].map((_, i) => (
+            <React.Fragment key={i}>
+                <div className="flex flex-col items-center">
+                    <div
+                        className={cn(
+                            "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300",
+                            i + 1 < currentStep ? "bg-green-500 text-white" : "",
+                            i + 1 === currentStep ? "bg-primary text-primary-foreground scale-110" : "",
+                            i + 1 > currentStep ? "bg-muted border" : ""
+                        )}
+                    >
+                        {i + 1 < currentStep ? <Check className="w-4 h-4" /> : i + 1}
+                    </div>
+                </div>
+                {i < totalSteps - 1 && (
+                    <div className={cn(
+                        "flex-1 h-1 transition-colors duration-300",
+                        i + 1 < currentStep ? "bg-green-500" : "bg-border"
+                    )} />
+                )}
+            </React.Fragment>
+        ))}
+    </div>
+);
+
 
 export default function AuditPage() {
     const { user, isUserLoading } = useUser();
@@ -244,7 +271,6 @@ export default function AuditPage() {
     }
     
     const totalSteps = 6;
-    const progress = (step / totalSteps) * 100;
 
     const toggleStyleImageSelection = (imageId: string) => {
         setSelectedStyleImages(prev => {
@@ -663,12 +689,12 @@ export default function AuditPage() {
     
     const getStepTitle = () => {
         switch (step) {
-            case 1: return "Sélection du Profil";
-            case 2: return "Le Contexte";
-            case 3: return `Identité Visuelle (${selectedStyleImages.size}/${MAX_STYLE_IMAGES})`;
-            case 4: return `Identité du Sujet (${selectedSubjectImages.size}/${MAX_SUBJECT_IMAGES})`;
-            case 5: return "Identité Rédactionnelle (Optionnel)";
-            case 6: return "Récapitulatif & Lancement";
+            case 1: return "Étape 1 : Sélection du Profil";
+            case 2: return "Étape 2 : Le Contexte";
+            case 3: return `Étape 3 : Identité Visuelle (${selectedStyleImages.size}/${MAX_STYLE_IMAGES})`;
+            case 4: return `Étape 4 : Identité du Sujet (${selectedSubjectImages.size}/${MAX_SUBJECT_IMAGES})`;
+            case 5: return "Étape 5 : Identité Rédactionnelle (Optionnel)";
+            case 6: return "Étape 6 : Récapitulatif & Lancement";
             default: return "";
         }
     };
@@ -715,7 +741,7 @@ export default function AuditPage() {
 
                 <Card>
                     <CardHeader>
-                        <Progress value={progress} className="mb-4" />
+                        <Stepper currentStep={step} totalSteps={totalSteps} />
                         <CardTitle>{getStepTitle()}</CardTitle>
                         <CardDescription>{getStepDescription()}</CardDescription>
                     </CardHeader>
