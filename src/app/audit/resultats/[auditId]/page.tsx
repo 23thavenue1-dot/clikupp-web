@@ -23,7 +23,6 @@ import { uploadFileAndGetMetadata } from '@/lib/storage';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format } from "date-fns"
@@ -253,7 +252,7 @@ export default function AuditResultPage() {
 
     const handleRedoGeneration = () => {
         if (historyIndex < generatedImageHistory.length - 1) {
-            setHistoryIndex(prev => prev + 1);
+            setHistoryIndex(prev => prev - 1);
         }
     };
 
@@ -380,8 +379,8 @@ export default function AuditResultPage() {
     
     const StepIndicator = ({ step, title, children }: { step: number; title: string; children: React.ReactNode }) => (
         <div className="flex items-start gap-4">
-            <div className="flex flex-col items-center">
-                <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary text-primary-foreground font-bold">{step}</div>
+            <div className="flex flex-col items-center self-start pt-1">
+                <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground font-bold text-sm">{step}</div>
                 <div className="w-px h-full bg-border mt-2"></div>
             </div>
             <div className="flex-1 pb-8">
@@ -517,7 +516,6 @@ export default function AuditResultPage() {
                     </CardHeader>
                     <CardContent className="space-y-6">
                         
-                        {/* Step 1 */}
                         <StepIndicator step={1} title="Générer des idées de contenu">
                             <div className="p-4 bg-background border rounded-lg space-y-4">
                                 <div className="flex gap-2">
@@ -541,8 +539,8 @@ export default function AuditResultPage() {
                                                 <Card key={index} className="bg-background">
                                                     <CardContent className="p-3 flex items-center justify-between gap-2">
                                                         <div className="text-sm font-medium flex-1 min-w-0">
-                                                            <p className="truncate" title={suggestion.prompt}>
-                                                                <span className="font-bold">{suggestion.title}:</span> {suggestion.prompt}
+                                                            <p className="truncate font-bold" title={suggestion.prompt}>
+                                                                {suggestion.title}
                                                             </p>
                                                         </div>
                                                         <Button size="sm" variant="secondary" onClick={() => { setPrompt(suggestion.prompt); toast({ title: "Prompt chargé !", description: "Vous pouvez le modifier à l'étape 2." }); }}>
@@ -561,7 +559,6 @@ export default function AuditResultPage() {
                             </div>
                         </StepIndicator>
 
-                        {/* Step 2 */}
                         <StepIndicator step={2} title="Personnaliser le prompt">
                              <div className="space-y-2">
                                 <Label htmlFor="prompt-input">Votre instruction pour l'IA</Label>
@@ -569,11 +566,10 @@ export default function AuditResultPage() {
                             </div>
                         </StepIndicator>
 
-                        {/* Step 3 */}
                         <div>
                              <div className="flex items-start gap-4">
-                                <div className="flex flex-col items-center">
-                                    <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary text-primary-foreground font-bold">3</div>
+                                <div className="flex flex-col items-center self-start pt-1">
+                                    <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground font-bold text-sm">3</div>
                                 </div>
                                 <div className="flex-1">
                                     <h4 className="font-semibold mb-2">Générer l'image</h4>
@@ -638,11 +634,11 @@ export default function AuditResultPage() {
                     </CardContent>
                     <CardFooter className="border-t pt-6">
                         <div className="w-full space-y-4">
-                             <div className="flex items-center gap-4">
-                                <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary text-primary-foreground font-bold flex-shrink-0">4</div>
-                                <h4 className="font-semibold">Finaliser et Sauvegarder</h4>
+                             <div className="flex items-start gap-4">
+                                <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground font-bold text-sm flex-shrink-0">4</div>
+                                <h4 className="font-semibold pt-0.5">Finaliser et Sauvegarder</h4>
                             </div>
-                            <div className="pl-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                            <div className="pl-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                                 <Button 
                                     onClick={handleSaveToLibrary}
                                     disabled={isSaving || isScheduling || isSavingDraft || !currentHistoryItem}
