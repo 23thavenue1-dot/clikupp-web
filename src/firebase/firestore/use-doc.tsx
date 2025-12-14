@@ -11,7 +11,6 @@ import {
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { useMemoFirebase } from '..';
 
 /** Utility type to add an 'id' field to a given type T. */
 type WithId<T> = T & { id: string };
@@ -42,7 +41,7 @@ export interface UseDocResult<T> {
  * @returns {UseDocResult<T>} Object with data, isLoading, error.
  */
 export function useDoc<T = any>(
-  memoizedDocRef: DocumentReference<DocumentData> | null | undefined,
+  memoizedDocRef: (DocumentReference<DocumentData> & {__memo?: boolean}) | null | undefined,
 ): UseDocResult<T> {
   type StateDataType = WithId<T> | null;
 
@@ -70,7 +69,7 @@ export function useDoc<T = any>(
     const unsubscribe = onSnapshot(
       memoizedDocRef,
       (snapshot: DocumentSnapshot<DocumentData>) => {
-        const docExists = snapshot.exists; // CORRECTED: Use property instead of function
+        const docExists = snapshot.exists(); 
 
         if (docExists) {
           setData({ ...(snapshot.data() as T), id: snapshot.id });
@@ -96,6 +95,10 @@ export function useDoc<T = any>(
 
     return () => unsubscribe();
   }, [memoizedDocRef, retryToggle]); // Re-run if the memoizedDocRef or retryToggle changes.
+
+  if(memoizedDocRef && !memoizedDocRef.__memo) {
+    throw new Error(memoizedDocRef.path + ' was not properly memoized using useMemoFirebase');
+  }
 
   return { data, isLoading, error, refetch };
 }
