@@ -55,10 +55,17 @@ const socialAuditPrompt = ai.definePrompt({
         
         4.  **action_plan**: Crée un plan d'action simple et motivant sur 7 jours. Chaque jour doit avoir une seule action concrète à réaliser pour commencer à appliquer tes conseils. Par exemple : "Jour 1: Mettre à jour votre biographie.", "Jour 2: Poster une photo en utilisant la règle des tiers."
 
-        5. **creative_suggestions**: C'est l'étape la plus importante. Synthétise TOUTE ton analyse (identité visuelle, stratégie, objectif) en une liste de **{{suggestion_count}}** suggestions de prompts pour générer des images. Chaque suggestion doit avoir un titre court et un prompt créatif.
+        5. **creative_suggestions**: C'est l'étape la plus importante. Tu vas maintenant créer un **plan de contenu narratif sur 14 jours** pour l'utilisateur. L'objectif est de raconter une histoire ou de suivre une progression logique sur deux semaines, en lien direct avec l'objectif de l'utilisateur. Chaque jour doit s'appuyer sur le précédent.
+
+           Génère **exactement 14** suggestions de post. Chaque suggestion doit avoir :
+           - Un **titre court** qui représente l'idée du jour (ex: "Jour 1: L'Accroche", "Jour 7: Le Point Culminant", "Jour 14: L'Ouverture").
+           - Un **prompt créatif et détaillé** pour générer une image qui illustre ce titre.
+
            {{#if subject_image_urls}}
-           Le prompt doit explicitement demander de recréer la personne présente dans les photos de référence du SUJET. Par exemple : "Photo de cette personne en train de...".
+           Si des images du sujet sont fournies, les prompts doivent explicitement demander de mettre en scène la personne présente dans ces photos de référence. Par exemple : "Photo de cette personne, le Jour 1, en train de...".
            {{/if}}
-           Les prompts doivent être créatifs, variés, précis et directement utilisables pour créer une publication qui incarne tes recommandations. Varie les situations, les styles et les angles pour proposer un véritable plan de contenu.
+           
+           La séquence de 14 jours doit être cohérente et raconter une histoire qui captive l'audience et sert l'objectif : "{{goal}}". Pense à une introduction, un développement avec des rebondissements ou des focus différents, et une conclusion.
     `,
 });
+

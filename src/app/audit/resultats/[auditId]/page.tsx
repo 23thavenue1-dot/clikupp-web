@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -81,7 +80,6 @@ export default function AuditResultPage() {
     const [historyIndex, setHistoryIndex] = useState(-1);
 
     const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
-    const [suggestionCount, setSuggestionCount] = useState("3");
     const [creativeSuggestions, setCreativeSuggestions] = useState<SocialAuditOutput['creative_suggestions']>([]);
     
     const [isSavingDraft, setIsSavingDraft] = useState(false);
@@ -128,7 +126,7 @@ export default function AuditResultPage() {
     const handleGeneratePlan = async () => {
         if (!auditReport || !user || !firestore || !userProfile) return;
 
-        const cost = parseInt(suggestionCount, 10);
+        const cost = 14;
         if (totalAiTickets < cost) {
             toast({ variant: 'destructive', title: 'Tickets IA insuffisants', description: `Cette action requiert ${cost} tickets.` });
             return;
@@ -380,11 +378,11 @@ export default function AuditResultPage() {
     const StepIndicator = ({ step, title, children }: { step: number; title: string; children: React.ReactNode }) => (
         <div className="flex items-start gap-4">
             <div className="flex flex-col items-center self-start pt-1">
-                <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground font-bold text-sm">{step}</div>
+                <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary text-primary-foreground font-bold text-base">{step}</div>
                 <div className="w-px h-full bg-border mt-2"></div>
             </div>
             <div className="flex-1 pb-8">
-                <h4 className="font-semibold mb-2">{title}</h4>
+                <h4 className="font-semibold text-lg mb-2">{title}</h4>
                 {children}
             </div>
         </div>
@@ -518,20 +516,10 @@ export default function AuditResultPage() {
                         
                         <StepIndicator step={1} title="Générer des idées de contenu">
                             <div className="p-4 bg-background border rounded-lg space-y-4">
-                                <div className="flex gap-2">
-                                    <Select value={suggestionCount} onValueChange={setSuggestionCount} disabled={isGeneratingPlan}>
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="3">Générer 3 idées</SelectItem>
-                                            <SelectItem value="7">Générer un plan sur 7 jours</SelectItem>
-                                            <SelectItem value="14">Générer un plan sur 14 jours</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <Button onClick={handleGeneratePlan} disabled={isGeneratingPlan || totalAiTickets < parseInt(suggestionCount, 10)}>
-                                        {isGeneratingPlan ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4"/>}
-                                        Générer le Plan
-                                    </Button>
-                                </div>
+                                <Button onClick={handleGeneratePlan} disabled={isGeneratingPlan || totalAiTickets < 14} className="w-full">
+                                    {isGeneratingPlan ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4"/>}
+                                    Générer un plan de contenu sur 14 jours
+                                </Button>
                                 <ScrollArea className="h-40 border bg-muted/50 rounded-md p-2">
                                     {creativeSuggestions.length > 0 ? (
                                         <div className="space-y-2 p-2">
@@ -566,79 +554,71 @@ export default function AuditResultPage() {
                             </div>
                         </StepIndicator>
 
-                        <div>
-                             <div className="flex items-start gap-4">
-                                <div className="flex flex-col items-center self-start pt-1">
-                                    <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground font-bold text-sm">3</div>
+                        <StepIndicator step={3} title="Créer l'image">
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <Select value={aspectRatio} onValueChange={setAspectRatio} disabled={isGenerating || isGeneratingVideo}>
+                                        <SelectTrigger><SelectValue placeholder="Format de l'image" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="1:1">Publication (1:1)</SelectItem>
+                                            <SelectItem value="9:16">Story / Réel (9:16)</SelectItem>
+                                            <SelectItem value="4:5">Portrait (4:5)</SelectItem>
+                                            <SelectItem value="16:9">Paysage (16:9)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <Button 
+                                        onClick={() => handleGenerateImage()}
+                                        disabled={isGenerating || isGeneratingVideo || !prompt.trim() || totalAiTickets <= 0}
+                                        className={cn("w-full","bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity")}
+                                    >
+                                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <ImageIcon className="mr-2 h-4 w-4" />}
+                                        Générer Image (1 Ticket)
+                                    </Button>
                                 </div>
-                                <div className="flex-1">
-                                    <h4 className="font-semibold mb-2">Générer l'image</h4>
-                                    <div className="space-y-4">
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                            <Select value={aspectRatio} onValueChange={setAspectRatio} disabled={isGenerating || isGeneratingVideo}>
-                                                <SelectTrigger><SelectValue placeholder="Format de l'image" /></SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="1:1">Publication (1:1)</SelectItem>
-                                                    <SelectItem value="9:16">Story / Réel (9:16)</SelectItem>
-                                                    <SelectItem value="4:5">Portrait (4:5)</SelectItem>
-                                                    <SelectItem value="16:9">Paysage (16:9)</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <Button 
-                                                onClick={() => handleGenerateImage()}
-                                                disabled={isGenerating || isGeneratingVideo || !prompt.trim() || totalAiTickets <= 0}
-                                                className={cn("w-full","bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity")}
-                                            >
-                                                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <ImageIcon className="mr-2 h-4 w-4" />}
-                                                Générer Image (1 Ticket)
+                                {(totalAiTickets <= 0 && !isGenerating && !isGeneratingVideo) && (
+                                    <p className="text-center text-sm text-destructive">
+                                        Tickets IA insuffisants. <Link href="/shop" className="underline font-semibold">Rechargez ici.</Link>
+                                    </p>
+                                )}
+                                <div className="aspect-video w-full relative rounded-lg border bg-muted flex items-center justify-center shadow-inner mt-4">
+                                    {(isGenerating || isGeneratingVideo) && <Loader2 className="h-10 w-10 text-primary animate-spin" />}
+                                    
+                                    {!isGenerating && !isGeneratingVideo && currentHistoryItem?.imageUrl && (
+                                        <Image src={currentHistoryItem.imageUrl} alt="Image générée par l'IA" fill className="object-contain" unoptimized />
+                                    )}
+                                    {!isGenerating && !isGeneratingVideo && generatedVideoUrl && (
+                                        <video src={generatedVideoUrl} controls autoPlay loop className="w-full h-full object-contain rounded-lg" />
+                                    )}
+
+                                    {!isGenerating && !isGeneratingVideo && !currentHistoryItem?.imageUrl && !generatedVideoUrl && (
+                                        <div className="text-center text-muted-foreground p-4">
+                                            <ImageIcon className="h-10 w-10 mx-auto mb-2"/>
+                                            <p className="text-sm">Votre création apparaîtra ici.</p>
+                                        </div>
+                                    )}
+
+                                    {!isGenerating && !isGeneratingVideo && generatedImageHistory.length > 0 && (
+                                        <div className="absolute top-2 left-2 z-10 flex gap-2">
+                                            <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="bg-background/80" aria-label="Annuler la dernière génération" disabled={historyIndex < 1}>
+                                                <Undo2 className="h-5 w-5" />
+                                            </Button>
+                                            <Button variant="outline" size="icon" onClick={handleRedoGeneration} className="bg-background/80" aria-label="Rétablir la génération" disabled={historyIndex >= generatedImageHistory.length - 1}>
+                                                <Redo2 className="h-5 w-5" />
                                             </Button>
                                         </div>
-                                        {(totalAiTickets <= 0 && !isGenerating && !isGeneratingVideo) && (
-                                            <p className="text-center text-sm text-destructive">
-                                                Tickets IA insuffisants. <Link href="/shop" className="underline font-semibold">Rechargez ici.</Link>
-                                            </p>
-                                        )}
-                                        <div className="aspect-video w-full relative rounded-lg border bg-muted flex items-center justify-center shadow-inner mt-4">
-                                            {(isGenerating || isGeneratingVideo) && <Loader2 className="h-10 w-10 text-primary animate-spin" />}
-                                            
-                                            {!isGenerating && !isGeneratingVideo && currentHistoryItem?.imageUrl && (
-                                                <Image src={currentHistoryItem.imageUrl} alt="Image générée par l'IA" fill className="object-contain" unoptimized />
-                                            )}
-                                            {!isGenerating && !isGeneratingVideo && generatedVideoUrl && (
-                                                <video src={generatedVideoUrl} controls autoPlay loop className="w-full h-full object-contain rounded-lg" />
-                                            )}
-
-                                            {!isGenerating && !isGeneratingVideo && !currentHistoryItem?.imageUrl && !generatedVideoUrl && (
-                                                <div className="text-center text-muted-foreground p-4">
-                                                    <ImageIcon className="h-10 w-10 mx-auto mb-2"/>
-                                                    <p className="text-sm">Votre création apparaîtra ici.</p>
-                                                </div>
-                                            )}
-
-                                            {!isGenerating && !isGeneratingVideo && generatedImageHistory.length > 0 && (
-                                                <div className="absolute top-2 left-2 z-10 flex gap-2">
-                                                    <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="bg-background/80" aria-label="Annuler la dernière génération" disabled={historyIndex < 1}>
-                                                        <Undo2 className="h-5 w-5" />
-                                                    </Button>
-                                                    <Button variant="outline" size="icon" onClick={handleRedoGeneration} className="bg-background/80" aria-label="Rétablir la génération" disabled={historyIndex >= generatedImageHistory.length - 1}>
-                                                        <Redo2 className="h-5 w-5" />
-                                                    </Button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
                             </div>
-                        </div>
+                        </StepIndicator>
 
                     </CardContent>
                     <CardFooter className="border-t pt-6">
                         <div className="w-full space-y-4">
                              <div className="flex items-start gap-4">
-                                <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground font-bold text-sm flex-shrink-0">4</div>
-                                <h4 className="font-semibold pt-0.5">Finaliser et Sauvegarder</h4>
+                                <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary text-primary-foreground font-bold text-base flex-shrink-0">4</div>
+                                <h4 className="font-semibold text-lg pt-0.5">Finaliser et Sauvegarder</h4>
                             </div>
-                            <div className="pl-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                            <div className="pl-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                                 <Button 
                                     onClick={handleSaveToLibrary}
                                     disabled={isSaving || isScheduling || isSavingDraft || !currentHistoryItem}
@@ -699,4 +679,3 @@ export default function AuditResultPage() {
     );
 }
 
-    
