@@ -8,7 +8,7 @@ import type { ImageMetadata, UserProfile, CustomPrompt } from '@/lib/firestore';
 import React, { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Video, Ticket, Copy, FilePlus, Calendar as CalendarIcon, Trash2, HelpCircle, ChevronDown, Library, Text, Facebook, Instagram, MessageSquare, VenetianMask, Lightbulb, Pencil } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Video, Ticket, Copy, FilePlus, Calendar as CalendarIcon, Trash2, HelpCircle, ChevronDown, Library, Text, Facebook, Instagram, MessageSquare, VenetianMask, Lightbulb, Pencil, FileText } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -160,7 +160,7 @@ export default function AuditResultPage() {
                 await updateDoc(auditDocRef, {
                     creative_suggestions: result.creative_suggestions
                 });
-                refetchAuditReport(); // Force a refetch of the audit data to get the latest suggestions
+                refetchAuditReport();
             } else {
                 setCreativeSuggestions([]);
             }
@@ -273,26 +273,16 @@ export default function AuditResultPage() {
     };
 
     const saveGeneratedImageAndPlan = async (isDraft: boolean, date?: Date) => {
-        if (!currentHistoryItem || !user || !firebaseApp || !firestore || !auditReport) return;
+        if (!currentHistoryItem || !user || !firebaseApp || !firestore || !auditReport || !activeSuggestion) return;
         
         const setLoading = isDraft ? setIsSavingDraft : setIsScheduling;
         setLoading(true);
 
         try {
-            // --- Étape 1 : Générer la description stratégique ---
-            const descriptionContext = `Analyse Stratégique : ${auditReport.strategic_analysis.strengths.join(', ')}. Améliorations : ${auditReport.strategic_analysis.improvements.join(', ')}`;
-            const descriptionResult = await generateImageDescription({
-                imageUrl: currentHistoryItem.imageUrl,
-                platform: auditReport.platform as Platform,
-                goal: auditReport.goal,
-                context: descriptionContext,
-            });
-
-            const newTitle = descriptionResult.title;
-            const newDescription = descriptionResult.description;
-            const newHashtags = descriptionResult.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' ');
-
-            // --- Étape 2 : Sauvegarder l'image générée dans la bibliothèque ---
+            
+            const newTitle = activeSuggestion.title;
+            const newDescription = activeSuggestion.post_description;
+            
             const storage = getStorage(firebaseApp);
             const blob = await dataUriToBlob(currentHistoryItem.imageUrl);
             const newFileName = `ai-creation-${Date.now()}.png`;
@@ -304,18 +294,16 @@ export default function AuditResultPage() {
                 ...metadata,
                 title: newTitle,
                 description: newDescription,
-                hashtags: newHashtags,
+                hashtags: activeSuggestion.hashtags,
                 generatedByAI: true
             });
 
-            // Récupérer les données complètes de la nouvelle image
             const newImageSnap = await getDoc(newImageDocRef);
             if (!newImageSnap.exists()) {
                 throw new Error("L'image nouvellement créée est introuvable.");
             }
             const newImageMetadata = newImageSnap.data() as ImageMetadata;
             
-            // --- Étape 3 : Utiliser la nouvelle image pour créer le brouillon/post ---
             await savePostForLater(firestore, storage, user.uid, {
                 title: isDraft ? 'Brouillon généré par IA' : `Post du ${format(date!, 'd MMMM')}`,
                 description: newDescription,
@@ -326,9 +314,9 @@ export default function AuditResultPage() {
             });
 
             if (isDraft) {
-                toast({ title: "Brouillon sauvegardé !", description: "Une description pertinente a aussi été générée. Retrouvez-le dans votre Planificateur." });
+                toast({ title: "Brouillon sauvegardé !", description: "Retrouvez-le dans votre Planificateur." });
             } else {
-                toast({ title: "Publication programmée !", description: `Une description pertinente a été générée. Retrouvez-la dans votre Planificateur pour le ${format(date!, 'PPP', { locale: fr })}.` });
+                toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur pour le ${format(date!, 'PPP', { locale: fr })}.` });
                 setScheduleDate(undefined);
             }
 
@@ -348,7 +336,7 @@ export default function AuditResultPage() {
 
 
     const handleSaveToLibrary = async () => {
-        if (!currentHistoryItem || !user || !firebaseApp || !firestore) return;
+        if (!currentHistoryItem || !user || !firebaseApp || !firestore || !activeSuggestion) return;
         setIsSaving(true);
         
         const { error } = await withErrorHandling(async () => {
@@ -361,8 +349,9 @@ export default function AuditResultPage() {
             
             await saveImageMetadata(firestore, user, { 
                 ...metadata,
-                title: `Généré par IA: ${currentHistoryItem.prompt}`,
-                description: currentHistoryItem.prompt,
+                title: activeSuggestion.title,
+                description: activeSuggestion.post_description,
+                hashtags: activeSuggestion.hashtags,
                 generatedByAI: true
             });
         });
@@ -549,10 +538,11 @@ export default function AuditResultPage() {
                                                                 <span className="text-xs font-bold px-2 py-1 bg-primary/10 text-primary rounded-full">Jour {suggestion.day}</span>
                                                                 <span className="flex-1 truncate">{suggestion.title}</span>
                                                             </CardTitle>
-                                                            <Dialog>
+                                                             <Dialog>
                                                                 <DialogTrigger asChild>
-                                                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
-                                                                        <Lightbulb className="h-4 w-4" />
+                                                                    <Button variant="outline" size="sm" className="h-auto px-2 py-1 text-xs">
+                                                                        <FileText className="mr-1 h-3 w-3 text-green-500" />
+                                                                        Prompt
                                                                     </Button>
                                                                 </DialogTrigger>
                                                                 <DialogContent>
@@ -647,7 +637,7 @@ export default function AuditResultPage() {
 
                                     {!isGenerating && !isGeneratingVideo && generatedImageHistory.length > 0 && (
                                         <div className="absolute top-2 left-2 z-10 flex gap-2">
-                                            <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="bg-background/80" aria-label="Annuler la dernière génération" disabled={historyIndex < 0}>
+                                            <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="bg-background/80" aria-label="Annuler la dernière génération" disabled={historyIndex <= 0}>
                                                 <Undo2 className="h-5 w-5" />
                                             </Button>
                                             <Button variant="outline" size="icon" onClick={handleRedoGeneration} className="bg-background/80" aria-label="Rétablir la génération" disabled={historyIndex >= generatedImageHistory.length - 1}>
@@ -743,3 +733,6 @@ export default function AuditResultPage() {
         </div>
     );
 }
+
+
+    
