@@ -9,7 +9,7 @@ import type { ImageMetadata, UserProfile, BrandProfile } from '@/lib/firestore';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Copy, Check, CopyPlus, Sparkles, FileText, LineChart, Wand2, ShoppingCart, Instagram, Facebook, MessageSquare, VenetianMask, Pencil, Calendar as CalendarIcon, FilePlus as FilePlusIcon } from 'lucide-react';
+import { ArrowLeft, Loader2, Copy, Check, CopyPlus, Sparkles, FileText as FileTextIcon, LineChart, Wand2, ShoppingCart, Instagram, Facebook, MessageSquare, VenetianMask, Pencil, Calendar as CalendarIcon, FilePlus as FilePlusIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -165,7 +165,7 @@ export default function ImageDetailPage() {
             toast({
                 variant: 'destructive',
                 title: 'Tickets IA épuisés',
-                description: (<Link href="/shop" className="font-bold underline text-white">Rechargez dans la boutique !</Link>),
+                description: (<Link href="/shop" className="font-bold underline text-white">Rechargez (dès 0,08€ / ticket)</Link>),
             });
             return;
         }
@@ -316,7 +316,7 @@ export default function ImageDetailPage() {
                         </Link>
 
                         <ActionCard onClick={() => setIsDescriptionDialogOpen(true)} role="button">
-                            <ActionIcon icon={FileText} />
+                            <ActionIcon icon={FileTextIcon} />
                             <ActionTitle>Modifier ou générer une description IA</ActionTitle>
                             <ActionDescription>Créez un titre, une description et des hashtags pertinents pour les réseaux sociaux.</ActionDescription>
                         </ActionCard>

@@ -332,7 +332,7 @@ export function Uploader() {
             title: 'Tickets d\'upload épuisés',
             description: (
                 <Link href="/shop" className="font-bold underline text-white">
-                    Rechargez dans la boutique !
+                    Rechargez (dès 0,08€ / ticket)
                 </Link>
             ),
         });
@@ -425,7 +425,7 @@ export function Uploader() {
         toast({
             variant: 'destructive',
             title: 'Tickets IA épuisés',
-            description: (<Link href="/shop" className="font-bold underline text-white">Rechargez dans la boutique !</Link>),
+            description: (<Link href="/shop" className="font-bold underline text-white">Rechargez (dès 0,08€ / ticket)</Link>),
         });
         return;
     }
@@ -510,7 +510,7 @@ const handleGenerateVideo = async () => {
         toast({
             variant: 'destructive',
             title: `Tickets IA insuffisants (${VIDEO_COST} requis)`,
-            description: (<Link href="/shop" className="font-bold underline text-white">Rechargez dans la boutique !</Link>),
+            description: (<Link href="/shop" className="font-bold underline text-white">Rechargez (dès 0,08€ / ticket)</Link>),
         });
         return;
     }
@@ -1035,7 +1035,7 @@ const handleGenerateVideo = async () => {
                                  <Button variant="link" asChild className="text-sm font-semibold text-primary w-full">
                                     <Link href="/shop">
                                         <ShoppingCart className="mr-2 h-4 w-4"/>
-                                        Plus de tickets ? Rechargez !
+                                        Rechargez (dès 0,08€ / ticket)
                                     </Link>
                                 </Button>
                             )}
@@ -1096,7 +1096,7 @@ const handleGenerateVideo = async () => {
                 </Button>
                 {totalAiTickets < 5 && !isGeneratingVideo && (
                     <p className="text-center text-sm text-destructive">
-                        Tickets IA insuffisants. <Link href="/shop" className="underline font-semibold">Rechargez ici.</Link>
+                        Tickets IA insuffisants. <Link href="/shop" className="underline font-semibold">Rechargez (dès 0,08€ / ticket)</Link>
                     </p>
                 )}
 

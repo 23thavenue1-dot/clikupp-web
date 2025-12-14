@@ -9,7 +9,7 @@ import type { ImageMetadata, UserProfile, CustomPrompt, Gallery } from '@/lib/fi
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Star, Trash2, Pencil, Tag, X, GalleryHorizontal, Clapperboard, Film, HelpCircle, ChevronDown, Library, Text, Facebook, Instagram, MessageSquare, VenetianMask, Ticket, Lightbulb } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Star, Trash2, Pencil, Tag, X, GalleryHorizontal, Clapperboard, Film, HelpCircle, ChevronDown, Library, Text, Facebook, Instagram, MessageSquare, VenetianMask, Ticket, Lightbulb, FileText as FileTextIcon } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -275,7 +275,7 @@ export default function EditImagePage() {
             toast({
                 variant: 'destructive',
                 title: 'Tickets IA épuisés',
-                description: ( <Link href="/shop" className="font-bold underline text-white"> Rechargez dans la boutique ! </Link> )
+                description: ( <Link href="/shop" className="font-bold underline text-white"> Rechargez (dès 0,08€ / ticket) </Link> )
             });
             return;
         }
@@ -527,7 +527,7 @@ export default function EditImagePage() {
              toast({
                 variant: 'destructive',
                 title: 'Tickets IA épuisés',
-                description: ( <Link href="/shop" className="font-bold underline text-white"> Rechargez dans la boutique ! </Link> )
+                description: ( <Link href="/shop" className="font-bold underline text-white"> Rechargez (dès 0,08€ / ticket) </Link> )
             });
             return;
         }
@@ -821,7 +821,7 @@ export default function EditImagePage() {
                         <CardDescription>Passez au niveau supérieur en générant des formats de contenu avancés à partir de votre image.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Tabs defaultValue="instagram">
+                        <Tabs defaultValue="instagram" className="w-full">
                             <TabsList className="grid w-full grid-cols-4">
                                 <TabsTrigger value="instagram" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-orange-500 data-[state=active]:text-white"><Instagram className="mr-2" />Instagram</TabsTrigger>
                                 <TabsTrigger value="facebook" className="data-[state=active]:bg-[#1877F2] data-[state=active]:text-white"><Facebook className="mr-2" />Facebook</TabsTrigger>
@@ -1073,7 +1073,7 @@ export default function EditImagePage() {
                         )}
                         {!hasAiTickets && !isGenerating && !monthlyLimitReached && (
                             <Button variant="link" asChild className="text-sm font-semibold text-primary w-full">
-                                <Link href="/shop"> <ShoppingCart className="mr-2 h-4 w-4"/> Plus de tickets ? Rechargez ! </Link>
+                                <Link href="/shop"> <ShoppingCart className="mr-2 h-4 w-4"/> Plus de tickets ? Rechargez (dès 0,08€ / ticket) ! </Link>
                             </Button>
                         )}
                       </CardContent>
@@ -1337,4 +1337,3 @@ export default function EditImagePage() {
         </div>
     );
 }
-
