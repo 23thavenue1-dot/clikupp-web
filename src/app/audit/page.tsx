@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, useFirebase } from '@/firebase';
 import { collection, query, orderBy, addDoc, doc, updateDoc } from 'firebase/firestore';
@@ -16,7 +16,6 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, ArrowLeft, Check, ShoppingCart, ClipboardList, PlusCircle, Building, MoreHorizontal, Pencil, Trash2, Link as LinkIcon, GripVertical, Instagram, MessageSquare, Facebook, Linkedin, VenetianMask } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
@@ -863,3 +862,5 @@ export default function AuditPage() {
         </>
     );
 }
+
+    
