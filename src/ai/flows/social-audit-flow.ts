@@ -68,6 +68,6 @@ const socialAuditPrompt = ai.definePrompt({
            L'image_prompt doit explicitement demander de mettre en scène la personne présente dans les photos de référence du SUJET. Par exemple : "Photo de cette personne, le Jour 1, en train de...".
            {{/if}}
 
-           Assure-toi que la séquence des 14 `post_description` forme une histoire fluide et captivante.
+           Assure-toi que la séquence des 14 'post_description' forme une histoire fluide et captivante.
     `,
 });
