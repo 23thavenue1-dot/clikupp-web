@@ -482,7 +482,7 @@ export function Uploader() {
 
         const storage = getStorage(firebaseApp);
         const newFileName = `ai-generated-${Date.now()}.png`;
-        const imageFile = new File([blob], newFileName, { type: blob.type });
+        const imageFile = new File([blob], newFileName, { type: 'image/png' });
 
         const metadata = await uploadFileAndGetMetadata(
             storage,
@@ -774,7 +774,7 @@ const handleGenerateVideo = async () => {
                           <AlertDialogHeader>
                               <AlertDialogTitle>Fonctionnalité en développement</AlertDialogTitle>
                               <AlertDialogDescription>
-                                  La génération de vidéo par IA est en cours d'amélioration pour garantir une expérience stable et de qualité. Elle sera de retour très bientôt. Merci de votre patience !
+                                  La génération de vidéo par IA est en cours de finalisation pour garantir une expérience stable et de qualité. Elle sera disponible prochainement. Merci de votre patience !
                               </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>

@@ -406,7 +406,7 @@ export default function EditImagePage() {
                     if (!imageUrl) return null;
                     const blob = await dataUriToBlob(imageUrl);
                     const newFileName = `carousel-${index + 2}-${Date.now()}.png`;
-                    const imageFile = new File([blob], newFileName, { type: blob.type });
+                    const imageFile = new File([blob], newFileName, { type: 'image/png' });
                     const metadata = await uploadFileAndGetMetadata(getStorage(firebaseApp), user, imageFile, `Carrousel Étape ${index + 2}`, () => {});
                     const docRef = await saveImageMetadata(firestore, user, { ...metadata, generatedByAI: true });
                     return docRef.id;
@@ -455,7 +455,7 @@ export default function EditImagePage() {
             const storage = getStorage(firebaseApp);
             const blob = await dataUriToBlob(finalImageSlide.imageUrl);
             const newFileName = `carousel-creation-${Date.now()}.png`;
-            const imageFile = new File([blob], newFileName, { type: blob.type });
+            const imageFile = new File([blob], newFileName, { type: 'image/png' });
 
             const fullDescription = editableDescriptions.map((desc, index) => `Étape ${index + 1}: ${desc}`).join('\\n\\n');
 
@@ -481,7 +481,7 @@ export default function EditImagePage() {
     const handleGenerateStory = async () => {
         toast({
             title: "Fonctionnalité en cours de développement",
-            description: "La génération de vidéos animées est en cours d'amélioration et sera bientôt disponible.",
+            description: "La génération de vidéo par IA est en cours de finalisation pour garantir une expérience stable et de qualité. Elle sera disponible prochainement. Merci de votre patience !",
         });
     };
 
@@ -591,7 +591,7 @@ export default function EditImagePage() {
             const storage = getStorage(firebaseApp);
             const blob = await dataUriToBlob(imageToSave.imageUrl);
             const newFileName = `ai-edited-${Date.now()}.png`;
-            const imageFile = new File([blob], newFileName, { type: blob.type });
+            const imageFile = new File([blob], newFileName, { type: 'image/png' });
 
             const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `IA: ${imageToSave.prompt}`, () => {});
             
@@ -899,7 +899,7 @@ export default function EditImagePage() {
                                             <AlertDialogHeader>
                                                 <AlertDialogTitle>Fonctionnalité en développement</AlertDialogTitle>
                                                 <AlertDialogDescription>
-                                                    La génération de vidéo par IA est en cours d'amélioration pour garantir une expérience stable et de qualité. Elle sera de retour très bientôt. Merci de votre patience !
+                                                    La génération de vidéo par IA est en cours de finalisation pour garantir une expérience stable et de qualité. Elle sera disponible prochainement. Merci de votre patience !
                                                 </AlertDialogDescription>
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>
@@ -1317,4 +1317,3 @@ export default function EditImagePage() {
     
 
     
-
