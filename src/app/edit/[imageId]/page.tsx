@@ -645,7 +645,7 @@ export default function EditImagePage() {
             const newPrompts = [...currentPrompts];
             newPrompts[promptIndex] = updatedPrompt;
 
-            await updateDoc(doc(firestore, 'users', userId), {
+            await updateDoc(doc(firestore, 'users', imageId), {
                 customPrompts: newPrompts
             });
 
@@ -1111,3 +1111,5 @@ export default function EditImagePage() {
         </div>
     );
 }
+
+    
