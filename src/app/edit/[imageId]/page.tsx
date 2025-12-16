@@ -458,7 +458,7 @@ export default function EditImagePage() {
          return (
             <div className="container mx-auto p-8 text-center">
                  <h1 className="text-2xl font-bold">Image introuvable</h1>
-                 <p className="text-muted-foreground">L'image que vous cherchez n'existe pas ou vous n'y avez pas accès.</p>
+                 <p className="text-muted-foreground">Le rapport que vous cherchez n'existe pas ou vous n'y avez pas accès.</p>
                  <Button asChild className="mt-4">
                     <Link href="/">Retour à l'accueil</Link>
                  </Button>
@@ -616,22 +616,84 @@ export default function EditImagePage() {
                                 </DialogContent>
                             </Dialog>
                          </div>
+
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" className="w-full">
+                                    <Lightbulb className="mr-2 h-4 w-4" />
+                                    Trouver l'inspiration
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-2xl">
+                                <DialogHeader>
+                                    <DialogTitle>Inspiration de Prompts</DialogTitle>
+                                    <DialogDescription>
+                                        Utilisez vos prompts sauvegardés ou explorez nos suggestions pour démarrer votre création. Cliquez sur un prompt pour l'utiliser.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="py-4 max-h-[60vh] overflow-y-auto">
+                                    <Accordion type="single" collapsible className="w-full">
+                                        {userProfile && userProfile.customPrompts && userProfile.customPrompts.length > 0 && (
+                                            <AccordionItem value="custom-prompts">
+                                                <AccordionTrigger className="text-sm py-2 hover:no-underline flex items-center gap-2">
+                                                    <Star className="h-4 w-4 text-yellow-500" />
+                                                    <span className="font-semibold">Mes Prompts</span>
+                                                </AccordionTrigger>
+                                                <AccordionContent>
+                                                    <div className="flex flex-col gap-2 pt-2">
+                                                        {userProfile.customPrompts.filter(p => typeof p === 'object' && p !== null && p.id && p.name && p.value).map((p) => (
+                                                            <div key={p.id} className="group relative flex items-center">
+                                                                <DialogClose asChild>
+                                                                    <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2 flex-grow text-left justify-start" onClick={() => setPrompt(p.value)} disabled={isGenerating || isSaving}>
+                                                                        {p.name}
+                                                                    </Button>
+                                                                </DialogClose>
+                                                                <div className="flex-shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openEditPromptDialog(p); }} aria-label="Modifier le prompt">
+                                                                        <Pencil className="h-3 w-3" />
+                                                                    </Button>
+                                                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openDeletePromptDialog(p); }} aria-label="Supprimer le prompt">
+                                                                        <Trash2 className="h-3 w-3 text-destructive" />
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        )}
+                                        {suggestionCategories.map(category => {
+                                            const Icon = getIcon(category.icon);
+                                            return (
+                                                <AccordionItem value={category.name} key={category.name}>
+                                                    <AccordionTrigger className="text-sm py-2 hover:no-underline flex items-center gap-2">
+                                                        <Icon className="h-4 w-4 text-muted-foreground" />
+                                                        <span className="font-semibold">{category.name}</span>
+                                                    </AccordionTrigger>
+                                                    <AccordionContent>
+                                                        <div className="flex flex-wrap gap-2 pt-2">
+                                                            {category.prompts.map((p) => (
+                                                                <DialogClose asChild key={p.title}>
+                                                                    <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.prompt)} disabled={isGenerating || isSaving}>
+                                                                        {p.title}
+                                                                    </Button>
+                                                                </DialogClose>
+                                                            ))}
+                                                        </div>
+                                                    </AccordionContent>
+                                                </AccordionItem>
+                                            );
+                                        })}
+                                    </Accordion>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
+
                          {monthlyLimitReached ? ( <p className="text-center text-sm text-primary font-semibold"> Limite mensuelle de tickets gratuits atteinte. Prochaine recharge le {nextRefillDate}. </p>) : (
                              <div className="space-y-2">
                                 <Button size="lg" onClick={() => handleGenerateImage()} disabled={!prompt || !prompt.trim() || isGenerating || isSaving || !hasAiTickets} className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity">
                                     {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5 text-amber-300" />}
                                     {isGenerating ? 'Génération en cours...' : 'Générer (1 Ticket IA)'}
-                                </Button>
-                                 <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button variant="outline" className="w-full" disabled={isGenerating || isSaving}>
-                                            <Text className="mr-2 h-4 w-4"/> Modifier ou générer une descrption IA
-                                        </Button>
-                                    </DialogTrigger>
-                                </Dialog>
-                                <Button onClick={handleSaveAiCreation} disabled={isSaving || isGenerating} className="w-full" variant="secondary">
-                                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
-                                    Enregistrer la création
                                 </Button>
                              </div>
                         )}
@@ -643,66 +705,53 @@ export default function EditImagePage() {
                       </CardContent>
                     </Card>
 
-                    <Card>
+                     <Card>
                       <CardHeader>
                          <CardTitle className="flex items-center gap-2 text-lg">
                            <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">2</span>
-                           <span>Inspiration</span>
+                           <span>Description & Sauvegarde</span>
                          </CardTitle>
                       </CardHeader>
-                      <CardContent>
-                         <Accordion type="single" collapsible className="w-full">
-                            {userProfile && userProfile.customPrompts && userProfile.customPrompts.length > 0 && (
-                                <AccordionItem value="custom-prompts">
-                                    <AccordionTrigger className="text-sm py-2 hover:no-underline flex items-center gap-2">
-                                         <Star className="h-4 w-4 text-yellow-500" />
-                                        <span className="font-semibold">Mes Prompts</span>
-                                    </AccordionTrigger>
-                                    <AccordionContent>
-                                        <div className="flex flex-col gap-2 pt-2">
-                                            {userProfile.customPrompts.filter(p => typeof p === 'object' && p !== null && p.id && p.name && p.value).map((p) => (
-                                                <div key={p.id} className="group relative flex items-center">
-                                                    <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2 flex-grow text-left justify-start" onClick={() => setPrompt(p.value)} disabled={isGenerating || isSaving}>
-                                                        {p.name}
-                                                    </Button>
-                                                    <div className="flex-shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openEditPromptDialog(p); }} aria-label="Modifier le prompt">
-                                                            <Pencil className="h-3 w-3" />
-                                                        </Button>
-                                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openDeletePromptDialog(p); }} aria-label="Supprimer le prompt">
-                                                            <Trash2 className="h-3 w-3 text-destructive" />
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            ))}
+                       <CardContent className="space-y-3">
+                         <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" className="w-full" disabled={isGenerating || isSaving}>
+                                    <Text className="mr-2 h-4 w-4"/> Modifier ou générer une descrption IA
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-md">
+                                <DialogHeader>
+                                    <DialogTitle>Modifier ou générer une descrption IA</DialogTitle>
+                                    <DialogDescription>Laissez l'IA rédiger un contenu optimisé, ou modifiez-le manuellement.</DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4 py-4">
+                                    <div className="space-y-2"><Label htmlFor="gen-title">Titre</Label><Input id="gen-title" value={generatedTitle} onChange={(e) => setGeneratedTitle(e.target.value)} disabled={isGeneratingDescription}/></div>
+                                    <div className="space-y-2"><Label htmlFor="gen-desc">Description</Label><Textarea id="gen-desc" value={generatedDescription} onChange={(e) => setGeneratedDescription(e.target.value)} disabled={isGeneratingDescription} rows={4}/></div>
+                                    <div className="space-y-2"><Label htmlFor="gen-tags">Hashtags</Label><Textarea id="gen-tags" value={generatedHashtags} onChange={(e) => setGeneratedHashtags(e.target.value)} disabled={isGeneratingDescription} rows={2}/></div>
+                                    <Separator/>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between"><Label>Optimisation IA pour... (1 Ticket)</Label><div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground"><span className="text-primary">{totalAiTickets}</span> tickets restants</div></div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <Button variant="outline" onClick={() => handleGenerateDescription('instagram')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><Instagram className="mr-2 h-4 w-4"/>Instagram</Button>
+                                            <Button variant="outline" onClick={() => handleGenerateDescription('facebook')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><Facebook className="mr-2 h-4 w-4"/>Facebook</Button>
+                                            <Button variant="outline" onClick={() => handleGenerateDescription('x')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><MessageSquare className="mr-2 h-4 w-4"/>X (Twitter)</Button>
+                                            <Button variant="outline" onClick={() => handleGenerateDescription('tiktok')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><VenetianMask className="mr-2 h-4 w-4"/>TikTok</Button>
+                                            <Button variant="outline" onClick={() => handleGenerateDescription('ecommerce')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><ShoppingCart className="mr-2 h-4 w-4"/>E-commerce</Button>
+                                            <Button variant="outline" onClick={() => handleGenerateDescription('generic')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><Wand2 className="mr-2 h-4 w-4"/>Générique</Button>
                                         </div>
-                                    </AccordionContent>
-                                </AccordionItem>
-                            )}
-                            {suggestionCategories.map(category => {
-                                const Icon = getIcon(category.icon);
-                                return (
-                                    <AccordionItem value={category.name} key={category.name}>
-                                        <AccordionTrigger className="text-sm py-2 hover:no-underline flex items-center gap-2">
-                                            <Icon className="h-4 w-4 text-muted-foreground" />
-                                            <span className="font-semibold">{category.name}</span>
-                                        </AccordionTrigger>
-                                        <AccordionContent>
-                                            <div className="flex flex-wrap gap-2 pt-2">
-                                                {category.prompts.map((p) => (
-                                                    <div key={p.title}>
-                                                        <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.prompt)} disabled={isGenerating || isSaving}>
-                                                            {p.title}
-                                                        </Button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                );
-                            })}
-                        </Accordion>
-                      </CardContent>
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <DialogClose asChild><Button variant="secondary">Fermer</Button></DialogClose>
+                                    <Button onClick={handleConfirmDescription}>Valider le Contenu</Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                        <Button onClick={handleSaveAiCreation} disabled={isSaving || isGenerating} className="w-full" variant="secondary">
+                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                            Enregistrer la création
+                        </Button>
+                       </CardContent>
                     </Card>
                     
                   </div>
@@ -748,54 +797,6 @@ export default function EditImagePage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-
-            <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
-               <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>Modifier ou générer une descrption IA</DialogTitle>
-                        <DialogDescription>
-                            Laissez l'IA rédiger un contenu optimisé, ou modifiez-le manuellement.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="gen-title">Titre</Label>
-                            <Input id="gen-title" value={generatedTitle} onChange={(e) => setGeneratedTitle(e.target.value)} disabled={isGeneratingDescription}/>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="gen-desc">Description</Label>
-                            <Textarea id="gen-desc" value={generatedDescription} onChange={(e) => setGeneratedDescription(e.target.value)} disabled={isGeneratingDescription} rows={4}/>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="gen-tags">Hashtags</Label>
-                            <Textarea id="gen-tags" value={generatedHashtags} onChange={(e) => setGeneratedHashtags(e.target.value)} disabled={isGeneratingDescription} rows={2}/>
-                        </div>
-                        <Separator/>
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <Label>Optimisation IA pour... (1 Ticket)</Label>
-                                <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                                    <span className="text-primary">{totalAiTickets}</span> tickets restants
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                                <Button variant="outline" onClick={() => handleGenerateDescription('instagram')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><Instagram className="mr-2 h-4 w-4"/>Instagram</Button>
-                                <Button variant="outline" onClick={() => handleGenerateDescription('facebook')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><Facebook className="mr-2 h-4 w-4"/>Facebook</Button>
-                                <Button variant="outline" onClick={() => handleGenerateDescription('x')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><MessageSquare className="mr-2 h-4 w-4"/>X (Twitter)</Button>
-                                <Button variant="outline" onClick={() => handleGenerateDescription('tiktok')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><VenetianMask className="mr-2 h-4 w-4"/>TikTok</Button>
-                                <Button variant="outline" onClick={() => handleGenerateDescription('ecommerce')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><ShoppingCart className="mr-2 h-4 w-4"/>E-commerce</Button>
-                                <Button variant="outline" onClick={() => handleGenerateDescription('generic')} disabled={isGeneratingDescription || !hasAiTickets} className="justify-start"><Wand2 className="mr-2 h-4 w-4"/>Générique</Button>
-                            </div>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                         <DialogClose asChild><Button variant="secondary">Fermer</Button></DialogClose>
-                        <Button onClick={handleConfirmDescription}>Valider le Contenu</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }
-
-    
