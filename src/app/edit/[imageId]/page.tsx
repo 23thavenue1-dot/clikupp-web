@@ -155,7 +155,7 @@ export default function EditImagePage() {
     const [isEditingPrompt, setIsEditingPrompt] = useState(false);
 
     // NOUVEAU: State pour l'optimisation
-    const [isOptimizeDialogOpen, setIsOptimizeDialogOpen] = useState(false); // Fenêtre de résultat
+    const [isResultDialogOpen, setIsResultDialogOpen] = useState(false);
     const [isOptimizing, setIsOptimizing] = useState(false);
     const [optimizedImageResult, setOptimizedImageResult] = useState<OptimizeImageOutput | null>(null);
     const [optimizationDirective, setOptimizationDirective] = useState('');
@@ -222,9 +222,9 @@ export default function EditImagePage() {
         setPlatformForOptimization(platform);
         setOptimizedImageResult(null);
 
-        toast.info("Optimisation en cours...", {
+        toast({
+            title: "Optimisation en cours...",
             description: `L'IA prépare votre image pour ${platform}.`,
-            id: 'optimizing-toast',
         });
 
         try {
@@ -236,14 +236,14 @@ export default function EditImagePage() {
             });
 
             setOptimizedImageResult(result);
-            setIsOptimizeDialogOpen(true); // Ouvre la fenêtre de résultat
+            setIsResultDialogOpen(true); // Ouvre la fenêtre de résultat
 
             await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             refetchUserProfile();
-            toast.success("Image optimisée !", { id: 'optimizing-toast' });
+            toast({ title: "Image optimisée !" });
         } catch (error) {
             console.error("Optimization error:", error);
-            toast.error("Erreur d'optimisation", { id: 'optimizing-toast', description: (error as Error).message });
+            toast({ variant: 'destructive', title: "Erreur d'optimisation", description: (error as Error).message });
         } finally {
             setIsOptimizing(false);
             setPlatformForOptimization('');
@@ -271,7 +271,7 @@ export default function EditImagePage() {
 
         if (!error) {
             toast({ title: "Sauvegardé dans la bibliothèque !", description: "Votre image optimisée a été ajoutée à votre galerie." });
-            setIsOptimizeDialogOpen(false);
+            setIsResultDialogOpen(false);
         }
         setIsSavingOptimized(false);
     };
@@ -421,7 +421,7 @@ export default function EditImagePage() {
             
             const newTitle = result.title;
             const newDesc = result.description;
-            const newHashtags = result.hashtags.map(h => `#${'h.replace(/^#/, \'\')'}`).join(' ');
+            const newHashtags = result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' ');
 
             setGeneratedTitle(newTitle);
             setGeneratedDescription(newDesc);
@@ -699,7 +699,7 @@ export default function EditImagePage() {
                          <CardDescription>L'IA analyse votre image et la transforme en une version professionnelle et percutante, optimisée pour la plateforme de votre choix.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <ActionCard onClick={() => handleOptimizeImageClick('instagram')} disabled={isOptimizing}>
                                 {isOptimizing && platformForOptimization === 'instagram' ? (
                                     <div className="m-auto flex flex-col items-center gap-2"><Loader2 className="h-6 w-6 animate-spin text-purple-300" /><span className="text-xs text-purple-300">Génération...</span></div>
@@ -712,22 +712,7 @@ export default function EditImagePage() {
                                  {isOptimizing && platformForOptimization === 'facebook' ? (
                                     <div className="m-auto flex flex-col items-center gap-2"><Loader2 className="h-6 w-6 animate-spin text-purple-300" /><span className="text-xs text-purple-300">Génération...</span></div>
                                 ) : (
-                                    <><div className="flex items-center justify-between w-full"><div className="flex items-center gap-3"><ActionIcon icon={Facebook} /><ActionTitle>Optimisation pour Facebook</ActionTitle></div><Dialog><DialogTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6 text-green-500" onClick={(e) => e.stopPropagation()}><HelpCircle className="h-4 w-4"/></Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>Format Publication Simple</DialogTitle><DialogDescription>Cet outil se concentre sur la création d'une seule image finale, visuellement percutante. Il est parfait pour une publication rapide et efficace sur les fils d'actualité comme Facebook, où la clarté et l'impact immédiat sont essentiels.</DialogDescription></DialogHeader></DialogContent></Dialog></div><ActionDescription>Génère un format visuellement impactant, idéal pour le fil d'actualité.</ActionDescription></>
-                                )}
-                            </ActionCard>
-
-                             <ActionCard onClick={() => handleOptimizeImageClick('x')} disabled={isOptimizing}>
-                                {isOptimizing && platformForOptimization === 'x' ? (
-                                    <div className="m-auto flex flex-col items-center gap-2"><Loader2 className="h-6 w-6 animate-spin text-purple-300" /><span className="text-xs text-purple-300">Génération...</span></div>
-                                ) : (
-                                    <><div className="flex items-center gap-3"><ActionIcon icon={MessageSquare} /><ActionTitle>Optimisation pour X (Twitter)</ActionTitle></div><ActionDescription>Produit une image à fort contraste, parfaite pour arrêter le défilement rapide.</ActionDescription></>
-                                )}
-                            </ActionCard>
-                             <ActionCard onClick={() => handleOptimizeImageClick('linkedin')} disabled={isOptimizing}>
-                                {isOptimizing && platformForOptimization === 'linkedin' ? (
-                                    <div className="m-auto flex flex-col items-center gap-2"><Loader2 className="h-6 w-6 animate-spin text-purple-300" /><span className="text-xs text-purple-300">Génération...</span></div>
-                                ) : (
-                                    <><div className="flex items-center gap-3"><ActionIcon icon={Linkedin} /><ActionTitle>Optimisation pour LinkedIn</ActionTitle></div><ActionDescription>Génère une image au rendu sobre et professionnel pour une image de marque sérieuse.</ActionDescription></>
+                                    <><div className="flex items-center justify-between w-full"><div className="flex items-center gap-3"><ActionIcon icon={Facebook} /><ActionTitle>Publication</ActionTitle></div><Dialog><DialogTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6 text-green-500" onClick={(e) => e.stopPropagation()}><HelpCircle className="h-4 w-4"/></Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>Format Publication Simple</DialogTitle><DialogDescription>Cet outil se concentre sur la création d'une seule image finale, visuellement percutante. Il est parfait pour une publication rapide et efficace sur les fils d'actualité comme Facebook, où la clarté et l'impact immédiat sont essentiels.</DialogDescription></DialogHeader></DialogContent></Dialog></div><ActionDescription>Génère un format visuellement impactant, idéal pour le fil d'actualité.</ActionDescription></>
                                 )}
                             </ActionCard>
                         </div>
@@ -931,7 +916,7 @@ export default function EditImagePage() {
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={isOptimizeDialogOpen} onOpenChange={setIsOptimizeDialogOpen}>
+            <Dialog open={isResultDialogOpen} onOpenChange={setIsResultDialogOpen}>
                 <DialogContent className="max-w-4xl">
                     <DialogHeader>
                         <DialogTitle>Résultat de l'Optimisation Pro</DialogTitle>
@@ -960,7 +945,7 @@ export default function EditImagePage() {
                         </div>
                     )}
                     <DialogFooter>
-                        <Button variant="secondary" onClick={() => setIsOptimizeDialogOpen(false)}>Fermer</Button>
+                        <Button variant="secondary" onClick={() => setIsResultDialogOpen(false)}>Fermer</Button>
                         <Button onClick={handleSaveOptimizedImage} disabled={isSavingOptimized || !optimizedImageResult}>
                             {isSavingOptimized && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Sauvegarder cette version
@@ -1016,5 +1001,7 @@ export default function EditImagePage() {
         </div>
     );
 }
+
+    
 
     
