@@ -11,8 +11,8 @@ import { initializeFirebase } from '@/firebase';
 // Config côté client (guards)
 // -----------------------------
 export const MAX_BYTES = 10 * 1024 * 1024; // 10 Mo
-export const ALLOWED_MIME = /^(image\/.*)$/i;
-const NAME_EXT_FALLBACK = /\.(png|jpe?g|gif|webp|avif|heic|heif|svg)$/i;
+export const ALLOWED_MIME = /^(image\/.*|video\/.*)$/i;
+const NAME_EXT_FALLBACK = /\.(png|jpe?g|gif|webp|avif|heic|heif|svg|mp4|mov|webm)$/i;
 
 /**
  * DEPRECATED / TEST-ONLY: Deletes a file from Firebase Storage.
@@ -75,7 +75,7 @@ export async function uploadFileAndGetMetadata(
             return reject(new Error('Fichier trop volumineux (> 10 Mo).'));
         }
         if (!ALLOWED_MIME.test(file.type) && !NAME_EXT_FALLBACK.test(file.name)) {
-            return reject(new Error('Type de fichier non autorisé (images uniquement).'));
+            return reject(new Error('Type de fichier non autorisé (images et vidéos uniquement).'));
         }
 
         const fileName = `${Date.now()}_${file.name}`;
