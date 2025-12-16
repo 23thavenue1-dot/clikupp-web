@@ -1,11 +1,10 @@
-
 'use server';
 /**
  * @fileOverview Flow Genkit pour l'optimisation d'image en 1-clic pour les plateformes sociales.
  */
 
 import { ai } from '@/ai/genkit';
-import { GenerateCarouselInputSchema, OptimizeImageOutputSchema, type GenerateCarouselInput, type OptimizeImageOutput } from '@/ai/schemas/carousel-schemas';
+import { GenerateCarouselInputSchema, OptimizedImageOutputSchema, type GenerateCarouselInput, type OptimizeImageOutput } from '@/ai/schemas/carousel-schemas';
 
 
 export async function optimizeImage(input: GenerateCarouselInput): Promise<OptimizeImageOutput> {
@@ -17,7 +16,7 @@ const optimizeImageFlow = ai.defineFlow(
   {
     name: 'optimizeImageFlow',
     inputSchema: GenerateCarouselInputSchema,
-    outputSchema: OptimizeImageOutputSchema,
+    outputSchema: OptimizedImageOutputSchema,
   },
   async ({ baseImageUrl, subjectPrompt, userDirective, platform }) => {
     
