@@ -550,7 +550,7 @@ export default function EditImagePage() {
             
             const newTitle = result.title;
             const newDesc = result.description;
-            const newHashtags = result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' ');
+            const newHashtags = result.hashtags.map(h => `#${'h.replace(/^#/, \'\')'}`).join(' ');
 
             setGeneratedTitle(newTitle);
             setGeneratedDescription(newDesc);
@@ -887,65 +887,27 @@ export default function EditImagePage() {
                                             Générer (1 Ticket)
                                         </Button>
                                     </Card>
-                                    <Card className="p-4 flex flex-col gap-2 bg-muted/30">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-primary/10 text-primary rounded-lg"><Clapperboard className="h-5 w-5" /></div>
-                                            <h4 className="font-semibold">Story Animée</h4>
-                                        </div>
-                                        <p className="text-xs text-muted-foreground flex-grow">Transforme l'image en une vidéo de 5s avec des animations de texte et d'effets.</p>
-                                        <Dialog open={isStoryDialogOpen} onOpenChange={setIsStoryDialogOpen}>
-                                            <DialogTrigger asChild>
-                                                <Button size="sm">Générer (5 Tickets)</Button>
-                                            </DialogTrigger>
-                                            <DialogContent>
-                                                <DialogHeader>
-                                                    <DialogTitle>Créer une Story Animée</DialogTitle>
-                                                    <DialogDescription>Décrivez l'animation que vous souhaitez appliquer à votre image.</DialogDescription>
-                                                </DialogHeader>
-                                                <div className="py-4 space-y-4">
-                                                    <div className="aspect-video w-full rounded-lg bg-muted relative">
-                                                        {isGeneratingStory ? (
-                                                            <div className="flex flex-col items-center justify-center h-full text-primary gap-2">
-                                                                <Loader2 className="h-8 w-8 animate-spin" />
-                                                                <p className="text-sm font-medium">Génération en cours...</p>
-                                                                <p className="text-xs text-muted-foreground">Cela peut prendre jusqu'à 2 minutes.</p>
-                                                            </div>
-                                                        ) : generatedStoryUrl ? (
-                                                            <video src={generatedStoryUrl} controls autoPlay loop className="w-full h-full object-contain rounded-lg" />
-                                                        ) : (
-                                                             <Image src={originalImage.directUrl} alt="Aperçu de l'image" fill className="object-contain" />
-                                                        )}
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor="story-prompt">Instruction d'animation</Label>
-                                                        <Textarea 
-                                                            id="story-prompt"
-                                                            placeholder="Ex: Fais tomber de la neige sur le paysage et zoome lentement."
-                                                            value={storyAnimationPrompt}
-                                                            onChange={e => setStoryAnimationPrompt(e.target.value)}
-                                                            rows={3}
-                                                            disabled={isGeneratingStory}
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <DialogFooter>
-                                                    <Button variant="secondary" onClick={() => setIsStoryDialogOpen(false)} disabled={isGeneratingStory || isSaving}>Fermer</Button>
-                                                    {generatedStoryUrl ? (
-                                                        <Button onClick={handleSaveGeneratedStory} disabled={isSaving}>
-                                                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4"/>}
-                                                            Sauvegarder
-                                                        </Button>
-                                                    ) : (
-                                                        <Button onClick={handleGenerateStory} disabled={!storyAnimationPrompt.trim() || isGeneratingStory || totalAiTickets < 5}>
-                                                            {isGeneratingStory ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4"/>}
-                                                            Générer
-                                                        </Button>
-                                                    )}
-                                                </DialogFooter>
-                                            </DialogContent>
-                                        </Dialog>
-                                    </Card>
-                                    <Card className="p-4 flex flex-col gap-2 bg-muted/30">
+                                     <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Card className="p-4 flex flex-col gap-2 bg-muted/30 cursor-pointer hover:bg-muted/50">
+                                                <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><Clapperboard className="h-5 w-5" /></div><h4 className="font-semibold">Story Animée</h4></div>
+                                                <p className="text-xs text-muted-foreground flex-grow">Transforme l'image en une vidéo de 5s avec des animations de texte et d'effets.</p>
+                                                <Button size="sm" variant="outline" className="mt-auto w-full" disabled>Générer (5 Tickets)</Button>
+                                            </Card>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Fonctionnalité en développement</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    La génération de vidéo par IA est en cours d'amélioration pour garantir une expérience stable et de qualité. Elle sera de retour très bientôt. Merci de votre patience !
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogAction>Compris</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                    <Card className="p-4 flex flex-col gap-2 bg-muted/30 opacity-50">
                                         <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><Film className="h-5 w-5" /></div><h4 className="font-semibold">Réel "Zoom & Révèle"</h4></div>
                                         <p className="text-xs text-muted-foreground flex-grow">Crée une courte vidéo qui zoome sur un détail avant de révéler l'image complète.</p>
                                         <Button size="sm" disabled>Générer (5 Tickets)</Button>
@@ -954,17 +916,17 @@ export default function EditImagePage() {
                             </TabsContent>
                              <TabsContent value="facebook" className="pt-6">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    <Card className="p-4 flex flex-col gap-2 bg-muted/30">
+                                    <Card className="p-4 flex flex-col gap-2 bg-muted/30 opacity-50">
                                         <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><GalleryHorizontal className="h-5 w-5" /></div><h4 className="font-semibold">Diaporama Événementiel</h4></div>
                                         <p className="text-xs text-muted-foreground flex-grow">Crée une séquence de 3 images avec des variations sur un thème (ex: 3 angles différents).</p>
                                         <Button size="sm" disabled>Générer (3 Tickets)</Button>
                                     </Card>
-                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30">
+                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30 opacity-50">
                                         <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><Clapperboard className="h-5 w-5" /></div><h4 className="font-semibold">Vidéo de Couverture</h4></div>
                                         <p className="text-xs text-muted-foreground flex-grow">Génère une vidéo de 8s optimisée pour les couvertures de page Facebook.</p>
                                         <Button size="sm" disabled>Générer (5 Tickets)</Button>
                                     </Card>
-                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30">
+                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30 opacity-50">
                                         <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><Film className="h-5 w-5" /></div><h4 className="font-semibold">Post Publicitaire</h4></div>
                                         <p className="text-xs text-muted-foreground flex-grow">Crée une courte vidéo avec du texte marketing et un appel à l'action clair.</p>
                                         <Button size="sm" disabled>Générer (5 Tickets)</Button>
@@ -973,17 +935,17 @@ export default function EditImagePage() {
                             </TabsContent>
                              <TabsContent value="x" className="pt-6">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    <Card className="p-4 flex flex-col gap-2 bg-muted/30">
+                                    <Card className="p-4 flex flex-col gap-2 bg-muted/30 opacity-50">
                                         <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><GalleryHorizontal className="h-5 w-5" /></div><h4 className="font-semibold">Image "Citation"</h4></div>
                                         <p className="text-xs text-muted-foreground flex-grow">Superpose une citation inspirante et bien formatée sur votre image.</p>
                                         <Button size="sm" disabled>Générer (1 Ticket)</Button>
                                     </Card>
-                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30">
+                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30 opacity-50">
                                         <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><Clapperboard className="h-5 w-5" /></div><h4 className="font-semibold">Mème / Réaction</h4></div>
                                         <p className="text-xs text-muted-foreground flex-grow">Transforme l'image en mème avec une légende humoristique adaptée à l'actualité.</p>
                                         <Button size="sm" disabled>Générer (1 Ticket)</Button>
                                     </Card>
-                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30">
+                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30 opacity-50">
                                         <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><Film className="h-5 w-5" /></div><h4 className="font-semibold">GIF Animé</h4></div>
                                         <p className="text-xs text-muted-foreground flex-grow">Crée un court GIF de 2s en boucle à partir de l'image pour plus d'impact.</p>
                                         <Button size="sm" disabled>Générer (3 Tickets)</Button>
@@ -992,17 +954,17 @@ export default function EditImagePage() {
                             </TabsContent>
                              <TabsContent value="tiktok" className="pt-6">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    <Card className="p-4 flex flex-col gap-2 bg-muted/30">
+                                    <Card className="p-4 flex flex-col gap-2 bg-muted/30 opacity-50">
                                         <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><GalleryHorizontal className="h-5 w-5" /></div><h4 className="font-semibold">Vidéo "Fond Vert"</h4></div>
                                         <p className="text-xs text-muted-foreground flex-grow">Crée un clip où votre image devient un fond animé pour une vidéo face caméra.</p>
                                         <Button size="sm" disabled>Générer (5 Tickets)</Button>
                                     </Card>
-                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30">
+                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30 opacity-50">
                                         <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><Clapperboard className="h-5 w-5" /></div><h4 className="font-semibold">Vidéo Tendance</h4></div>
                                         <p className="text-xs text-muted-foreground flex-grow">Anime l'image en suivant une tendance visuelle TikTok actuelle (ex: "CapCut zoom").</p>
                                         <Button size="sm" disabled>Générer (5 Tickets)</Button>
                                     </Card>
-                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30">
+                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30 opacity-50">
                                         <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><Film className="h-5 w-5" /></div><h4 className="font-semibold">"Beat Sync" Musical</h4></div>
                                         <p className="text-xs text-muted-foreground flex-grow">Génère une vidéo avec des effets de coupe et de zoom synchronisés sur un rythme populaire.</p>
                                         <Button size="sm" disabled>Générer (5 Tickets)</Button>
@@ -1355,3 +1317,4 @@ export default function EditImagePage() {
     
 
     
+

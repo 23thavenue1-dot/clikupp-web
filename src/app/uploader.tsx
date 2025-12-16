@@ -264,6 +264,10 @@ export function Uploader() {
   
 
   const handleTabChange = (value: string) => {
+    if (value === 'video') {
+        // Ne fait rien, le dialogue gère l'interaction.
+        return;
+    }
     if (hasUnsavedChanges) {
         setShowResetAlert(true);
         return; // Empêcher le changement d'onglet
@@ -504,7 +508,7 @@ export function Uploader() {
 const handleGenerateVideo = async () => {
     toast({
         title: "Fonctionnalité en cours de développement",
-        description: "La génération de vidéos est en cours d'amélioration et sera bientôt disponible.",
+        description: "La génération de vidéos est en cours d'amélioration pour garantir une expérience stable et de qualité.",
     });
 };
 
@@ -760,7 +764,24 @@ const handleGenerateVideo = async () => {
                   <TabsTrigger value="storage"><UploadCloud className="mr-2 h-4 w-4"/>Fichier</TabsTrigger>
                   <TabsTrigger value="url"><LinkIcon className="mr-2 h-4 w-4"/>URL</TabsTrigger>
                   <TabsTrigger value="ai"><Wand2 className="mr-2 h-4 w-4"/>Image IA</TabsTrigger>
-                  <TabsTrigger value="video"><Video className="mr-2 h-4 w-4"/>Vidéo IA</TabsTrigger>
+                  <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                          <button className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm hover:bg-accent/50 hover:text-accent-foreground">
+                              <Video className="mr-2 h-4 w-4"/>Vidéo IA
+                          </button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                          <AlertDialogHeader>
+                              <AlertDialogTitle>Fonctionnalité en développement</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                  La génération de vidéo par IA est en cours d'amélioration pour garantir une expérience stable et de qualité. Elle sera de retour très bientôt. Merci de votre patience !
+                              </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                              <AlertDialogAction>Compris</AlertDialogAction>
+                          </AlertDialogFooter>
+                      </AlertDialogContent>
+                  </AlertDialog>
               </TabsList>
 
               <TabsContent value="storage" className="space-y-4 pt-6">
@@ -1013,6 +1034,7 @@ const handleGenerateVideo = async () => {
               </TabsContent>
 
               <TabsContent value="video" className="space-y-4 pt-6">
+                {/* Le contenu de l'onglet Vidéo reste ici mais ne sera pas visible car le trigger est remplacé par un AlertDialog */}
                 <div className="space-y-2">
                     <Label htmlFor="video-prompt">Instruction pour la vidéo</Label>
                     <Textarea 
@@ -1021,82 +1043,17 @@ const handleGenerateVideo = async () => {
                         value={videoPrompt}
                         onChange={(e) => setVideoPrompt(e.target.value)}
                         rows={3}
-                        disabled={isGeneratingVideo}
+                        disabled={true}
                     />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="video-aspect">Format</Label>
-                        <Select value={videoAspectRatio} onValueChange={setVideoAspectRatio} disabled={isGeneratingVideo}>
-                            <SelectTrigger id="video-aspect">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="9:16">Story / Réel (9:16)</SelectItem>
-                                <SelectItem value="1:1">Carré (1:1)</SelectItem>
-                                <SelectItem value="16:9">Paysage (16:9)</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="video-duration">Durée (secondes)</Label>
-                        <Select value={String(videoDuration)} onValueChange={(v) => setVideoDuration(Number(v))} disabled={isGeneratingVideo}>
-                            <SelectTrigger id="video-duration">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {[...Array(4)].map((_, i) => (
-                                    <SelectItem key={i+5} value={String(i+5)}>{i+5}s</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-
                 <Button 
                     onClick={handleGenerateVideo} 
-                    disabled={!videoPrompt.trim() || isGeneratingVideo || totalAiTickets < 5}
+                    disabled={true}
                     className="w-full"
                     size="lg"
                 >
-                    {isGeneratingVideo && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                    {isGeneratingVideo ? 'Génération en cours (peut prendre 2 min)...' : 'Générer la vidéo (5 Tickets IA)'}
+                    Générer la vidéo (5 Tickets IA)
                 </Button>
-                {totalAiTickets < 5 && !isGeneratingVideo && (
-                    <p className="text-center text-sm text-destructive">
-                        Tickets IA insuffisants. <Link href="/shop" className="underline font-semibold">Rechargez (dès 0,08€ / ticket)</Link>
-                    </p>
-                )}
-
-                <div className="aspect-video w-full relative rounded-lg border bg-muted flex items-center justify-center shadow-inner mt-4">
-                    {isGeneratingVideo && (
-                        <div className="flex flex-col items-center gap-4 text-primary">
-                            <Loader2 className="h-10 w-10 animate-spin" />
-                            <p className="text-sm font-medium">Création de votre vidéo...</p>
-                            <p className="text-xs text-muted-foreground">Cela peut prendre jusqu'à 2 minutes.</p>
-                        </div>
-                    )}
-                    {!isGeneratingVideo && generatedVideoUrl && (
-                        <video src={generatedVideoUrl} controls autoPlay loop className="w-full h-full object-contain rounded-lg" />
-                    )}
-                    {!isGeneratingVideo && !generatedVideoUrl && (
-                        <div className="text-center text-muted-foreground p-4">
-                            <Video className="h-12 w-12 mx-auto mb-2"/>
-                            <p className="text-sm">Votre vidéo apparaîtra ici.</p>
-                        </div>
-                    )}
-                </div>
-                 {generatedVideoUrl && !isGeneratingVideo && (
-                    <Button 
-                        // onClick={handleSaveGeneratedVideo} // TODO: Implement this function
-                        disabled={true}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white"
-                    >
-                        <Save className="mr-2 h-4 w-4" />
-                        Sauvegarder (Bientôt disponible)
-                    </Button>
-                )}
-
               </TabsContent>
           </Tabs>
           
