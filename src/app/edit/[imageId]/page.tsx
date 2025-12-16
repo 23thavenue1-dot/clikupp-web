@@ -69,6 +69,39 @@ const getIcon = (name: string): React.FC<LucideIcons.LucideProps> => {
   return Icon || LucideIcons.HelpCircle;
 };
 
+// --- Composants de carte d'action stylisés ---
+const ActionCard = ({ children, className, ...props }: { children: React.ReactNode; className?: string; [key: string]: any }) => (
+    <div
+        className={cn(
+            "group relative p-4 border rounded-lg h-full flex flex-col items-start gap-2 transition-all duration-300 ease-out cursor-pointer overflow-hidden",
+            "bg-slate-900/50 border-slate-700/80 hover:border-purple-400/50 hover:shadow-2xl hover:shadow-purple-900/50",
+            className
+        )}
+        {...props}
+    >
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-950/40 to-blue-950 opacity-90 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div className="absolute -top-px -left-px -right-px h-px bg-gradient-to-r from-transparent via-purple-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div className="relative z-10 w-full h-full flex flex-col items-start gap-2">
+            {children}
+        </div>
+    </div>
+);
+
+const ActionIcon = ({ icon: Icon }: { icon: React.ElementType }) => (
+    <div className="p-2 bg-slate-800 border border-slate-700 text-purple-300 rounded-lg shadow-inner-lg transition-all duration-300 group-hover:bg-purple-950/50 group-hover:text-purple-200 group-hover:shadow-purple-500/20">
+        <Icon className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
+    </div>
+);
+
+const ActionTitle = ({ children }: { children: React.ReactNode }) => (
+    <span className="font-semibold text-sm text-slate-100 transition-colors group-hover:text-white">{children}</span>
+);
+
+const ActionDescription = ({ children }: { children: React.ReactNode }) => (
+    <p className="text-xs text-slate-400 transition-colors group-hover:text-slate-300">{children}</p>
+);
+// --- Fin des composants de carte d'action ---
+
 
 // --- Helper pour convertir Data URI en Blob ---
 async function dataUriToBlob(dataUri: string): Promise<Blob> {
@@ -104,7 +137,7 @@ async function createTextToImage(text: string, width: number, height: number): P
     
     // Logique pour ajuster la taille de la police
     let fontSize = Math.min(width / 18, 60); // Taille de base réduite avec un maximum
-    ctx.font = `bold ${fontSize}px "Inter", sans-serif`;
+    ctx.font = `bold ${'fontSize'}px "Inter", sans-serif`;
 
     // Fonction pour découper le texte en lignes
     const getLines = (currentText: string, maxWidth: number) => {
@@ -132,7 +165,7 @@ async function createTextToImage(text: string, width: number, height: number): P
     // Réduire la taille de la police si le texte est trop haut pour le canvas
     while (textHeight > height * 0.8 && fontSize > 10) {
         fontSize -= 2;
-        ctx.font = `bold ${fontSize}px "Inter", sans-serif`;
+        ctx.font = `bold ${'fontSize'}px "Inter", sans-serif`;
         lines = getLines(text, width * 0.8);
         textHeight = lines.length * (fontSize * 1.2);
     }
@@ -324,7 +357,7 @@ export default function EditImagePage() {
             toast({ 
                 variant: 'destructive', 
                 title: 'Action impossible', 
-                description: `Image originale manquante, profil non chargé ou tickets IA insuffisants (${CAROUSEL_COST} requis).`
+                description: `Image originale manquante, profil non chargé ou tickets IA insuffisants (${'CAROUSEL_COST'} requis).`
             });
             return;
         }
@@ -347,7 +380,7 @@ export default function EditImagePage() {
             for (let i = 0; i < CAROUSEL_COST; i++) {
                 await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             }
-            toast({ title: 'Carrousel généré !', description: `${CAROUSEL_COST} ticket(s) IA utilisé(s).` });
+            toast({ title: 'Carrousel généré !', description: `${'CAROUSEL_COST'} ticket(s) IA utilisé(s).` });
         } catch (error) {
             console.error("Carousel generation error:", error);
             toast({ variant: 'destructive', title: 'Erreur de génération', description: "Le carrousel n'a pas pu être créé." });
@@ -414,8 +447,8 @@ export default function EditImagePage() {
             );
             const validImageIds = savedImageIds.filter((id): id is string => !!id);
 
-            const galleryName = `Carrousel: ${originalImage.title || `Transformation du ${format(new Date(), 'd MMM')}`}`;
-            const galleryDescription = editableDescriptions.map((desc, i) => `ÉTAPE ${i+1}: ${desc}`).join('\\n---\\n');
+            const galleryName = `Carrousel: ${originalImage.title || `Transformation du ${'format(new Date(), \'d MMM\')'}`}`;
+            const galleryDescription = editableDescriptions.map((desc, i) => `ÉTAPE ${i+1}: ${'desc'}`).join('\\n---\\n');
             const newGalleryDocRef = await createGallery(firestore, user.uid, galleryName, galleryDescription);
     
             // Ajoute l'image originale + les 3 nouvelles
@@ -425,7 +458,7 @@ export default function EditImagePage() {
                 title: "Galerie créée avec succès !",
                 description: (
                     <p>La galerie "{galleryName}" a été créée avec les 4 images.
-                        <Link href={`/galleries/${newGalleryDocRef.id}`} className="font-bold text-primary underline ml-1">
+                        <Link href={`/galleries/${'newGalleryDocRef.id'}`} className="font-bold text-primary underline ml-1">
                             Y aller
                         </Link>
                     </p>
@@ -457,13 +490,13 @@ export default function EditImagePage() {
             const newFileName = `carousel-creation-${Date.now()}.png`;
             const imageFile = new File([blob], newFileName, { type: 'image/png' });
 
-            const fullDescription = editableDescriptions.map((desc, index) => `Étape ${index + 1}: ${desc}`).join('\\n\\n');
+            const fullDescription = editableDescriptions.map((desc, index) => `Étape ${index + 1}: ${'desc'}`).join('\\n\\n');
 
-            const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `Carrousel: ${editableDescriptions[0]}`, () => {});
+            const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `Carrousel: ${'editableDescriptions[0]'}`, () => {});
             
             await saveImageMetadata(firestore, user, { 
                 ...metadata,
-                title: `Carrousel : ${editableDescriptions[2]}`,
+                title: `Carrousel : ${'editableDescriptions[2]'}`,
                 description: fullDescription,
                 generatedByAI: true
             });
@@ -495,12 +528,12 @@ export default function EditImagePage() {
             const newFileName = `animated-story-${Date.now()}.mp4`; // Sauvegarder en mp4
             const videoFile = new File([blob], newFileName, { type: 'video/mp4' });
 
-            const metadata = await uploadFileAndGetMetadata(storage, user, videoFile, `Story Animée: ${storyAnimationPrompt}`, () => {});
+            const metadata = await uploadFileAndGetMetadata(storage, user, videoFile, `Story Animée: ${'storyAnimationPrompt'}`, () => {});
             
             await saveImageMetadata(firestore, user, { 
                 ...metadata,
-                title: `Animation : ${storyAnimationPrompt}`,
-                description: `Story animée générée à partir de l'image originale avec le prompt : "${storyAnimationPrompt}"`,
+                title: `Animation : ${'storyAnimationPrompt'}`,
+                description: `Story animée générée à partir de l'image originale avec le prompt : "${'storyAnimationPrompt'}"`,
                 generatedByAI: true,
                 mimeType: 'video/mp4' // S'assurer que le type est correct
             });
@@ -557,7 +590,7 @@ export default function EditImagePage() {
             setGeneratedHashtags(newHashtags);
             
             await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
-            toast({ title: "Contenu généré !", description: `Publication pour ${platform} prête. Un ticket IA a été utilisé.` });
+            toast({ title: "Contenu généré !", description: `Publication pour ${'platform'} prête. Un ticket IA a été utilisé.` });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur IA', description: "Le service de génération n'a pas pu répondre." });
         } finally {
@@ -593,7 +626,7 @@ export default function EditImagePage() {
             const newFileName = `ai-edited-${Date.now()}.png`;
             const imageFile = new File([blob], newFileName, { type: 'image/png' });
 
-            const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `IA: ${imageToSave.prompt}`, () => {});
+            const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `IA: ${'imageToSave.prompt'}`, () => {});
             
             await saveImageMetadata(firestore, user, { 
                 ...metadata,
@@ -633,7 +666,7 @@ export default function EditImagePage() {
             await updateDoc(doc(firestore, `users/${user.uid}`), {
                 customPrompts: arrayUnion(newCustomPrompt)
             });
-            toast({ title: "Prompt sauvegardé", description: `"${newPromptName}" a été ajouté à 'Mes Prompts'.` });
+            toast({ title: "Prompt sauvegardé", description: `"${'newPromptName'}" a été ajouté à 'Mes Prompts'.` });
             setIsSavePromptDialogOpen(false);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de sauvegarder le prompt.' });
@@ -655,7 +688,7 @@ export default function EditImagePage() {
             await updateDoc(doc(firestore, `users/${user.uid}`), {
                 customPrompts: arrayRemove(promptToDelete)
             });
-            toast({ title: "Prompt supprimé", description: `"${promptToDelete.name}" a été supprimé.` });
+            toast({ title: "Prompt supprimé", description: `"${'promptToDelete.name'}" a été supprimé.` });
             setIsDeletePromptDialogOpen(false);
             setPromptToDelete(null);
         } catch (error) {
@@ -692,7 +725,7 @@ export default function EditImagePage() {
                 customPrompts: newPrompts
             });
 
-            toast({ title: "Prompt renommé", description: `Le prompt a été renommé en "${editedPromptName}".` });
+            toast({ title: "Prompt renommé", description: `Le prompt a été renommé en "${'editedPromptName'}".` });
             setIsEditPromptDialogOpen(false);
             setPromptToEdit(null);
         } catch (error) {
@@ -823,150 +856,43 @@ export default function EditImagePage() {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-lg">
                             <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">3</span>
-                            <span>Création de Contenus optimisés</span>
+                            <span>Optimisation Pro 1-Clic</span>
                         </CardTitle>
-                        <CardDescription>Passez au niveau supérieur en générant des formats de contenu avancés à partir de votre image.</CardDescription>
+                        <CardDescription>L'IA analyse votre image et la transforme en une version professionnelle et percutante, optimisée pour la plateforme de votre choix.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Tabs defaultValue="instagram" className="w-full">
-                            <TabsList className="grid w-full grid-cols-4">
-                                <TabsTrigger value="instagram" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-orange-500 data-[state=active]:text-white"><Instagram className="mr-2" />Instagram</TabsTrigger>
-                                <TabsTrigger value="facebook" className="data-[state=active]:bg-[#1877F2] data-[state=active]:text-white"><Facebook className="mr-2" />Facebook</TabsTrigger>
-                                <TabsTrigger value="x" className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black"><MessageSquare className="mr-2" />X</TabsTrigger>
-                                <TabsTrigger value="tiktok" className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black"><VenetianMask className="mr-2" />TikTok</TabsTrigger>
-                            </TabsList>
-                            <TabsContent value="instagram" className="pt-6">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <Card className="p-4 flex flex-col gap-2 bg-muted/30">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 bg-primary/10 text-primary rounded-lg"><GalleryHorizontal className="h-5 w-5" /></div>
-                                                <h4 className="font-semibold">Carrousel AI</h4>
-                                            </div>
-                                            <Dialog>
-                                                <DialogTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-green-500"><HelpCircle className="h-4 w-4"/></Button>
-                                                </DialogTrigger>
-                                                <DialogContent>
-                                                    <DialogHeader>
-                                                        <DialogTitle>Comment fonctionne le Carrousel AI ?</DialogTitle>
-                                                        <DialogDescription>
-                                                            Cette IA analyse votre image et génère une histoire en 4 diapositives pour captiver votre audience.
-                                                        </DialogDescription>
-                                                    </DialogHeader>
-                                                    <div className="py-4 space-y-4 text-sm">
-                                                        <p>Le carrousel est conçu pour maximiser l'engagement en créant un "avant/après" percutant. Voici le comportement de l'IA selon votre image :</p>
-                                                        <ul className="space-y-2 list-disc pl-5">
-                                                            <li><strong>Pour un Portrait :</strong> L'IA sublime le modèle en ajustant la lumière, le contraste et la netteté pour un rendu professionnel, sans dénaturer la personne.</li>
-                                                            <li><strong>Pour un Paysage de Jour :</strong> L'IA transforme la scène en un <span className="font-semibold text-primary">coucher de soleil spectaculaire</span> avec des couleurs chaudes et un éclairage dramatique.</li>
-                                                            <li><strong>Pour un Objet :</strong> L'IA crée une <span className="font-semibold text-primary">mise en scène "lifestyle" réaliste</span> et inspirante pour mettre le produit en valeur dans son contexte d'utilisation.</li>
-                                                            <li><strong>Pour une Pièce d'Intérieur :</strong> L'IA range et redécore subtilement l'espace pour créer une ambiance zen et minimaliste.</li>
-                                                        </ul>
-                                                         <Separator/>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            <strong>Avis de non-responsabilité :</strong> Clikup utilise des modèles d'IA expérimentaux. Les résultats sont fournis "en l'état" et peuvent parfois être imprévisibles ou ne pas correspondre exactement à vos attentes.
-                                                        </p>
-                                                    </div>
-                                                </DialogContent>
-                                            </Dialog>
-                                        </div>
-                                        <p className="text-xs text-muted-foreground flex-grow">Générez un carrousel "Avant/Après" avec une histoire pour captiver votre audience.</p>
-                                        <div className="space-y-2 pt-2">
-                                            <Label htmlFor="carousel-directive" className="text-xs font-semibold">Directive (optionnel)</Label>
-                                            <Input 
-                                                id="carousel-directive"
-                                                placeholder="Ex: Rends le tout plus dramatique..." 
-                                                value={carouselUserDirective}
-                                                onChange={(e) => setCarouselUserDirective(e.target.value)}
-                                                className="h-8 text-xs"
-                                                disabled={isGeneratingCarousel}
-                                            />
-                                        </div>
-                                        <Button size="sm" onClick={() => handleGenerateCarousel('instagram')} disabled={isGeneratingCarousel}>
-                                            {isGeneratingCarousel ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
-                                            Générer (1 Ticket)
-                                        </Button>
-                                    </Card>
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <Card className="p-4 flex flex-col gap-2 bg-muted/30 cursor-pointer hover:bg-muted/50">
-                                                <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><Clapperboard className="h-5 w-5" /></div><h4 className="font-semibold">Story Animée</h4></div>
-                                                <p className="text-xs text-muted-foreground flex-grow">Transforme l'image en une vidéo de 5s avec des animations de texte et d'effets.</p>
-                                                <Button size="sm" variant="outline" className="mt-auto w-full" disabled>Générer (5 Tickets)</Button>
-                                            </Card>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>Fonctionnalité en développement</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    La génération de vidéo par IA est en cours de finalisation pour garantir une expérience stable et de qualité. Elle sera disponible prochainement. Merci de votre patience !
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogAction>Compris</AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                </div>
-                            </TabsContent>
-                             <TabsContent value="facebook" className="pt-6">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    <Card className="p-4 flex flex-col gap-2 bg-muted/30 opacity-50">
-                                        <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><GalleryHorizontal className="h-5 w-5" /></div><h4 className="font-semibold">Diaporama Événementiel</h4></div>
-                                        <p className="text-xs text-muted-foreground flex-grow">Crée une séquence de 3 images avec des variations sur un thème (ex: 3 angles différents).</p>
-                                        <Button size="sm" disabled>Générer (3 Tickets)</Button>
-                                    </Card>
-                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30 opacity-50">
-                                        <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><Clapperboard className="h-5 w-5" /></div><h4 className="font-semibold">Vidéo de Couverture</h4></div>
-                                        <p className="text-xs text-muted-foreground flex-grow">Génère une vidéo de 8s optimisée pour les couvertures de page Facebook.</p>
-                                        <Button size="sm" disabled>Générer (5 Tickets)</Button>
-                                    </Card>
-                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30 opacity-50">
-                                        <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><Film className="h-5 w-5" /></div><h4 className="font-semibold">Post Publicitaire</h4></div>
-                                        <p className="text-xs text-muted-foreground flex-grow">Crée une courte vidéo avec du texte marketing et un appel à l'action clair.</p>
-                                        <Button size="sm" disabled>Générer (5 Tickets)</Button>
-                                    </Card>
-                                </div>
-                            </TabsContent>
-                             <TabsContent value="x" className="pt-6">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    <Card className="p-4 flex flex-col gap-2 bg-muted/30 opacity-50">
-                                        <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><GalleryHorizontal className="h-5 w-5" /></div><h4 className="font-semibold">Image "Citation"</h4></div>
-                                        <p className="text-xs text-muted-foreground flex-grow">Superpose une citation inspirante et bien formatée sur votre image.</p>
-                                        <Button size="sm" disabled>Générer (1 Ticket)</Button>
-                                    </Card>
-                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30 opacity-50">
-                                        <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><Clapperboard className="h-5 w-5" /></div><h4 className="font-semibold">Mème / Réaction</h4></div>
-                                        <p className="text-xs text-muted-foreground flex-grow">Transforme l'image en mème avec une légende humoristique adaptée à l'actualité.</p>
-                                        <Button size="sm" disabled>Générer (1 Ticket)</Button>
-                                    </Card>
-                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30 opacity-50">
-                                        <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><Film className="h-5 w-5" /></div><h4 className="font-semibold">GIF Animé</h4></div>
-                                        <p className="text-xs text-muted-foreground flex-grow">Crée un court GIF de 2s en boucle à partir de l'image pour plus d'impact.</p>
-                                        <Button size="sm" disabled>Générer (3 Tickets)</Button>
-                                    </Card>
-                                </div>
-                            </TabsContent>
-                             <TabsContent value="tiktok" className="pt-6">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    <Card className="p-4 flex flex-col gap-2 bg-muted/30 opacity-50">
-                                        <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><GalleryHorizontal className="h-5 w-5" /></div><h4 className="font-semibold">Vidéo "Fond Vert"</h4></div>
-                                        <p className="text-xs text-muted-foreground flex-grow">Crée un clip où votre image devient un fond animé pour une vidéo face caméra.</p>
-                                        <Button size="sm" disabled>Générer (5 Tickets)</Button>
-                                    </Card>
-                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30 opacity-50">
-                                        <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><Clapperboard className="h-5 w-5" /></div><h4 className="font-semibold">Vidéo Tendance</h4></div>
-                                        <p className="text-xs text-muted-foreground flex-grow">Anime l'image en suivant une tendance visuelle TikTok actuelle (ex: "CapCut zoom").</p>
-                                        <Button size="sm" disabled>Générer (5 Tickets)</Button>
-                                    </Card>
-                                     <Card className="p-4 flex flex-col gap-2 bg-muted/30 opacity-50">
-                                        <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 text-primary rounded-lg"><Film className="h-5 w-5" /></div><h4 className="font-semibold">"Beat Sync" Musical</h4></div>
-                                        <p className="text-xs text-muted-foreground flex-grow">Génère une vidéo avec des effets de coupe et de zoom synchronisés sur un rythme populaire.</p>
-                                        <Button size="sm" disabled>Générer (5 Tickets)</Button>
-                                    </Card>
-                                </div>
-                            </TabsContent>
-                        </Tabs>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <ActionCard onClick={() => handleGenerateCarousel('instagram')}>
+                                <ActionIcon icon={Instagram} />
+                                <ActionTitle>Optimisation pour Instagram</ActionTitle>
+                                <ActionDescription>Crée un carrousel "Avant/Après" engageant avec une histoire captivante.</ActionDescription>
+                            </ActionCard>
+                            <ActionCard onClick={() => handleGenerateCarousel('facebook')}>
+                                <ActionIcon icon={Facebook} />
+                                <ActionTitle>Optimisation pour Facebook</ActionTitle>
+                                <ActionDescription>Génère un format visuellement impactant, idéal pour le fil d'actualité.</ActionDescription>
+                            </ActionCard>
+                             <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <ActionCard>
+                                        <ActionIcon icon={VenetianMask} />
+                                        <ActionTitle>Optimisation pour TikTok</ActionTitle>
+                                        <ActionDescription>Crée une courte vidéo animée à partir de votre image pour un impact maximal.</ActionDescription>
+                                    </ActionCard>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Fonctionnalité en développement</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            La génération de vidéo par IA est en cours de finalisation pour garantir une expérience stable et de qualité. Elle sera disponible prochainement. Merci de votre patience !
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogAction>Compris</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </div>
                     </CardContent>
                 </Card>
             </main>
@@ -1308,5 +1234,7 @@ export default function EditImagePage() {
         </div>
     );
 }
+
+    
 
     
