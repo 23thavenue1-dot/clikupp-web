@@ -13,9 +13,6 @@ import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { generateCarousel } from '@/ai/flows/generate-carousel-flow';
-import { regenerateCarouselText } from '@/ai/flows/regenerate-carousel-text-flow';
-import type { GenerateCarouselOutput, CarouselSlide } from '@/ai/schemas/carousel-schemas';
 import { animateStory } from '@/ai/flows/animate-story-flow';
 import { decrementAiTicketCount, saveImageMetadata, updateImageDescription, saveCustomPrompt, deleteCustomPrompt, updateCustomPrompt, createGallery, addMultipleImagesToGalleries } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
@@ -38,17 +35,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-  type CarouselApi,
-} from "@/components/ui/carousel"
 import { Input } from '@/components/ui/input';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { suggestionCategories } from '@/lib/ai-prompts';
+import { editImage, generateImage } from '@/ai/flows/generate-image-flow';
+import { generateVideo } from '@/ai/flows/generate-video-flow';
+import { generateImageDescription } from '@/ai/flows/generate-description-flow';
 
 
 type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
@@ -110,64 +102,6 @@ async function dataUriToBlob(dataUri: string): Promise<Blob> {
     return blob;
 }
 
-// --- Helper pour convertir du texte en image ---
-async function createTextToImage(text: string, width: number, height: number): Promise<string> {
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-
-    if (!ctx) return '';
-
-    // Fond
-    ctx.fillStyle = '#111827'; // bg-gray-900
-    ctx.fillRect(0, 0, width, height);
-
-    // Texte
-    ctx.fillStyle = '#F9FAFB'; // text-gray-50
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    
-    const max_width = width * 0.8;
-    const words = text.split(' ');
-    let lines = [];
-    let current_line = words[0];
-
-    // Gérer la taille de police dynamique
-    let fontSize = Math.min(width / 18, 60); // Augmentation de la taille de base
-    ctx.font = `bold ${fontSize}px "Inter", sans-serif`;
-
-    for (let i = 1; i < words.length; i++) {
-        const word = words[i];
-        const test_line = current_line + ' ' + word;
-        const test_width = ctx.measureText(test_line).width;
-        if (test_width > max_width && i > 0) {
-            lines.push(current_line);
-            current_line = word;
-        } else {
-            current_line = test_line;
-        }
-    }
-    lines.push(current_line);
-
-    // Réduire la taille de la police si le texte est trop haut
-    const textHeight = lines.length * fontSize;
-    if (textHeight > height * 0.8) {
-      fontSize *= (height * 0.8) / textHeight;
-      ctx.font = `bold ${fontSize}px "Inter", sans-serif`;
-    }
-
-    const line_height = fontSize * 1.2;
-    const start_y = (height - (lines.length - 1) * line_height) / 2;
-
-    for (let i = 0; i < lines.length; i++) {
-        ctx.fillText(lines[i], width / 2, start_y + i * line_height);
-    }
-
-    return canvas.toDataURL('image/png');
-}
-
-
 
 export default function EditImagePage() {
     const params = useParams();
@@ -177,16 +111,6 @@ export default function EditImagePage() {
     const { user, isUserLoading, firebaseApp } = useFirebase();
     const { toast } = useToast();
     const firestore = useFirestore();
-
-    // --- State pour le carrousel ---
-    const [isCarouselDialogOpen, setIsCarouselDialogOpen] = useState(false);
-    const [carouselResult, setCarouselResult] = useState<GenerateCarouselOutput | null>(null);
-    const [isGeneratingCarousel, setIsGeneratingCarousel] = useState(false);
-    const [carouselDirective, setCarouselDirective] = useState('');
-    const [platformForCarousel, setPlatformForCarousel] = useState('');
-    const [isRegeneratingText, setIsRegeneratingText] = useState<number | null>(null);
-    const [textImageUrls, setTextImageUrls] = useState<Record<number, string>>({});
-
 
     // State pour l'édition d'image
     const [prompt, setPrompt] = useState('');
@@ -271,144 +195,6 @@ export default function EditImagePage() {
             setGeneratedHashtags(originalImage.hashtags || '');
         }
     }, [currentHistoryItem, originalImage]);
-
-
-    const handleGenerateCarousel = async (platform: string) => {
-        if (!originalImage || !userProfile || totalAiTickets < 1) {
-            toast({ variant: 'destructive', title: 'Action impossible', description: 'Tickets IA insuffisants ou image non chargée.' });
-            return;
-        }
-
-        setIsGeneratingCarousel(true);
-        setPlatformForCarousel(platform);
-        setCarouselResult(null);
-
-        toast({
-            title: "Génération du carrousel en cours...",
-            description: `L'IA prépare votre histoire pour ${platform}.`,
-        });
-
-        try {
-            const result = await generateCarousel({
-                baseImageUrl: originalImage.directUrl,
-                subjectPrompt: originalImage.description || originalImage.title,
-                userDirective: carouselDirective || undefined,
-                platform: platform,
-            });
-
-            setCarouselResult(result);
-            setIsCarouselDialogOpen(true);
-
-            await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
-            refetchUserProfile();
-            toast({ title: "Carrousel généré !" });
-        } catch (error) {
-            console.error("Carousel generation error:", error);
-            toast({ variant: 'destructive', title: "Erreur de génération", description: (error as Error).message });
-        } finally {
-            setIsGeneratingCarousel(false);
-            setPlatformForCarousel('');
-        }
-    };
-    
-    const handleRegenerateText = async (slideIndex: number) => {
-        if (!carouselResult || !originalImage || !userProfile) return;
-
-        const currentSlide = carouselResult.slides[slideIndex];
-        if (currentSlide.type !== 'text' || !currentSlide.content) return;
-        
-        setIsRegeneratingText(slideIndex);
-        
-        try {
-            const afterImageUrl = carouselResult.slides.find(s => s.type === 'image' && s.title === 'APRÈS')?.content || '';
-            const { newText } = await regenerateCarouselText({
-                baseImageUrl: originalImage.directUrl,
-                afterImageUrl: afterImageUrl,
-                currentText: currentSlide.content,
-                slideIndex: slideIndex,
-                platform: platformForCarousel,
-            });
-            
-            const newSlides = [...carouselResult.slides];
-            newSlides[slideIndex] = { ...newSlides[slideIndex], content: newText };
-            setCarouselResult({ ...carouselResult, slides: newSlides });
-
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de régénérer le texte.' });
-        } finally {
-            setIsRegeneratingText(null);
-        }
-    };
-
-    // Effet pour générer les images à partir du texte
-    useEffect(() => {
-        if (carouselResult && carouselResult.slides) {
-            const generateImages = async () => {
-                const urls: Record<number, string> = {};
-                for (let i = 0; i < carouselResult.slides.length; i++) {
-                    const slide = carouselResult.slides[i];
-                    if (slide.type === 'text' && slide.content) {
-                        const url = await createTextToImage(slide.content, 1080, 1080);
-                        urls[i] = url;
-                    }
-                }
-                setTextImageUrls(urls);
-            };
-            generateImages();
-        }
-    }, [carouselResult]);
-
-    
-    // Sauvegarder toutes les images générées du carrousel
-    const handleSaveCarousel = async () => {
-        if (!carouselResult || !user || !firebaseApp || !firestore) return;
-        setIsSaving(true);
-        
-        const generatedImagesToSave = carouselResult.slides
-            .map((slide, index) => ({ slide, index }))
-            .filter(({ slide }) => slide.type === 'image' && slide.title === 'APRÈS');
-
-        const textImagesToSave = carouselResult.slides
-            .map((slide, index) => ({ slide, index }))
-            .filter(({ slide, index }) => slide.type === 'text' && textImageUrls[index]);
-
-        const allItemsToSave = [...generatedImagesToSave, ...textImagesToSave];
-
-        if (allItemsToSave.length === 0) {
-            toast({ variant: 'destructive', title: 'Rien à sauvegarder', description: "Aucune nouvelle image n'a été générée." });
-            setIsSaving(false);
-            return;
-        }
-
-        toast({ title: `Sauvegarde de ${allItemsToSave.length} image(s)...`, description: "Cela peut prendre un moment." });
-
-        try {
-            for (const { slide, index } of allItemsToSave) {
-                const imageUrl = slide.type === 'image' ? slide.content : textImageUrls[index];
-                if (!imageUrl) continue;
-
-                const blob = await dataUriToBlob(imageUrl);
-                const newFileName = `carousel-slide-${index}-${Date.now()}.png`;
-                const imageFile = new File([blob], newFileName, { type: 'image/png' });
-                
-                const storage = getStorage(firebaseApp);
-                const metadata = await uploadFileAndGetMetadata(storage, user, imageFile, `Diapositive Carrousel #${index + 1}`, () => {});
-                
-                await saveImageMetadata(firestore, user, { 
-                    ...metadata,
-                    title: slide.title,
-                    description: slide.type === 'text' ? slide.content : `Image générée pour le carrousel.`,
-                    generatedByAI: true
-                });
-            }
-            toast({ title: "Carrousel sauvegardé !", description: "Toutes les nouvelles images ont été ajoutées à votre galerie." });
-            setIsCarouselDialogOpen(false);
-        } catch (error) {
-            withErrorHandling(() => { throw error });
-        } finally {
-            setIsSaving(false);
-        }
-    };
 
 
     const handleGenerateImage = async () => {
@@ -507,7 +293,7 @@ export default function EditImagePage() {
             
             const newTitle = result.title;
             const newDesc = result.description;
-            const newHashtags = result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' ');
+            const newHashtags = result.hashtags.map(h => `#${'h.replace(/^#/, \'\')'}`).join(' ');
 
             setGeneratedTitle(newTitle);
             setGeneratedDescription(newDesc);
@@ -776,45 +562,6 @@ export default function EditImagePage() {
                         </div>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                            <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">3</span>
-                            <span>Optimisation Pro 1-Clic</span>
-                        </CardTitle>
-                         <CardDescription>L'IA analyse votre image et la transforme en une version professionnelle et percutante, optimisée pour la plateforme de votre choix.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                           <ActionCard onClick={() => handleGenerateCarousel('instagram')} disabled={isGeneratingCarousel}>
-                                {isGeneratingCarousel && platformForCarousel === 'instagram' ? (
-                                    <div className="m-auto flex flex-col items-center gap-2"><Loader2 className="h-6 w-6 animate-spin text-purple-300" /><span className="text-xs text-purple-300">Génération...</span></div>
-                                ) : (
-                                    <><div className="flex items-center justify-between w-full"><div className="flex items-center gap-3"><ActionIcon icon={Instagram} /><ActionTitle>Carrousel</ActionTitle></div><Dialog><DialogTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6 text-green-500" onClick={(e) => e.stopPropagation()}><HelpCircle className="h-4 w-4"/></Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>Format Carrousel "Avant/Après"</DialogTitle><DialogDescription>Cet outil génère un carrousel complet prêt à l'emploi. Il crée une image "Après" spectaculaire, puis rédige une histoire en 4 étapes pour présenter la transformation et engager votre audience. Idéal pour maximiser l'impact.</DialogDescription></DialogHeader></DialogContent></Dialog></div><ActionDescription>Crée un carrousel "Avant/Après" engageant avec une histoire captivante.</ActionDescription></>
-                                )}
-                            </ActionCard>
-                            
-                            <ActionCard onClick={() => handleGenerateCarousel('facebook')} disabled={isGeneratingCarousel}>
-                                 {isGeneratingCarousel && platformForCarousel === 'facebook' ? (
-                                    <div className="m-auto flex flex-col items-center gap-2"><Loader2 className="h-6 w-6 animate-spin text-purple-300" /><span className="text-xs text-purple-300">Génération...</span></div>
-                                ) : (
-                                    <><div className="flex items-center justify-between w-full"><div className="flex items-center gap-3"><ActionIcon icon={Facebook} /><ActionTitle>Publication</ActionTitle></div><Dialog><DialogTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6 text-green-500" onClick={(e) => e.stopPropagation()}><HelpCircle className="h-4 w-4"/></Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>Format Publication Simple</DialogTitle><DialogDescription>Cet outil se concentre sur la création d'une seule image finale, visuellement percutante. Il est parfait pour une publication rapide et efficace sur les fils d'actualité comme Facebook, où la clarté et l'impact immédiat sont essentiels.</DialogDescription></DialogHeader></DialogContent></Dialog></div><ActionDescription>Génère un format visuellement impactant, idéal pour le fil d'actualité.</ActionDescription></>
-                                )}
-                            </ActionCard>
-                        </div>
-                        <div className="mt-6 space-y-2">
-                            <Label htmlFor="directive-input">Directive personnalisée (optionnel)</Label>
-                            <Input 
-                                id="directive-input"
-                                placeholder="Ex: ajoute une ambiance de coucher de soleil..."
-                                value={carouselDirective}
-                                onChange={(e) => setCarouselDirective(e.target.value)}
-                                disabled={isGeneratingCarousel}
-                            />
-                            <p className="text-xs text-muted-foreground">Donnez une instruction à l'IA pour guider la transformation.</p>
-                        </div>
-                    </CardContent>
-                </Card>
             </main>
 
             {/* --- RIGHT SIDEBAR (Controls) --- */}
@@ -997,67 +744,6 @@ export default function EditImagePage() {
                         <Button onClick={handleEditPrompt} disabled={isEditingPrompt || !editedPromptName.trim()}>
                             {isEditingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Enregistrer
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog open={isCarouselDialogOpen} onOpenChange={setIsCarouselDialogOpen}>
-                <DialogContent className="max-w-4xl">
-                    <DialogHeader>
-                        <DialogTitle>Résultat du Carrousel</DialogTitle>
-                        <DialogDescription>
-                            Voici l'histoire générée par l'IA. Cliquez sur le texte pour le régénérer ou sauvegardez le carrousel.
-                        </DialogDescription>
-                    </DialogHeader>
-                    {isGeneratingCarousel ? (
-                        <div className="h-96 flex items-center justify-center">
-                            <Loader2 className="h-12 w-12 animate-spin text-primary"/>
-                        </div>
-                    ) : carouselResult ? (
-                        <div className="grid grid-cols-4 gap-2 pt-4">
-                            {carouselResult.slides.map((slide, index) => (
-                                <div key={index} className="flex flex-col gap-2 items-center">
-                                    <div className="relative aspect-square w-full rounded-md overflow-hidden border bg-gray-900">
-                                        {(slide.type === 'image' && slide.content) || (slide.type === 'text' && textImageUrls[index]) ? (
-                                            <Image 
-                                                src={slide.type === 'image' ? slide.content! : textImageUrls[index]}
-                                                alt={slide.title || `Diapositive ${index + 1}`}
-                                                fill
-                                                className="object-contain"
-                                            />
-                                        ) : (
-                                            <div className="h-full w-full flex items-center justify-center">
-                                                <Loader2 className="h-6 w-6 animate-spin"/>
-                                            </div>
-                                        )}
-                                        <Badge className="absolute top-2 left-2 z-10">{slide.title}</Badge>
-                                    </div>
-                                    {slide.type === 'text' && (
-                                         <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="w-full text-xs h-8"
-                                            onClick={() => handleRegenerateText(index)}
-                                            disabled={isRegeneratingText === index}
-                                        >
-                                            {isRegeneratingText === index ? (
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
-                                            ) : (
-                                                <Sparkles className="mr-2 h-4 w-4"/>
-                                            )}
-                                            Régénérer
-                                        </Button>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    ) : null}
-                    <DialogFooter>
-                        <Button variant="secondary" onClick={() => setIsCarouselDialogOpen(false)}>Fermer</Button>
-                        <Button onClick={handleSaveCarousel} disabled={isSaving || !carouselResult}>
-                            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Sauvegarder le carrousel
                         </Button>
                     </DialogFooter>
                 </DialogContent>
