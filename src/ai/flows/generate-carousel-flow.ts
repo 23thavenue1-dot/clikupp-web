@@ -1,25 +1,49 @@
+
 'use server';
 /**
- * @fileOverview Flow Genkit pour l'optimisation d'image en 1-clic pour les plateformes sociales.
+ * @fileOverview Flow Genkit pour la génération d'un carrousel "Avant/Après" en 4 étapes.
  */
 
 import { ai } from '@/ai/genkit';
-import { GenerateCarouselInputSchema, OptimizedImageOutputSchema, type GenerateCarouselInput, type OptimizeImageOutput } from '@/ai/schemas/carousel-schemas';
+import { z } from 'genkit';
+import { GenerateCarouselInputSchema, GenerateCarouselOutputSchema, type GenerateCarouselInput, type GenerateCarouselOutput } from '@/ai/schemas/carousel-schemas';
 
-
-export async function optimizeImage(input: GenerateCarouselInput): Promise<OptimizeImageOutput> {
-  return optimizeImageFlow(input);
+export async function generateCarousel(input: GenerateCarouselInput): Promise<GenerateCarouselOutput> {
+  return generateCarouselFlow(input);
 }
 
+const textGenerationOutputSchema = z.object({
+    hookText: z.string().describe("Texte d'accroche pour la diapo 2 (après l'image 'Avant'). Doit être court, engageant et poser une question ou créer du suspense."),
+    conclusionText: z.string().describe("Texte de conclusion pour la diapo 4 (après l'image 'Après'). Doit célébrer la transformation et inclure un appel à l'action."),
+});
 
-const optimizeImageFlow = ai.defineFlow(
+const textGenerationPrompt = ai.definePrompt({
+    name: "carouselTextGenerator",
+    input: { schema: z.object({ baseImageUrl: z.string(), afterImageUrl: z.string(), userDirective: z.string().optional(), platform: z.string().optional() }) },
+    output: { schema: textGenerationOutputSchema },
+    prompt: `
+        Tu es un expert en storytelling pour les réseaux sociaux. On te donne une image "Avant" et une image "Après".
+        L'objectif de l'utilisateur est : "{{userDirective}}". La plateforme cible est : "{{platform}}".
+
+        Ta mission est de rédiger deux textes courts et percutants pour un carrousel :
+        1.  **hookText**: Un texte pour la diapositive qui suit l'image "Avant". Il doit susciter la curiosité. Pose une question ouverte ou décris le potentiel caché.
+        2.  **conclusionText**: Un texte pour la dernière diapositive, qui suit l'image "Après". Il doit exprimer le bénéfice de la transformation et se terminer par une question pour engager l'audience.
+
+        Image "Avant" : {{media url=baseImageUrl}}
+        Image "Après" : {{media url=afterImageUrl}}
+    `,
+});
+
+
+const generateCarouselFlow = ai.defineFlow(
   {
-    name: 'optimizeImageFlow',
+    name: 'generateCarouselFlow',
     inputSchema: GenerateCarouselInputSchema,
-    outputSchema: OptimizedImageOutputSchema,
+    outputSchema: GenerateCarouselOutputSchema,
   },
   async ({ baseImageUrl, subjectPrompt, userDirective, platform }) => {
     
+    // Étape 1 : Générer l'image "Après"
     const afterImageGeneration = await ai.generate({
         model: 'googleai/gemini-2.5-flash-image-preview',
         prompt: [
@@ -60,8 +84,27 @@ const optimizeImageFlow = ai.defineFlow(
     }
     const afterImageUrl = afterImageGeneration.media.url;
 
-    return {
-        optimizedImageUrl: afterImageUrl,
-    };
+    // Étape 2: Générer le texte
+    const textResult = await textGenerationPrompt({
+        baseImageUrl,
+        afterImageUrl,
+        userDirective,
+        platform
+    });
+
+    if (!textResult.output) {
+        throw new Error("L'IA n'a pas pu générer le texte du carrousel.");
+    }
+    const { hookText, conclusionText } = textResult.output;
+
+    // Étape 3: Assembler les diapositives
+    const slides = [
+        { type: 'image', content: baseImageUrl, title: 'AVANT' },
+        { type: 'text', content: hookText, title: 'LE POINT DE DÉPART' },
+        { type: 'image', content: afterImageUrl, title: 'APRÈS' },
+        { type: 'text', content: conclusionText, title: 'LA TRANSFORMATION' }
+    ];
+
+    return { slides };
   }
 );
