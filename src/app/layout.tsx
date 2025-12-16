@@ -9,8 +9,8 @@ import { ErrorNotificationProvider } from '@/components/ErrorNotificationProvide
 import { Toaster } from 'sonner';
 
 export const metadata: Metadata = {
-  title: 'Clikup',
-  description: 'Votre plateforme de partage d\'images.',
+  title: 'Clikup : Assistant IA pour Création & Édition d\'Images',
+  description: 'Hébergez, organisez et améliorez vos images avec une IA de pointe. Générez des descriptions, éditez vos photos en langage naturel, et planifiez votre contenu visuel. L\'outil tout-en-un pour les créateurs de contenu.',
 };
 
 export default function RootLayout({
