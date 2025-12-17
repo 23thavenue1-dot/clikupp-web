@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useFirebase, useDoc, useMemoFirebase, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile } from '@/lib/firestore';
-import { Loader2, ArrowLeft, Instagram, Facebook, Clapperboard, Layers, Image as ImageIcon, Sparkles, Wand2 } from 'lucide-react';
+import { Loader2, ArrowLeft, Instagram, Facebook, Clapperboard, Layers, Image as ImageIcon, Sparkles, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -26,9 +26,9 @@ import * as LucideIcons from 'lucide-react';
 import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { generateCarousel } from '@/ai/flows/generate-carousel-flow';
+import { regenerateCarouselText } from '@/ai/flows/regenerate-carousel-text-flow';
 import type { CarouselSlide } from '@/ai/schemas/carousel-schemas';
 import { decrementAiTicketCount } from '@/lib/firestore';
-import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 
 
 const ActionCard = ({ children, className, onGenerate, disabled }: { children: React.ReactNode; className?: string; onGenerate: () => void; disabled: boolean; }) => (
@@ -76,7 +76,7 @@ const ActionTitle = ({ children }: { children: React.ReactNode }) => (
 );
 
 const ActionDescription = ({ children }: { children: React.ReactNode }) => (
-    <p className="text-xs text-purple-200/80 transition-colors group-hover:text-purple-100">{children}</p>
+    <p className="text-xs text-purple-200/80 transition-colors group-hover:text-white">{children}</p>
 );
 
 const SocialIcon = ({ icon: Icon }: { icon: React.ElementType }) => (
@@ -97,6 +97,8 @@ export default function PostMagiquePage() {
 
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedSlides, setGeneratedSlides] = useState<CarouselSlide[] | null>(null);
+    const [regeneratingSlide, setRegeneratingSlide] = useState<number | null>(null);
+    const [selectedNetwork, setSelectedNetwork] = useState<string>('Instagram');
 
     const imageDocRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -110,6 +112,8 @@ export default function PostMagiquePage() {
     }, [user, firestore]);
     const { data: userProfile, refetch: refetchUserProfile } = useDoc<UserProfile>(userDocRef);
 
+    const totalAiTickets = userProfile ? (userProfile.aiTicketCount || 0) + (userProfile.packAiTickets || 0) + (userProfile.subscriptionAiTickets || 0) : 0;
+
 
     const handleGenerate = async (format: string, network: string) => {
         if (!image || !user || !userProfile || !firestore) {
@@ -118,7 +122,6 @@ export default function PostMagiquePage() {
         }
 
         const CAROUSEL_COST = 3;
-        const totalAiTickets = (userProfile.aiTicketCount || 0) + (userProfile.packAiTickets || 0) + (userProfile.subscriptionAiTickets || 0);
         
         if (totalAiTickets < CAROUSEL_COST) {
              toast({ variant: 'destructive', title: 'Tickets IA insuffisants', description: `La génération d'un carrousel requiert ${CAROUSEL_COST} tickets.` });
@@ -127,6 +130,7 @@ export default function PostMagiquePage() {
 
         setIsGenerating(true);
         setGeneratedSlides(null);
+        setSelectedNetwork(network);
 
         try {
             const result = await generateCarousel({
@@ -147,6 +151,46 @@ export default function PostMagiquePage() {
             toast({ variant: 'destructive', title: 'Erreur de l\'IA', description: 'Impossible de générer le carrousel. Veuillez réessayer.' });
         } finally {
             setIsGenerating(false);
+        }
+    };
+    
+    const handleRegenerateText = async (slideIndex: number) => {
+        if (!generatedSlides || !userProfile || totalAiTickets < 1) {
+            toast({ variant: 'destructive', title: "Action impossible", description: "Pas assez de tickets IA." });
+            return;
+        }
+
+        setRegeneratingSlide(slideIndex);
+
+        try {
+            const baseImageUrl = generatedSlides.find(s => s.title === 'AVANT' && s.type === 'image')?.content;
+            const afterImageUrl = generatedSlides.find(s => s.title === 'APRÈS' && s.type === 'image')?.content;
+            const currentText = generatedSlides[slideIndex].content;
+
+            if (!baseImageUrl || !afterImageUrl) throw new Error("Images de référence introuvables.");
+
+            const result = await regenerateCarouselText({
+                baseImageUrl,
+                afterImageUrl,
+                currentText,
+                slideIndex,
+                platform: selectedNetwork
+            });
+            
+            const newSlides = [...generatedSlides];
+            newSlides[slideIndex].content = result.newText;
+            setGeneratedSlides(newSlides);
+
+            await decrementAiTicketCount(firestore, user.uid, userProfile, 'description');
+            refetchUserProfile();
+
+            toast({ title: "Texte regénéré !" });
+
+        } catch (error) {
+            console.error("Erreur de regénération de texte:", error);
+            toast({ variant: 'destructive', title: "Erreur de l'IA", description: "Impossible de regénérer le texte." });
+        } finally {
+            setRegeneratingSlide(null);
         }
     };
 
@@ -172,16 +216,16 @@ export default function PostMagiquePage() {
     }
     
     const formats = [
+        { network: 'Instagram', format: 'Carrousel', icon: Instagram, typeIcon: Layers, disabled: false },
         { network: 'Instagram', format: 'Publication', icon: Instagram, typeIcon: ImageIcon, disabled: true },
         { network: 'Instagram', format: 'Story', icon: Instagram, typeIcon: Clapperboard, disabled: true },
-        { network: 'Instagram', format: 'Carrousel', icon: Instagram, typeIcon: Layers, disabled: false },
         { network: 'Facebook', format: 'Publication', icon: Facebook, typeIcon: ImageIcon, disabled: true },
     ];
 
 
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-            <div className="w-full max-w-4xl mx-auto space-y-6">
+            <div className="w-full max-w-6xl mx-auto space-y-6">
                 <header className="space-y-2">
                      <Button variant="ghost" asChild className="mb-4 -ml-4">
                         <Link href="/">
@@ -226,33 +270,43 @@ export default function PostMagiquePage() {
                     <Card>
                         <CardHeader>
                             <CardTitle>Votre Carrousel est Prêt !</CardTitle>
-                            <CardDescription>Faites défiler pour voir le résultat.</CardDescription>
+                            <CardDescription>Voici un aperçu des 4 diapositives générées.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                             <Carousel className="w-full max-w-xl mx-auto">
-                                <CarouselContent>
-                                    {generatedSlides.map((slide, index) => (
-                                    <CarouselItem key={index}>
-                                        <Card className="overflow-hidden">
+                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                {generatedSlides.map((slide, index) => (
+                                    <div key={index} className="flex flex-col h-full">
+                                        <Card className="overflow-hidden flex-grow flex flex-col">
                                             <CardHeader className="bg-muted p-2">
                                                 <CardTitle className="text-center text-sm font-semibold uppercase tracking-widest">{slide.title}</CardTitle>
                                             </CardHeader>
                                             {slide.type === 'image' ? (
-                                                <div className="aspect-square relative bg-black">
-                                                     <Image src={slide.content} alt={slide.title} fill className="object-contain" unoptimized/>
+                                                <div className="aspect-square relative bg-black flex-grow">
+                                                    <Image src={slide.content} alt={slide.title} fill className="object-contain" unoptimized/>
                                                 </div>
                                             ) : (
-                                                <div className="aspect-square flex items-center justify-center p-8 bg-background">
-                                                    <p className="text-lg text-center font-medium whitespace-pre-wrap">{slide.content}</p>
+                                                <div className="aspect-square flex flex-col items-center justify-center p-4 bg-background flex-grow">
+                                                    <p className="text-sm text-center font-medium whitespace-pre-wrap flex-grow flex items-center">{slide.content}</p>
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="sm" 
+                                                        onClick={() => handleRegenerateText(index)} 
+                                                        disabled={isGenerating || regeneratingSlide !== null || totalAiTickets < 1}
+                                                        className="mt-2"
+                                                    >
+                                                        {regeneratingSlide === index ? (
+                                                            <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+                                                        ) : (
+                                                            <RefreshCw className="mr-2 h-4 w-4"/>
+                                                        )}
+                                                        Regénérer
+                                                    </Button>
                                                 </div>
                                             )}
                                         </Card>
-                                    </CarouselItem>
-                                    ))}
-                                </CarouselContent>
-                                <CarouselPrevious className="-left-4 md:-left-12" />
-                                <CarouselNext className="-right-4 md:-right-12" />
-                            </Carousel>
+                                    </div>
+                                ))}
+                            </div>
                             <div className="text-center mt-6">
                                 <Button onClick={() => setGeneratedSlides(null)}>
                                     <Sparkles className="mr-2 h-4 w-4"/>
