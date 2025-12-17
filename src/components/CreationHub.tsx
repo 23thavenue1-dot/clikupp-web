@@ -138,7 +138,7 @@ export function CreationHub({ lastImage }: CreationHubProps) {
             const result = await generateImageDescription({ imageUrl: lastImage.directUrl, platform: platform });
             setCurrentTitle(result.title);
             setCurrentDescription(result.description);
-            setHashtagsString(result.hashtags.map(h => `#${'h.replace(/^#/, \'\')'}`).join(' '));
+            setHashtagsString(result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' '));
             setWasGeneratedByAI(true);
             
             await decrementAiTicketCount(firestore, user.uid, userProfile, 'description');
@@ -191,7 +191,7 @@ export function CreationHub({ lastImage }: CreationHubProps) {
         
         if (!error) {
             if (scheduleDate) {
-                toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur pour le ${'format(scheduleDate, \'PPP\', { locale: fr })'}.` });
+                toast({ title: "Publication programmée !", description: `Retrouvez-la dans votre Planificateur pour le ${format(scheduleDate, 'PPP', { locale: fr })}.` });
             } else {
                 toast({ title: "Brouillon sauvegardé !", description: "Retrouvez-le dans votre Planificateur de contenu." });
             }
@@ -210,7 +210,7 @@ export function CreationHub({ lastImage }: CreationHubProps) {
                     Hub de Création IA
                 </CardTitle>
                 <CardDescription>
-                    {lastImage.uploadTimestamp ? `Donnez une nouvelle dimension à votre image, téléversée ${'formatDistanceToNow(lastImage.uploadTimestamp.toDate(), { addSuffix: true, locale: fr })'}.` : "Votre dernière image est prête à être améliorée."}
+                    {lastImage.uploadTimestamp ? `Donnez une nouvelle dimension à votre image, téléversée il y a ${formatDistanceToNow(lastImage.uploadTimestamp.toDate(), { addSuffix: false, locale: fr })}.` : "Votre dernière image est prête à être améliorée."}
                 </CardDescription>
             </CardHeader>
             <CardContent>
