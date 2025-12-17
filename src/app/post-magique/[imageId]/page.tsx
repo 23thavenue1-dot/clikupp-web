@@ -2,7 +2,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useFirebase, useDoc, useMemoFirebase, useFirestore, useCollection } from '@/firebase';
+import { useFirebase, useUser, useDoc, useMemoFirebase, useFirestore, useCollection } from '@/firebase';
 import { doc, collection, query, orderBy, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile, BrandProfile } from '@/lib/firestore';
 import { Loader2, ArrowLeft, Instagram, Facebook, Clapperboard, Layers, Image as ImageIcon, Sparkles, RefreshCw, Save, FilePlus, Calendar as CalendarIcon, Edit, FileText, Clock, Trash2, MoreHorizontal, Share2, Building, List, CalendarDays, ChevronLeft, ChevronRight, GripVertical, Settings, PlusCircle, Library, Bot, Wand2 } from 'lucide-react';
@@ -26,8 +26,8 @@ import { cn } from '@/lib/utils';
 import * as LucideIcons from 'lucide-react';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { generateCarousel } from '@/ai/flows/generate-carousel-flow';
-import { regenerateCarouselText } from '@/ai/flows/regenerate-carousel-text-flow';
+import { generateCarousel, regenerateCarouselText } from '@/ai/flows/generate-carousel-flow';
+import { generateImage } from '@/ai/flows/generate-image-flow';
 import type { CarouselSlide } from '@/ai/schemas/carousel-schemas';
 import { decrementAiTicketCount, saveImageMetadata, savePostForLater, createGallery } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
@@ -80,7 +80,7 @@ async function generateTextImageFromCanvas(text: string, width = 1080, height = 
             const words = txt.split(' ');
             let currentLine = '';
             for (const word of words) {
-                const testLine = currentLine + word + ' ';
+                const testLine = line + word + ' ';
                 const metrics = context.measureText(testLine);
                 if (metrics.width > width * 0.8 && currentLine.length > 0) {
                     lines.push(currentLine.trim());
@@ -270,10 +270,10 @@ export default function PostMagiquePage() {
 
         setRegeneratingSlide(slideIndex);
 
-        const afterImageUrl = generatedSlides.find(s => s.type === 'image' && s.title === 'APRÈS')?.content;
+        const afterImageSlide = generatedSlides.find(s => s.type === 'image' && s.title === 'APRÈS');
         const currentText = generatedSlides[slideIndex].content;
 
-        if (!image.directUrl || !afterImageUrl) {
+        if (!image?.directUrl || !afterImageSlide?.content) {
              toast({ variant: 'destructive', title: 'Erreur', description: "Images de référence introuvables." });
              setRegeneratingSlide(null);
              return;
@@ -282,7 +282,7 @@ export default function PostMagiquePage() {
         const { data: result, error } = await withErrorHandling(() => 
             regenerateCarouselText({
                 baseImageUrl: image.directUrl,
-                afterImageUrl: afterImageUrl,
+                afterImageUrl: afterImageSlide.content,
                 currentText: currentText,
                 slideIndex: slideIndex,
                 platform: selectedNetwork,
@@ -342,12 +342,16 @@ export default function PostMagiquePage() {
             toast({ title: "Carrousel sauvegardé !", description: "La nouvelle image et ses textes ont été ajoutés à votre galerie." });
         }
     };
-
+    
     const handleCreateGalleryForCarousel = useCallback(async () => {
         if (!generatedSlides || !user || !firebaseApp || !firestore || !image || !userProfile) return;
 
-        // Pas de coût en tickets IA ici car on génère via Canvas, qui est gratuit.
-        
+        const CAROUSEL_GALLERY_COST = 0;
+        if (totalAiTickets < CAROUSEL_GALLERY_COST) {
+            toast({ variant: 'destructive', title: 'Tickets IA insuffisants', description: `Cette action requiert ${CAROUSEL_GALLERY_COST} tickets.` });
+            return;
+        }
+
         setIsSavingToGallery(true);
 
         const { error } = await withErrorHandling(async () => {
@@ -357,11 +361,11 @@ export default function PostMagiquePage() {
 
             if (!afterImageSlide || !hookTextSlide || !conclusionTextSlide) throw new Error("Slides du carrousel manquantes.");
 
-            // Helper pour sauvegarder une image (soit depuis une data URI, soit depuis du texte)
             const saveSlideAsImage = async (
                 source: string,
                 type: 'data_uri' | 'text_prompt',
-                title: string
+                title: string,
+                description: string = ''
             ): Promise<string> => {
                 const imageDataUri = type === 'text_prompt' ? await generateTextImageFromCanvas(source) : source;
                 
@@ -370,14 +374,14 @@ export default function PostMagiquePage() {
                 const fileName = `carousel-slide-${Date.now()}.png`;
                 const file = new File([blob], fileName, { type: 'image/png' });
                 const metadata = await uploadFileAndGetMetadata(storage, user, file, title, () => {});
-                const docRef = await saveImageMetadata(firestore, user, { ...metadata, title, description: type === 'text_prompt' ? 'Diapositive textuelle du carrousel.' : 'Image "Après" générée par l\'IA.', generatedByAI: true });
+                const docRef = await saveImageMetadata(firestore, user, { ...metadata, title, description, generatedByAI: true });
                 return docRef.id;
             };
             
             const [hookImageId, afterImageId, conclusionImageId] = await Promise.all([
-                saveSlideAsImage(hookTextSlide.content, 'text_prompt', 'Carrousel Étape 2 (Texte)'),
-                saveSlideAsImage(afterImageSlide.content, 'data_uri', 'Carrousel Étape 3 (Après)'),
-                saveSlideAsImage(conclusionTextSlide.content, 'text_prompt', 'Carrousel Étape 4 (Texte)')
+                saveSlideAsImage(hookTextSlide.content, 'text_prompt', 'Carrousel Étape 2 (Texte)', 'Diapositive textuelle du carrousel.'),
+                saveSlideAsImage(afterImageSlide.content, 'data_uri', 'Carrousel Étape 3 (Après)', 'Image "Après" générée par l\'IA.'),
+                saveSlideAsImage(conclusionTextSlide.content, 'text_prompt', 'Carrousel Étape 4 (Texte)', 'Diapositive textuelle du carrousel.')
             ]);
             
             const galleryName = `Carrousel du ${format(new Date(), 'd MMMM yyyy HH:mm')}`;
@@ -396,7 +400,7 @@ export default function PostMagiquePage() {
                 action: <Button asChild variant="secondary" size="sm"><Link href="/galleries">Voir mes galeries</Link></Button>
             });
         }
-    }, [generatedSlides, user, firebaseApp, firestore, image, userProfile, toast]);
+    }, [generatedSlides, user, firebaseApp, firestore, image, userProfile, totalAiTickets, toast, refetchUserProfile]);
     
     const handleSaveToPlanner = async () => {
         if (!generatedSlides || !user || !firebaseApp || !firestore || !selectedProfileId) {
@@ -679,6 +683,3 @@ export default function PostMagiquePage() {
         </div>
     );
 }
-
-
-    
