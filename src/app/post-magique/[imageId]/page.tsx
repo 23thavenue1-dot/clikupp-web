@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -23,10 +24,9 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import * as LucideIcons from 'lucide-react';
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { generateCarousel } from '@/ai/flows/generate-carousel-flow';
-import { regenerateCarouselText } from '@/ai/flows/regenerate-carousel-text-flow';
+import { generateCarousel, regenerateCarouselText } from '@/ai/flows/generate-carousel-flow';
 import { generateImage } from '@/ai/flows/generate-image-flow';
 import type { CarouselSlide } from '@/ai/schemas/carousel-schemas';
 import { decrementAiTicketCount, saveImageMetadata, savePostForLater, createGallery } from '@/lib/firestore';
@@ -49,39 +49,59 @@ async function dataUriToBlob(dataUri: string): Promise<Blob> {
     return blob;
 }
 
-const ActionCard = ({ children, className, onGenerate, disabled }: { children: React.ReactNode; className?: string; onGenerate?: () => void; disabled?: boolean; }) => (
-    <AlertDialog>
-        <AlertDialogTrigger asChild>
-            <button
-                className={cn(
-                    "group relative p-4 border rounded-xl h-full flex flex-col items-start gap-2",
-                    "transition-all duration-300 ease-out cursor-pointer overflow-hidden transform hover:scale-[1.03]",
-                    "hover:shadow-2xl hover:shadow-purple-500/40",
-                    "bg-gradient-to-r from-blue-600 to-purple-600 border-blue-500 text-white",
-                    disabled && "opacity-50 cursor-not-allowed",
-                    className
-                )}
-                disabled={disabled}
-            >
-                <div className="relative z-10 w-full h-full flex flex-col items-start gap-2">
-                    {children}
-                </div>
-            </button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Confirmer la génération ?</AlertDialogTitle>
-                <AlertDialogDescription>
-                    Cette action utilisera des tickets IA pour générer un nouveau contenu optimisé pour ce format. Êtes-vous sûr de vouloir continuer ?
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                <AlertDialogAction onClick={onGenerate}>Valider & Générer</AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-    </AlertDialog>
-);
+const ActionCard = ({ children, className, onGenerate, disabled, cost }: { children: React.ReactNode; className?: string; onGenerate?: () => void; disabled?: boolean; cost: number; }) => {
+    const { user } = useFirebase();
+    const userDocRef = useMemoFirebase(() => user && doc(useFirestore(), `users/${user.uid}`), [user]);
+    const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+    const totalAiTickets = userProfile ? (userProfile.aiTicketCount || 0) + (userProfile.packAiTickets || 0) + (userProfile.subscriptionAiTickets || 0) : 0;
+    
+    const hasEnoughTickets = totalAiTickets >= cost;
+
+    return (
+        <AlertDialog>
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <AlertDialogTrigger asChild>
+                            <button
+                                className={cn(
+                                    "group relative p-4 border rounded-xl h-full flex flex-col items-start gap-2",
+                                    "transition-all duration-300 ease-out cursor-pointer overflow-hidden transform hover:scale-[1.03]",
+                                    "hover:shadow-2xl hover:shadow-purple-500/40",
+                                    "bg-gradient-to-r from-blue-600 to-purple-600 border-blue-500 text-white",
+                                    (disabled || !hasEnoughTickets) && "opacity-50 cursor-not-allowed hover:scale-100 hover:shadow-none",
+                                    className
+                                )}
+                                disabled={disabled || !hasEnoughTickets}
+                            >
+                                <div className="relative z-10 w-full h-full flex flex-col items-start gap-2">
+                                    {children}
+                                </div>
+                            </button>
+                        </AlertDialogTrigger>
+                    </TooltipTrigger>
+                    {!hasEnoughTickets && !disabled && (
+                        <TooltipContent>
+                            <p>Tickets IA insuffisants ({cost} requis)</p>
+                        </TooltipContent>
+                    )}
+                </Tooltip>
+            </TooltipProvider>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Confirmer la génération ?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Cette action utilisera {cost} ticket(s) IA pour générer un nouveau contenu optimisé. Êtes-vous sûr de vouloir continuer ?
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction onClick={onGenerate}>Valider & Générer</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+};
 
 const ActionIcon = ({ icon: Icon }: { icon: React.ElementType }) => (
     <div className="p-2 bg-white/10 border border-white/20 text-white rounded-xl shadow-lg transition-all duration-300 group-hover:bg-white/20">
@@ -147,19 +167,15 @@ export default function PostMagiquePage() {
 
 
     const totalAiTickets = userProfile ? (userProfile.aiTicketCount || 0) + (userProfile.packAiTickets || 0) + (userProfile.subscriptionAiTickets || 0) : 0;
-
+    
     const handleGenerateSinglePost = (network: string) => {
-        toast({
-            title: "Fonctionnalité à venir",
-            description: `La génération de posts uniques pour ${network} sera bientôt disponible.`,
-        });
+        // Logique de génération de post unique à implémenter
+        toast({ title: 'Fonctionnalité à venir', description: 'La génération de posts uniques sera bientôt disponible.' });
     };
 
-     const handleGenerateStory = () => {
-        toast({
-            title: "Fonctionnalité à venir",
-            description: "La génération de stories sera bientôt disponible.",
-        });
+    const handleGenerateStory = () => {
+        // Logique de génération de story à implémenter
+        toast({ title: 'Fonctionnalité à venir', description: 'La génération de stories sera bientôt disponible.' });
     };
 
 
@@ -284,10 +300,10 @@ export default function PostMagiquePage() {
         }
     };
     
-     const handleCreateGalleryForCarousel = async () => {
+     const handleCreateGalleryForCarousel = useCallback(async () => {
         if (!generatedSlides || !user || !firebaseApp || !firestore || !image || !userProfile) return;
 
-        const CAROUSEL_GALLERY_COST = 2; // Coût pour générer les 2 images de texte
+        const CAROUSEL_GALLERY_COST = 2; // 2 images de texte à générer
         if (totalAiTickets < CAROUSEL_GALLERY_COST) {
             toast({ variant: 'destructive', title: 'Tickets IA insuffisants', description: `Cette action requiert ${CAROUSEL_GALLERY_COST} tickets.` });
             return;
@@ -304,15 +320,13 @@ export default function PostMagiquePage() {
 
             // Helper pour générer et sauvegarder une image
             const saveGeneratedImage = async (
-                source: string,
+                source: string, 
                 type: 'data_uri' | 'text_prompt',
-                title: string,
-                description: string = ''
+                title: string
             ): Promise<string> => {
                 let imageDataUri: string;
-
                 if (type === 'text_prompt') {
-                    const textImagePrompt = `Crée une image simple et élégante. Le fond doit être noir (#111111). Au centre, affiche le texte suivant en blanc, avec une police de caractères moderne et lisible (sans-serif). Le texte doit être bien centré et prendre une place importante sur l'image : "${source}"`;
+                    const textImagePrompt = `Règle Absolue : Crée une image avec un fond uni et noir (#000000). Ne dévie PAS de cette instruction de couleur. Au centre de cette image noire, affiche le texte suivant en blanc, en utilisant une police de caractères simple, moderne et facile à lire. Le texte est : "${source}"`;
                     const result = await generateImage({ prompt: textImagePrompt, aspectRatio: '1:1' });
                     imageDataUri = result.imageUrl;
                 } else {
@@ -324,25 +338,25 @@ export default function PostMagiquePage() {
                 const fileName = `carousel-slide-${Date.now()}.png`;
                 const file = new File([blob], fileName, { type: 'image/png' });
                 const metadata = await uploadFileAndGetMetadata(storage, user, file, title, () => {});
-                const docRef = await saveImageMetadata(firestore, user, { ...metadata, title, description, generatedByAI: true });
+                const docRef = await saveImageMetadata(firestore, user, { ...metadata, title, generatedByAI: true });
                 return docRef.id;
             };
 
-            // Générer les images de texte et sauvegarder l'image "Après"
+            // Générer et sauvegarder les 3 nouvelles images en parallèle
             const [hookImageId, afterImageId, conclusionImageId] = await Promise.all([
                 saveGeneratedImage(hookTextSlide.content, 'text_prompt', 'Carrousel Étape 2'),
                 saveGeneratedImage(afterImageSlide.content, 'data_uri', 'Carrousel Étape 3 (Après)'),
                 saveGeneratedImage(conclusionTextSlide.content, 'text_prompt', 'Carrousel Étape 4')
             ]);
             
-            // Décompter les tickets IA pour les images de texte
+            // Décompter les tickets pour les 2 images de texte générées
             await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             refetchUserProfile();
 
             // Créer la galerie
             const galleryName = `Carrousel du ${format(new Date(), 'd MMMM yyyy HH:mm')}`;
-            const galleryDescription = `Galerie générée à partir du Post Magique. Contient les 4 étapes du carrousel.`;
+            const galleryDescription = `Galerie générée pour le carrousel. Textes d'accroche: "${hookTextSlide.content}", Conclusion: "${conclusionTextSlide.content}"`;
             const newGalleryRef = await createGallery(firestore, user.uid, galleryName, galleryDescription);
             
             // Ajouter les 4 images dans le bon ordre
@@ -358,7 +372,7 @@ export default function PostMagiquePage() {
                 action: <Button asChild variant="secondary" size="sm"><Link href="/galleries">Voir mes galeries</Link></Button>
             });
         }
-    };
+    }, [generatedSlides, user, firebaseApp, firestore, image, userProfile, totalAiTickets, toast, refetchUserProfile]);
     
     const handleSaveToPlanner = async () => {
         if (!generatedSlides || !user || !firebaseApp || !firestore || !selectedProfileId) {
@@ -449,10 +463,10 @@ export default function PostMagiquePage() {
     }
     
      const formats = [
-        { id: 'ig-post', network: 'Instagram', format: 'Publication', icon: Instagram, typeIcon: ImageIcon, onGenerate: () => handleGenerateSinglePost('Instagram'), disabled: true },
-        { id: 'ig-story', network: 'Instagram', format: 'Story', icon: Instagram, typeIcon: Clapperboard, onGenerate: () => handleGenerateStory(), disabled: true },
-        { id: 'ig-carousel', network: 'Instagram', format: 'Carrousel', icon: Instagram, typeIcon: Layers, onGenerate: () => handleGenerateCarousel('Instagram'), disabled: false },
-        { id: 'fb-post', network: 'Facebook', format: 'Publication', icon: Facebook, typeIcon: ImageIcon, onGenerate: () => handleGenerateSinglePost('Facebook'), disabled: true },
+        { id: 'ig-post', network: 'Instagram', format: 'Publication', icon: Instagram, typeIcon: ImageIcon, onGenerate: () => handleGenerateSinglePost('Instagram'), disabled: true, cost: 1 },
+        { id: 'ig-story', network: 'Instagram', format: 'Story', icon: Instagram, typeIcon: Clapperboard, onGenerate: () => handleGenerateStory(), disabled: false, cost: 5 },
+        { id: 'ig-carousel', network: 'Instagram', format: 'Carrousel', icon: Instagram, typeIcon: Layers, onGenerate: () => handleGenerateCarousel('Instagram'), disabled: false, cost: 3 },
+        { id: 'fb-post', network: 'Facebook', format: 'Publication', icon: Facebook, typeIcon: ImageIcon, onGenerate: () => handleGenerateSinglePost('Facebook'), disabled: true, cost: 1 },
     ];
 
 
@@ -543,18 +557,18 @@ export default function PostMagiquePage() {
                         </CardContent>
                          <CardFooter className="flex-col items-center gap-4 pt-6 border-t">
                             <h3 className="font-semibold text-lg">Finaliser et Sauvegarder</h3>
-                            <div className="flex flex-col sm:flex-row justify-center gap-2 w-full max-w-2xl">
-                                <Button onClick={handleSaveCarousel} disabled={isSaving || isSavingPost || isSavingToGallery} className="w-full bg-green-600 hover:bg-green-700">
+                            <div className="flex flex-wrap justify-center gap-2 w-full max-w-2xl">
+                                <Button onClick={handleSaveCarousel} disabled={isSaving || isSavingPost || isSavingToGallery} className="bg-green-600 hover:bg-green-700">
                                     {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
                                     Sauvegarder la création
                                 </Button>
-                                <Button onClick={handleCreateGalleryForCarousel} disabled={isSaving || isSavingPost || isSavingToGallery} variant="outline" className="w-full">
+                                <Button onClick={handleCreateGalleryForCarousel} disabled={isSaving || isSavingPost || isSavingToGallery} variant="outline">
                                     {isSavingToGallery ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Library className="mr-2 h-4 w-4" />}
                                     Créer une galerie dédiée
                                 </Button>
                                 <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
                                     <DialogTrigger asChild>
-                                        <Button variant="secondary" className="w-full" disabled={isSaving || isSavingPost || isSavingToGallery}>
+                                        <Button variant="secondary" disabled={isSaving || isSavingPost || isSavingToGallery}>
                                             <CalendarIcon className="mr-2 h-4 w-4" />
                                             Planifier / Brouillon...
                                         </Button>
@@ -617,7 +631,7 @@ export default function PostMagiquePage() {
                     <Card>
                         <CardHeader>
                             <CardTitle>Choisissez une transformation</CardTitle>
-                            <CardDescription>Cliquez sur un format pour lancer la magie.</CardDescription>
+                            <CardDescription>Cliquez sur un format pour lancer la magie. Le coût en tickets IA est indiqué.</CardDescription>
                         </CardHeader>
                         <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             {formats.map((fmt) => (
@@ -625,10 +639,11 @@ export default function PostMagiquePage() {
                                     key={fmt.id} 
                                     onGenerate={fmt.onGenerate}
                                     disabled={fmt.disabled}
+                                    cost={fmt.cost}
                                 >
                                     <SocialIcon icon={fmt.icon} />
                                     <ActionIcon icon={fmt.typeIcon} />
-                                    <ActionTitle>{fmt.format}</ActionTitle>
+                                    <ActionTitle>{fmt.format} ({fmt.cost} {fmt.cost > 1 ? 'tickets' : 'ticket'})</ActionTitle>
                                     <ActionDescription>pour {fmt.network}</ActionDescription>
                                 </ActionCard>
                             ))}
@@ -640,3 +655,5 @@ export default function PostMagiquePage() {
         </div>
     );
 }
+
+    

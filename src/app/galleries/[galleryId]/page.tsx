@@ -60,8 +60,6 @@ export default function GalleryDetailPage() {
     const [gallery, setGallery] = useState<Gallery | null>(null);
     const [images, setImages] = useState<ImageMetadata[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    
-    const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
     const [isManageMode, setIsManageMode] = useState(false);
     const [isRemoveSelectionMode, setIsRemoveSelectionMode] = useState(false);
@@ -126,7 +124,6 @@ export default function GalleryDetailPage() {
                 return;
             }
 
-            // Fetch all image documents for this gallery
             const imageDocs: ImageMetadata[] = [];
             const imageIdChunks: string[][] = [];
             for (let i = 0; i < galleryData.imageIds.length; i += 30) {
@@ -134,32 +131,30 @@ export default function GalleryDetailPage() {
             }
             
             for (const chunk of imageIdChunks) {
+                if (chunk.length === 0) continue;
                 const q = query(collection(firestore, `users/${user.uid}/images`), where('id', 'in', chunk));
                 const imageSnapshots = await getDocs(q);
                 imageSnapshots.forEach(doc => {
                     imageDocs.push({ ...doc.data(), id: doc.id } as ImageMetadata);
                 });
             }
+            
+            const imageMap = new Map(imageDocs.map(img => [img.id, img]));
+            const orderedImages = galleryData.imageIds.map(id => imageMap.get(id)).filter((img): img is ImageMetadata => !!img);
 
-            // Sort images in memory based on uploadTimestamp
-            imageDocs.sort((a, b) => {
-                const timeA = a.uploadTimestamp?.toMillis() || 0;
-                const timeB = b.uploadTimestamp?.toMillis() || 0;
-                return sortOrder === 'desc' ? timeB - timeA : timeA - timeB;
-            });
+            let finalImages = orderedImages;
 
-            // Prioritize pinned images if sorting by newest
-            if (sortOrder === 'desc' && galleryData.pinnedImageIds) {
-                imageDocs.sort((a, b) => {
+            if (galleryData.pinnedImageIds && galleryData.pinnedImageIds.length > 0) {
+                finalImages.sort((a, b) => {
                     const aIsPinned = galleryData.pinnedImageIds!.includes(a.id);
                     const bIsPinned = galleryData.pinnedImageIds!.includes(b.id);
                     if (aIsPinned && !bIsPinned) return -1;
                     if (!aIsPinned && bIsPinned) return 1;
-                    return 0; // Keep original sort for non-pinned or both-pinned
+                    return 0; // Keep the manual order for non-pinned items
                 });
             }
 
-            setImages(imageDocs);
+            setImages(finalImages);
 
         } catch (error) {
             console.error("Erreur lors de la récupération de la galerie:", error);
@@ -167,13 +162,13 @@ export default function GalleryDetailPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [user, firestore, galleryId, toast, router, sortOrder]);
+    }, [user, firestore, galleryId, toast, router]);
 
     useEffect(() => {
         if(user && firestore && galleryId) {
             fetchGalleryAndImages();
         }
-    }, [user, firestore, galleryId, sortOrder, fetchGalleryAndImages]);
+    }, [user, firestore, galleryId, fetchGalleryAndImages]);
 
 
      useEffect(() => {
@@ -409,7 +404,7 @@ export default function GalleryDetailPage() {
                             </Link>
                         </Button>
                         <h1 className="text-3xl font-bold tracking-tight">{gallery?.name}</h1>
-                        <p className="text-muted-foreground">{gallery?.description || 'Aucune description'}</p>
+                        <p className="text-muted-foreground whitespace-pre-wrap">{gallery?.description || 'Aucune description'}</p>
                     </header>
 
                     <Card>
@@ -421,15 +416,6 @@ export default function GalleryDetailPage() {
                                 </CardDescription>
                         </div>
                          <div className="flex items-center gap-2">
-                            <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as 'desc' | 'asc')}>
-                                <SelectTrigger className="w-[150px] h-9">
-                                    <SelectValue placeholder="Trier par..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="desc">Plus récent</SelectItem>
-                                    <SelectItem value="asc">Plus ancien</SelectItem>
-                                </SelectContent>
-                            </Select>
                             {images.length > 0 && (
                                 <Button variant="outline" onClick={() => setIsManageMode(!isManageMode)} className="h-9">
                                     {isManageMode ? <X className="mr-2 h-4 w-4"/> : <Settings className="mr-2 h-4 w-4"/>}
@@ -509,7 +495,7 @@ export default function GalleryDetailPage() {
                                                     </div>
                                                 </div>
                                             )}
-                                            {isPinned && !isRemoveSelectionMode && sortOrder === 'desc' && (
+                                            {isPinned && !isRemoveSelectionMode && (
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
                                                         <div className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm rounded-full p-1.5 border-2 border-primary">
@@ -540,7 +526,7 @@ export default function GalleryDetailPage() {
                                                                 </Button>
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent align="end">
-                                                                <DropdownMenuItem onClick={() => handleTogglePin(image.id)} disabled={sortOrder !== 'desc'}>
+                                                                <DropdownMenuItem onClick={() => handleTogglePin(image.id)}>
                                                                     {isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
                                                                     <span>{isPinned ? 'Désépingler' : 'Épingler'}</span>
                                                                 </DropdownMenuItem>
