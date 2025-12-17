@@ -2,7 +2,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useFirebase, useUser, useDoc, useMemoFirebase, useFirestore, useCollection } from '@/firebase';
+import { useUser, useFirebaseApp, useDoc, useMemoFirebase, useFirestore, useCollection } from '@/firebase';
 import { doc, collection, query, orderBy, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import type { ImageMetadata, UserProfile, BrandProfile } from '@/lib/firestore';
 import { Loader2, ArrowLeft, Instagram, Facebook, Clapperboard, Layers, Image as ImageIcon, Sparkles, RefreshCw, Save, FilePlus, Calendar as CalendarIcon, Edit, FileText, Clock, Trash2, MoreHorizontal, Share2, Building, List, CalendarDays, ChevronLeft, ChevronRight, GripVertical, Settings, PlusCircle, Library, Bot, Wand2 } from 'lucide-react';
@@ -26,7 +26,8 @@ import { cn } from '@/lib/utils';
 import * as LucideIcons from 'lucide-react';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { generateCarousel, regenerateCarouselText } from '@/ai/flows/generate-carousel-flow';
+import { generateCarousel } from '@/ai/flows/generate-carousel-flow';
+import { regenerateCarouselText } from '@/ai/flows/regenerate-carousel-text-flow';
 import { generateImage } from '@/ai/flows/generate-image-flow';
 import type { CarouselSlide } from '@/ai/schemas/carousel-schemas';
 import { decrementAiTicketCount, saveImageMetadata, savePostForLater, createGallery } from '@/lib/firestore';
@@ -73,6 +74,7 @@ async function generateTextImageFromCanvas(text: string, width = 1080, height = 
     const fitText = (txt: string) => {
         let fontSize = 100;
         let lines: string[] = [];
+        let line = ''; // Déclaration ajoutée
 
         do {
             context.font = `bold ${fontSize}px sans-serif`;
@@ -80,7 +82,7 @@ async function generateTextImageFromCanvas(text: string, width = 1080, height = 
             const words = txt.split(' ');
             let currentLine = '';
             for (const word of words) {
-                const testLine = line + word + ' ';
+                const testLine = currentLine + word + ' ';
                 const metrics = context.measureText(testLine);
                 if (metrics.width > width * 0.8 && currentLine.length > 0) {
                     lines.push(currentLine.trim());
@@ -181,7 +183,7 @@ export default function PostMagiquePage() {
     const imageId = params.imageId as string;
 
     const { user, isUserLoading } = useUser();
-    const { firebaseApp } = useFirebase();
+    const firebaseApp = useFirebaseApp();
     const { toast } = useToast();
     const firestore = useFirestore();
 
@@ -346,7 +348,7 @@ export default function PostMagiquePage() {
     const handleCreateGalleryForCarousel = useCallback(async () => {
         if (!generatedSlides || !user || !firebaseApp || !firestore || !image || !userProfile) return;
 
-        const CAROUSEL_GALLERY_COST = 0;
+        const CAROUSEL_GALLERY_COST = 0; // Génération Canvas est gratuite
         if (totalAiTickets < CAROUSEL_GALLERY_COST) {
             toast({ variant: 'destructive', title: 'Tickets IA insuffisants', description: `Cette action requiert ${CAROUSEL_GALLERY_COST} tickets.` });
             return;
@@ -360,7 +362,7 @@ export default function PostMagiquePage() {
             const conclusionTextSlide = generatedSlides.find(s => s.type === 'text' && s.title === 'LA TRANSFORMATION');
 
             if (!afterImageSlide || !hookTextSlide || !conclusionTextSlide) throw new Error("Slides du carrousel manquantes.");
-
+            
             const saveSlideAsImage = async (
                 source: string,
                 type: 'data_uri' | 'text_prompt',
@@ -491,9 +493,9 @@ export default function PostMagiquePage() {
     }
     
      const formats = [
+        { id: 'ig-carousel', network: 'Instagram', format: 'Carrousel', icon: Instagram, typeIcon: Layers, onGenerate: () => handleGenerateCarousel('Instagram', 'Instagram'), disabled: false, cost: 3 },
         { id: 'ig-post', network: 'Instagram', format: 'Publication', icon: Instagram, typeIcon: ImageIcon, onGenerate: () => handleGenerateSinglePost('Instagram'), disabled: true, cost: 1 },
         { id: 'ig-story', network: 'Instagram', format: 'Story', icon: Instagram, typeIcon: Clapperboard, onGenerate: () => handleGenerateStory(), disabled: true, cost: 5 },
-        { id: 'ig-carousel', network: 'Instagram', format: 'Carrousel', icon: Instagram, typeIcon: Layers, onGenerate: () => handleGenerateCarousel('Instagram', 'Instagram'), disabled: false, cost: 3 },
         { id: 'fb-post', network: 'Facebook', format: 'Publication', icon: Facebook, typeIcon: ImageIcon, onGenerate: () => handleGenerateSinglePost('Facebook'), disabled: true, cost: 1 },
     ];
 
@@ -665,7 +667,7 @@ export default function PostMagiquePage() {
                             {formats.map((fmt) => (
                                 <ActionCard 
                                     key={fmt.id} 
-                                    onGenerate={() => fmt.onGenerate(fmt.format, fmt.network)}
+                                    onGenerate={fmt.onGenerate}
                                     disabled={fmt.disabled}
                                     cost={fmt.cost}
                                 >
@@ -683,3 +685,5 @@ export default function PostMagiquePage() {
         </div>
     );
 }
+
+    
