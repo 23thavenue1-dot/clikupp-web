@@ -47,12 +47,18 @@ const editImageFlow = ai.defineFlow(
   },
   async ({ imageUrl, prompt }) => {
     
-    // Simplification de l'appel pour correspondre aux exigences du modèle
+    // Ajout d'une instruction de sécurité pour fiabiliser la génération de texte
+    const enhancedPrompt = `
+      **Règle importante :** Si la demande implique d'écrire du texte sur l'image, ce texte DOIT être en français correct, sans fautes d'orthographe et sans inventer de mots. Sois aussi littéral que possible.
+      
+      Voici la demande originale de l'utilisateur : "${prompt}"
+    `;
+
     const { media } = await ai.generate({
         model: 'googleai/gemini-2.5-flash-image-preview',
         prompt: [
             { media: { url: imageUrl } },
-            { text: prompt },
+            { text: enhancedPrompt }, // Utilisation du prompt amélioré
         ],
         config: {
             responseModalities: ['TEXT', 'IMAGE'],

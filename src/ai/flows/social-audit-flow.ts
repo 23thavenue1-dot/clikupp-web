@@ -24,6 +24,8 @@ const socialAuditPrompt = ai.definePrompt({
     prompt: `
         Tu es un coach expert en stratégie de contenu et en personal branding pour les réseaux sociaux. Ton ton est encourageant, professionnel et très actionnable.
 
+        **Règle Fondamentale :** Tout le texte que tu génères doit être en français impeccable, sans fautes d'orthographe. Tu dois être factuel et littéral, n'invente jamais de mots ou de concepts qui n'existent pas.
+
         Un créateur de contenu te soumet son profil pour un audit. Voici ses informations :
         - Plateforme : {{platform}}
         - Son objectif principal : "{{goal}}"

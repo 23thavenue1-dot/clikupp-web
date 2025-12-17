@@ -39,7 +39,9 @@ const prompt = ai.definePrompt({
 
 Analyse l'image suivante et prépare une publication optimisée pour la plateforme cible : **{{platform}}**.
 
-**Règle absolue : N'utilise JAMAIS de balises HTML ou de format Markdown. La sortie doit être du texte brut uniquement. Pour les listes, utilise un tiret simple (-) au début de chaque ligne.**
+**Règles absolues :**
+1.  **Orthographe et Langue :** Le texte généré doit être en français impeccable, sans fautes d'orthographe. N'invente JAMAIS de mots. Sois littéral et précis.
+2.  **Format :** N'utilise JAMAIS de balises HTML ou de format Markdown. La sortie doit être du texte brut uniquement. Pour les listes, utilise un tiret simple (-).
 
 {{#if goal}}
 **IMPORTANT : Tu dois impérativement rédiger le contenu en gardant à l'esprit l'objectif principal de l'utilisateur : "{{goal}}".**

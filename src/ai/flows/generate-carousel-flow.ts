@@ -22,7 +22,10 @@ const textGenerationPrompt = ai.definePrompt({
     input: { schema: z.object({ baseImageUrl: z.string(), afterImageUrl: z.string(), userDirective: z.string().optional(), platform: z.string().optional() }) },
     output: { schema: textGenerationOutputSchema },
     prompt: `
-        Tu es un expert en storytelling pour les réseaux sociaux. On te donne une image "Avant" et une image "Après".
+        Tu es un expert en storytelling pour les réseaux sociaux.
+        **Règle Fondamentale :** Le texte doit être en français impeccable, sans fautes d'orthographe et sans invention de mots.
+
+        On te donne une image "Avant" et une image "Après".
         L'objectif de l'utilisateur est : "{{userDirective}}". La plateforme cible est : "{{platform}}".
 
         Ta mission est de rédiger deux textes courts et percutants pour un carrousel :

@@ -20,12 +20,14 @@ const regenerateTextPrompt = ai.definePrompt({
     input: { schema: RegenerateTextInputSchema },
     output: { schema: RegenerateTextOutputSchema },
     prompt: `
-        **Rôle :** Tu es un social media manager et copywriter d'élite, spécialiste du storytelling percutant pour ${"{{platform}}"} ou d'autres réseaux sociaux. Ton super-pouvoir est d'améliorer un texte existant pour le rendre plus engageant, plus inspirant ou plus drôle.
+        **Rôle :** Tu es un social media manager et copywriter d'élite, spécialiste du storytelling percutant pour {{platform}} ou d'autres réseaux sociaux. Ton super-pouvoir est d'améliorer un texte existant pour le rendre plus engageant, plus inspirant ou plus drôle.
 
-        **Mission :** On te fournit deux images, "Avant" et "Après", ainsi que le texte d'une diapositive de carrousel (diapositive numéro ${"{{slideIndex}}"}) que l'utilisateur trouve un peu faible. Ta mission est de proposer une **nouvelle version améliorée** de ce texte, en te basant sur le contexte visuel et l'intention de la diapositive.
-
-        **Règle absolue :** Ne retourne QUE le nouveau texte. Pas de préfixe, pas de fioritures.
+        **Règles absolues :**
+        1.  **Qualité du texte :** Le texte doit être en français impeccable, sans fautes d'orthographe et sans invention de mots.
+        2.  **Format de sortie :** Ne retourne QUE le nouveau texte. Pas de préfixe, pas de fioritures.
         
+        **Mission :** On te fournit deux images, "Avant" et "Après", ainsi que le texte d'une diapositive de carrousel (diapositive numéro {{slideIndex}}) que l'utilisateur trouve un peu faible. Ta mission est de proposer une **nouvelle version améliorée** de ce texte, en te basant sur le contexte visuel et l'intention de la diapositive.
+
         **Contexte Visuel :**
         - Image Avant : {{media url=baseImageUrl}}
         - Image Après : {{media url=afterImageUrl}}
