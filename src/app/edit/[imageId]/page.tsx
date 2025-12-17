@@ -114,6 +114,7 @@ export default function EditImagePage() {
 
     // State pour l'édition d'image
     const [prompt, setPrompt] = useState('');
+    const [refinePrompt, setRefinePrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     
     // Historique des images et descriptions générées
@@ -197,8 +198,8 @@ export default function EditImagePage() {
     }, [currentHistoryItem, originalImage]);
 
 
-    const handleGenerateImage = async () => {
-        if (!prompt?.trim() || !user || !userProfile || !firestore || !originalImage) return;
+    const handleGenerateImage = async (promptToUse: string) => {
+        if (!promptToUse.trim() || !user || !userProfile || !firestore || !originalImage) return;
     
         if (totalAiTickets <= 0) {
             toast({
@@ -213,11 +214,11 @@ export default function EditImagePage() {
     
         try {
             const baseImageUrl = currentHistoryItem?.imageUrl || originalImage.directUrl;
-            const result = await editImage({ imageUrl: baseImageUrl, prompt });
+            const result = await editImage({ imageUrl: baseImageUrl, prompt: promptToUse });
             
             const newHistoryItem: ImageHistoryItem = {
                 imageUrl: result.imageUrl,
-                prompt: prompt,
+                prompt: promptToUse,
                 title: generatedTitle,
                 description: generatedDescription,
                 hashtags: generatedHashtags
@@ -230,6 +231,10 @@ export default function EditImagePage() {
             
             await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
             refetchUserProfile();
+
+            // Vider le champ d'affinement après utilisation
+            setRefinePrompt('');
+
             toast({ title: 'Image générée !', description: 'Un ticket IA a été utilisé.' });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur de génération', description: (error as Error).message });
@@ -336,7 +341,7 @@ export default function EditImagePage() {
             setGeneratedDescription(newDesc);
             setGeneratedHashtags(newHashtags);
             
-            await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
+            await decrementAiTicketCount(firestore, user.uid, userProfile, 'description');
             toast({ title: "Contenu généré !", description: `Publication pour ${platform} prête. Un ticket IA a été utilisé.` });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur IA', description: "Le service de génération n'a pas pu répondre." });
@@ -393,8 +398,9 @@ export default function EditImagePage() {
     };
     
     const openSavePromptDialog = () => {
-        if (!prompt || !prompt.trim()) return;
-        setPromptToSave(prompt);
+        const activePrompt = currentHistoryItem ? refinePrompt : prompt;
+        if (!activePrompt || !activePrompt.trim()) return;
+        setPromptToSave(activePrompt);
         setNewPromptName("");
         setIsSavePromptDialogOpen(true);
     };
@@ -613,130 +619,158 @@ export default function EditImagePage() {
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                         <div className="relative">
-                            <Textarea
-                                placeholder="Ex: Rends le ciel plus dramatique et ajoute des éclairs..."
-                                value={prompt}
-                                onChange={(e) => setPrompt(e.target.value)}
-                                rows={3}
-                                disabled={isGenerating || isSaving}
-                                className="pr-10"
-                            />
-                             <Dialog open={isSavePromptDialogOpen} onOpenChange={setIsSavePromptDialogOpen}>
-                                <DialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-primary" disabled={!prompt || !prompt.trim() || isGenerating || isSaving} onClick={openSavePromptDialog} aria-label="Sauvegarder le prompt">
-                                        <Star className="h-4 w-4" />
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>Sauvegarder le prompt</DialogTitle>
-                                        <DialogDescription>Donnez un nom à cette instruction pour la retrouver facilement plus tard.</DialogDescription>
-                                    </DialogHeader>
-                                    <div className="space-y-4 py-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="prompt-name">Nom du prompt</Label>
-                                            <Input id="prompt-name" value={newPromptName} onChange={(e) => setNewPromptName(e.target.value)} placeholder="Ex: Style super-héros" disabled={isSavingPrompt}/>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Instruction</Label>
-                                            <Textarea value={promptToSave} readOnly disabled rows={4} className="bg-muted"/>
-                                        </div>
-                                    </div>
-                                    <DialogFooter>
-                                        <DialogClose asChild><Button variant="secondary" disabled={isSavingPrompt}>Annuler</Button></DialogClose>
-                                        <Button onClick={handleSavePrompt} disabled={isSavingPrompt || !newPromptName.trim()}>
-                                            {isSavingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                                            Sauvegarder
-                                        </Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
-                         </div>
-
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <Button className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity">
-                                    <Lightbulb className="mr-2 h-4 w-4" />
-                                    Trouver l'inspiration
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-2xl">
-                                <DialogHeader>
-                                    <DialogTitle>Inspiration de Prompts</DialogTitle>
-                                    <DialogDescription>
-                                        Utilisez vos prompts sauvegardés ou explorez nos suggestions pour démarrer votre création. Cliquez sur un prompt pour l'utiliser.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <div className="py-4 max-h-[60vh] overflow-y-auto">
-                                    <Accordion type="single" collapsible className="w-full">
-                                        {userProfile && userProfile.customPrompts && userProfile.customPrompts.length > 0 && (
-                                            <AccordionItem value="custom-prompts">
-                                                <AccordionTrigger className="text-sm py-2 hover:no-underline flex items-center gap-2">
-                                                    <Star className="h-4 w-4 text-yellow-500" />
-                                                    <span className="font-semibold">Mes Prompts</span>
-                                                </AccordionTrigger>
-                                                <AccordionContent>
-                                                    <div className="flex flex-col gap-2 pt-2">
-                                                        {userProfile.customPrompts.filter(p => typeof p === 'object' && p !== null && p.id && p.name && p.value).map((p) => (
-                                                            <div key={p.id} className="group relative flex items-center">
-                                                                <DialogClose asChild>
-                                                                    <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2 flex-grow text-left justify-start" onClick={() => setPrompt(p.value)} disabled={isGenerating || isSaving}>
-                                                                        {p.name}
-                                                                    </Button>
-                                                                </DialogClose>
-                                                                <div className="flex-shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openEditPromptDialog(p); }} aria-label="Modifier le prompt">
-                                                                        <Pencil className="h-3 w-3" />
-                                                                    </Button>
-                                                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openDeletePromptDialog(p); }} aria-label="Supprimer le prompt">
-                                                                        <Trash2 className="h-3 w-3 text-destructive" />
-                                                                    </Button>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </AccordionContent>
-                                            </AccordionItem>
-                                        )}
-                                        {suggestionCategories.map(category => {
-                                            const Icon = getIcon(category.icon);
-                                            return (
-                                                <AccordionItem value={category.name} key={category.name}>
-                                                    <AccordionTrigger className="text-sm py-2 hover:no-underline flex items-center gap-2">
-                                                        <Icon className="h-4 w-4 text-muted-foreground" />
-                                                        <span className="font-semibold">{category.name}</span>
-                                                    </AccordionTrigger>
-                                                    <AccordionContent>
-                                                        <div className="flex flex-wrap gap-2 pt-2">
-                                                            {category.prompts.map((p) => (
-                                                                <DialogClose asChild key={p.title}>
-                                                                    <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.prompt)} disabled={isGenerating || isSaving}>
-                                                                        {p.title}
-                                                                    </Button>
-                                                                </DialogClose>
-                                                            ))}
-                                                        </div>
-                                                    </AccordionContent>
-                                                </AccordionItem>
-                                            );
-                                        })}
-                                    </Accordion>
+                        {currentHistoryItem ? (
+                            // --- VUE AFFINEMENT ---
+                            <div className="space-y-3">
+                                <div>
+                                    <Label className="text-xs font-semibold text-muted-foreground">Dernière instruction</Label>
+                                    <p className="text-sm border bg-muted p-2 rounded-md font-mono h-auto">{currentHistoryItem.prompt}</p>
                                 </div>
-                            </DialogContent>
-                        </Dialog>
-
-                         {monthlyLimitReached ? ( <p className="text-center text-sm text-primary font-semibold"> Limite mensuelle de tickets gratuits atteinte. Prochaine recharge le {nextRefillDate}. </p>) : (
-                             <div className="space-y-2">
-                                <Button size="lg" onClick={() => handleGenerateImage()} disabled={!prompt || !prompt.trim() || isGenerating || isSaving || !hasAiTickets} className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity">
-                                    {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Sparkles className="mr-2 h-5 w-5 text-amber-300" />}
-                                    {isGenerating ? 'Génération en cours...' : 'Générer (1 Ticket IA)'}
+                                <div className="space-y-2">
+                                    <Label htmlFor="refine-prompt">Affiner cette image</Label>
+                                    <Textarea
+                                        id="refine-prompt"
+                                        placeholder="Ex: change la couleur du texte en bleu..."
+                                        value={refinePrompt}
+                                        onChange={(e) => setRefinePrompt(e.target.value)}
+                                        rows={3}
+                                        disabled={isGenerating || isSaving}
+                                    />
+                                </div>
+                                <Button 
+                                    size="lg" 
+                                    onClick={() => handleGenerateImage(refinePrompt)} 
+                                    disabled={!refinePrompt.trim() || isGenerating || isSaving || !hasAiTickets}
+                                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90 transition-opacity"
+                                >
+                                    {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Wand2 className="mr-2 h-5 w-5" />}
+                                    {isGenerating ? 'Affinement...' : 'Affiner (1 Ticket IA)'}
                                 </Button>
-                             </div>
+                            </div>
+                        ) : (
+                            // --- VUE INITIALE ---
+                            <>
+                                <div className="relative">
+                                    <Textarea
+                                        placeholder="Ex: Rends le ciel plus dramatique et ajoute des éclairs..."
+                                        value={prompt}
+                                        onChange={(e) => setPrompt(e.target.value)}
+                                        rows={3}
+                                        disabled={isGenerating || isSaving}
+                                        className="pr-10"
+                                    />
+                                    <Dialog open={isSavePromptDialogOpen} onOpenChange={setIsSavePromptDialogOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-primary" disabled={!prompt || !prompt.trim() || isGenerating || isSaving} onClick={openSavePromptDialog} aria-label="Sauvegarder le prompt">
+                                                <Star className="h-4 w-4" />
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                            <DialogHeader>
+                                                <DialogTitle>Sauvegarder le prompt</DialogTitle>
+                                                <DialogDescription>Donnez un nom à cette instruction pour la retrouver facilement plus tard.</DialogDescription>
+                                            </DialogHeader>
+                                            <div className="space-y-4 py-4">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="prompt-name">Nom du prompt</Label>
+                                                    <Input id="prompt-name" value={newPromptName} onChange={(e) => setNewPromptName(e.target.value)} placeholder="Ex: Style super-héros" disabled={isSavingPrompt}/>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label>Instruction</Label>
+                                                    <Textarea value={promptToSave} readOnly disabled rows={4} className="bg-muted"/>
+                                                </div>
+                                            </div>
+                                            <DialogFooter>
+                                                <DialogClose asChild><Button variant="secondary" disabled={isSavingPrompt}>Annuler</Button></DialogClose>
+                                                <Button onClick={handleSavePrompt} disabled={isSavingPrompt || !newPromptName.trim()}>
+                                                    {isSavingPrompt && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                                    Sauvegarder
+                                                </Button>
+                                            </DialogFooter>
+                                        </DialogContent>
+                                    </Dialog>
+                                </div>
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity">
+                                            <Lightbulb className="mr-2 h-4 w-4" />
+                                            Trouver l'inspiration
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-2xl">
+                                        <DialogHeader>
+                                            <DialogTitle>Inspiration de Prompts</DialogTitle>
+                                            <DialogDescription>
+                                                Utilisez vos prompts sauvegardés ou explorez nos suggestions pour démarrer votre création. Cliquez sur un prompt pour l'utiliser.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="py-4 max-h-[60vh] overflow-y-auto">
+                                            <Accordion type="single" collapsible className="w-full">
+                                                {userProfile && userProfile.customPrompts && userProfile.customPrompts.length > 0 && (
+                                                    <AccordionItem value="custom-prompts">
+                                                        <AccordionTrigger className="text-sm py-2 hover:no-underline flex items-center gap-2">
+                                                            <Star className="h-4 w-4 text-yellow-500" />
+                                                            <span className="font-semibold">Mes Prompts</span>
+                                                        </AccordionTrigger>
+                                                        <AccordionContent>
+                                                            <div className="flex flex-col gap-2 pt-2">
+                                                                {userProfile.customPrompts.filter(p => typeof p === 'object' && p !== null && p.id && p.name && p.value).map((p) => (
+                                                                    <div key={p.id} className="group relative flex items-center">
+                                                                        <DialogClose asChild>
+                                                                            <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2 flex-grow text-left justify-start" onClick={() => setPrompt(p.value)} disabled={isGenerating || isSaving}>
+                                                                                {p.name}
+                                                                            </Button>
+                                                                        </DialogClose>
+                                                                        <div className="flex-shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openEditPromptDialog(p); }} aria-label="Modifier le prompt">
+                                                                                <Pencil className="h-3 w-3" />
+                                                                            </Button>
+                                                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openDeletePromptDialog(p); }} aria-label="Supprimer le prompt">
+                                                                                <Trash2 className="h-3 w-3 text-destructive" />
+                                                                            </Button>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </AccordionContent>
+                                                    </AccordionItem>
+                                                )}
+                                                {suggestionCategories.map(category => {
+                                                    const Icon = getIcon(category.icon);
+                                                    return (
+                                                        <AccordionItem value={category.name} key={category.name}>
+                                                            <AccordionTrigger className="text-sm py-2 hover:no-underline flex items-center gap-2">
+                                                                <Icon className="h-4 w-4 text-muted-foreground" />
+                                                                <span className="font-semibold">{category.name}</span>
+                                                            </AccordionTrigger>
+                                                            <AccordionContent>
+                                                                <div className="flex flex-wrap gap-2 pt-2">
+                                                                    {category.prompts.map((p) => (
+                                                                        <DialogClose asChild key={p.title}>
+                                                                            <Button variant="outline" size="sm" className="text-xs h-auto py-1 px-2" onClick={() => setPrompt(p.prompt)} disabled={isGenerating || isSaving}>
+                                                                                {p.title}
+                                                                            </Button>
+                                                                        </DialogClose>
+                                                                    ))}
+                                                                </div>
+                                                            </AccordionContent>
+                                                        </AccordionItem>
+                                                    );
+                                                })}
+                                            </Accordion>
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
+                                <Button size="lg" onClick={() => handleGenerateImage(prompt)} disabled={!prompt.trim() || isGenerating || isSaving || !hasAiTickets} className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:opacity-90 transition-opacity">
+                                    {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2 h-5 w-5 text-amber-300" />}
+                                    {isGenerating ? 'Génération...' : 'Générer (1 Ticket IA)'}
+                                </Button>
+                            </>
                         )}
-                        {!hasAiTickets && !isGenerating && !monthlyLimitReached && (
+                        {monthlyLimitReached && ( <p className="text-center text-xs text-primary font-semibold pt-2"> Limite mensuelle de tickets gratuits atteinte. Prochaine recharge le {nextRefillDate}. </p>)}
+                        {!hasAiTickets && !isGenerating && !isSaving && !monthlyLimitReached && (
                             <Button variant="link" asChild className="text-sm font-semibold text-primary w-full">
-                                <Link href="/shop"> <ShoppingCart className="mr-2 h-4 w-4"/> Plus de tickets ? Rechargez (dès 0,08€ / ticket) ! </Link>
+                                <Link href="/shop"> <ShoppingCart className="mr-2 h-4 w-4"/> Plus de tickets ? Rechargez ici ! </Link>
                             </Button>
                         )}
                       </CardContent>
