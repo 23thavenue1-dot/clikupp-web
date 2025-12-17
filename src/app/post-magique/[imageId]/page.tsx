@@ -31,7 +31,7 @@ const ActionCard = ({ children, className, ...props }: { children: React.ReactNo
         <AlertDialogTrigger asChild>
             <div
                 className={cn(
-                    "group relative p-4 border rounded-lg h-full flex flex-col items-start gap-2 transition-all duration-300 ease-out cursor-pointer overflow-hidden",
+                    "group relative p-4 border rounded-xl h-full flex flex-col items-start gap-2 transition-all duration-300 ease-out cursor-pointer overflow-hidden transform hover:scale-[1.03]",
                     "bg-slate-900/50 border-slate-700/80 hover:border-purple-400/50 hover:shadow-2xl hover:shadow-purple-900/50",
                     className
                 )}
@@ -60,7 +60,7 @@ const ActionCard = ({ children, className, ...props }: { children: React.ReactNo
 );
 
 const ActionIcon = ({ icon: Icon }: { icon: React.ElementType }) => (
-    <div className="p-2 bg-slate-800 border border-slate-700 text-purple-300 rounded-lg shadow-inner-lg transition-all duration-300 group-hover:bg-purple-950/50 group-hover:text-purple-200 group-hover:shadow-purple-500/20">
+    <div className="p-2 bg-slate-800 border border-slate-700 text-purple-300 rounded-xl shadow-inner-lg transition-all duration-300 group-hover:bg-purple-950/50 group-hover:text-purple-200 group-hover:shadow-purple-500/20">
         <Icon className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
     </div>
 );
