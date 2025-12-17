@@ -25,20 +25,21 @@ import { cn } from '@/lib/utils';
 import * as LucideIcons from 'lucide-react';
 
 
-// Card components from CreationHub for consistent styling
 const ActionCard = ({ children, className, ...props }: { children: React.ReactNode; className?: string; [key: string]: any }) => (
     <AlertDialog>
         <AlertDialogTrigger asChild>
             <div
                 className={cn(
                     "group relative p-4 border rounded-xl h-full flex flex-col items-start gap-2 transition-all duration-300 ease-out cursor-pointer overflow-hidden transform hover:scale-[1.03]",
-                    "bg-slate-900/50 border-slate-700/80 hover:border-purple-400/50 hover:shadow-2xl hover:shadow-purple-900/50",
+                    // Nouvelles couleurs
+                    "border-blue-500 bg-gradient-to-r from-blue-600 to-purple-600",
+                    // Effets de survol
+                    "hover:border-purple-300 hover:shadow-2xl hover:shadow-purple-500/50",
                     className
                 )}
                 {...props}
             >
-                <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-950/40 to-blue-950 opacity-90 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="absolute -top-px -left-px -right-px h-px bg-gradient-to-r from-transparent via-purple-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="absolute -top-px -left-px -right-px h-px bg-gradient-to-r from-transparent via-purple-300 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div className="relative z-10 w-full h-full flex flex-col items-start gap-2">
                     {children}
                 </div>
@@ -60,17 +61,17 @@ const ActionCard = ({ children, className, ...props }: { children: React.ReactNo
 );
 
 const ActionIcon = ({ icon: Icon }: { icon: React.ElementType }) => (
-    <div className="p-2 bg-slate-800 border border-slate-700 text-purple-300 rounded-xl shadow-inner-lg transition-all duration-300 group-hover:bg-purple-950/50 group-hover:text-purple-200 group-hover:shadow-purple-500/20">
+    <div className="p-2 bg-black/20 border border-white/10 text-white/90 rounded-xl shadow-lg transition-all duration-300 group-hover:bg-black/40 group-hover:text-white group-hover:shadow-purple-500/20">
         <Icon className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
     </div>
 );
 
 const ActionTitle = ({ children }: { children: React.ReactNode }) => (
-    <span className="font-semibold text-sm text-slate-100 transition-colors group-hover:text-white">{children}</span>
+    <span className="font-semibold text-sm text-white">{children}</span>
 );
 
 const SocialIcon = ({ icon: Icon }: { icon: React.ElementType }) => (
-    <div className="p-1 bg-slate-700/80 border border-slate-600 text-slate-300 rounded-full shadow-md absolute top-3 right-3 transition-all duration-300 group-hover:bg-purple-950/50 group-hover:text-purple-200">
+    <div className="p-1 bg-black/30 border border-white/20 text-white/80 rounded-full shadow-md absolute top-3 right-3 transition-all duration-300 group-hover:bg-black/50">
         <Icon className="h-4 w-4" />
     </div>
 );
@@ -81,8 +82,7 @@ export default function PostMagiquePage() {
     const router = useRouter();
     const imageId = params.imageId as string;
 
-    const { user, isUserLoading } = useFirebase();
-    const firestore = useFirestore();
+    const { user, isUserLoading, firestore } = useFirebase();
 
     const imageDocRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -162,7 +162,7 @@ export default function PostMagiquePage() {
                                 <SocialIcon icon={fmt.icon} />
                                 <ActionIcon icon={fmt.typeIcon} />
                                 <ActionTitle>{fmt.format}</ActionTitle>
-                                <span className="text-xs text-slate-400 transition-colors group-hover:text-slate-300">pour {fmt.network}</span>
+                                <span className="text-xs text-purple-200/80 group-hover:text-white transition-colors">pour {fmt.network}</span>
                             </ActionCard>
                         ))}
                     </CardContent>
