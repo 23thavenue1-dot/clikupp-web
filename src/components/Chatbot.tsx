@@ -11,20 +11,21 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { cn } from '@/lib/utils';
 import { askChatbot } from '@/ai/flows/chatbot-flow';
 import type { Message } from '@/ai/schemas/chatbot-schemas';
+import { useUser } from '@/firebase';
 
 export function Chatbot() {
+  const { user } = useUser();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: "Bonjour ! Comment puis-je vous aider aujourd'hui ?\n\nVous pouvez me demander, par exemple : \"Crée une galerie nommée 'Mes vacances' et ajoute-y l'image la plus récente.\""
+      content: "Bonjour ! Comment puis-je vous aider aujourd'hui ?\n\nVous pouvez me demander, par exemple : \"Crée une galerie nommée 'Mes vacances'.\""
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  // Fait défiler automatiquement vers le bas à chaque nouveau message
   useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
@@ -33,7 +34,7 @@ export function Chatbot() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || !user) return;
 
     const userMessage: Message = { role: 'user', content: input };
     const newMessages = [...messages, userMessage];
@@ -43,9 +44,17 @@ export function Chatbot() {
     setIsLoading(true);
 
     try {
-        const response = await askChatbot({ history: newMessages });
-        const assistantMessage: Message = { role: 'assistant', content: response.content };
-        setMessages(prev => [...prev, assistantMessage]);
+        const response = await askChatbot({
+          userId: user.uid, // On passe l'ID de l'utilisateur
+          history: newMessages
+        });
+
+        // La réponse peut contenir du texte ou être vide si un outil a été appelé.
+        // On affiche la réponse textuelle si elle existe.
+        if (response.content) {
+            const assistantMessage: Message = { role: 'assistant', content: response.content };
+            setMessages(prev => [...prev, assistantMessage]);
+        }
     } catch (error) {
         console.error("Chatbot error:", error);
         const errorMessage: Message = {
@@ -57,6 +66,10 @@ export function Chatbot() {
         setIsLoading(false);
     }
   };
+
+  if (!user) {
+    return null; // N'affiche pas le chatbot si l'utilisateur n'est pas connecté
+  }
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>

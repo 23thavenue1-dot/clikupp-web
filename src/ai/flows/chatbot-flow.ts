@@ -1,10 +1,40 @@
+
 'use server';
 
 import { ai } from '@/ai/genkit';
 import { type ChatbotOutput, type ChatbotInput } from '@/ai/schemas/chatbot-schemas';
+import { initializeFirebase } from '@/firebase';
+import { createGallery } from '@/lib/firestore';
+import { z } from 'zod';
 
-// This function is now in a 'use server' file.
-// Client components can import and call it directly.
+const createGalleryTool = ai.defineTool(
+  {
+    name: 'createGallery',
+    description: "Crée un nouvel album ou une nouvelle galerie d'images pour l'utilisateur.",
+    inputSchema: z.object({
+      name: z.string().describe("Le nom de la galerie à créer."),
+    }),
+    outputSchema: z.string(),
+  },
+  async ({ name }, context) => {
+    // IMPORTANT: Accéder au userId passé dans le contexte du flow
+    const userId = context?.auth?.userId;
+    if (!userId) {
+      return "Erreur : Je ne parviens pas à vous identifier pour créer la galerie.";
+    }
+
+    const { firestore } = initializeFirebase();
+    try {
+      await createGallery(firestore, userId, name);
+      return `Galerie "${name}" créée avec succès.`;
+    } catch (error) {
+      console.error("Erreur de l'outil createGallery:", error);
+      return `Désolé, je n'ai pas pu créer la galerie "${name}". Une erreur est survenue.`;
+    }
+  }
+);
+
+
 export async function askChatbot(input: ChatbotInput): Promise<ChatbotOutput> {
   const historyPrompt = input.history
     .map(message => `${message.role}: ${message.content}`)
@@ -18,15 +48,18 @@ assistant:
 
   const llmResponse = await ai.generate({
     prompt: fullPrompt,
-    system: `You are a helpful and friendly assistant for an application called Clikup. Your main goal is to understand the user's needs and proactively recommend the best Clikup feature to solve their problem, based on the documentation below.
+    system: `You are a helpful and friendly assistant for an application called Clikup. Your goal is to answer user questions, guide them, and perform actions on their behalf using the tools you have available.
 
 - **Listen to the user's need, not just their words.** If they say "I want to sell more", recommend the "E-commerce" description generation. If they say "I'm out of ideas", recommend the "Coach Stratégique".
-- **Be a guide.** After recommending a feature, explain briefly what it does.
-- **Simulate actions.** For now, you cannot perform actions, but you should act as if you can. For example, if they ask to create a gallery, say "Okay, I will create a gallery named 'xyz' for you."
+- **Use your tools when appropriate.** If a user asks to create something, use the createGallery tool.
+- **Confirm your actions.** After using a tool, confirm to the user what you have done.
 - **Be concise and helpful.**
 
 ---
-## DOCUMENTATION CLIKUP
+## DOCUMENTATION CLIKUP & OUTILS DISPONIBLES
+
+### Outils
+- **createGallery(name: string):** Utilise cet outil pour créer un nouvel album ou une galerie.
 
 ### 1. Gestion des Médias
 - **Organisation:** Créez des **Galeries** pour classer les images. L'accueil montre toutes les images. Possibilité d'épingler les favoris.
@@ -48,6 +81,8 @@ assistant:
 - **Boutique:** Achetez des packs de tickets (Upload ou IA) ou des abonnements pour augmenter vos quotas.
 ---`,
     model: 'googleai/gemini-2.5-flash',
+    tools: [createGalleryTool],
+    context: { auth: { userId: input.userId, authenticated: true } },
   });
 
   return { content: llmResponse.text };
