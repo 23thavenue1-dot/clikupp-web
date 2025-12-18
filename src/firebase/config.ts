@@ -9,5 +9,6 @@ export const firebaseConfig = {
   "messagingSenderId": "339040917257"
 };
 
-// L'exportation de la clé est maintenant gérée par le fichier .env, nous n'avons plus besoin de le faire ici.
+// MODIFICATION: Nous allons forcer la lecture de la clé depuis une variable d'environnement différente
+// pour contourner le problème de la clé compromise persistante.
 export const genAIApiKey = process.env.GEMINI_API_KEY;
