@@ -8,12 +8,12 @@ import type { ImageMetadata, UserProfile, CustomPrompt } from '@/lib/firestore';
 import React, { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Star, Trash2, Pencil, X, HelpCircle, FileText as FileTextIcon, Ticket } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Star, Trash2, Pencil, X, HelpCircle, FileText as FileTextIcon, Ticket, Instagram, Facebook, MessageSquare, VenetianMask } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { decrementAiTicketCount, saveImageMetadata, saveCustomPrompt, deleteCustomPrompt, updateCustomPrompt } from '@/lib/firestore';
+import { decrementAiTicketCount, saveImageMetadata, saveCustomPrompt, deleteCustomPrompt, updateCustomPrompt, updateImageDescription } from '@/lib/firestore';
 import { getStorage } from 'firebase/storage';
 import { uploadFileAndGetMetadata } from '@/lib/storage';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +29,19 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { suggestionCategories } from '@/lib/ai-prompts';
 import { editImage, generateImage } from '@/ai/flows/generate-image-flow';
 import { Separator } from '@/components/ui/separator';
+import { generateImageDescription } from '@/ai/flows/generate-description-flow';
+
+type Platform = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'generic' | 'ecommerce';
+
+const platformOptions = [
+    { id: 'instagram', label: 'Instagram', icon: Instagram },
+    { id: 'facebook', label: 'Facebook', icon: Facebook },
+    { id: 'x', label: 'X (Twitter)', icon: MessageSquare },
+    { id: 'tiktok', label: 'TikTok', icon: VenetianMask },
+    { id: 'ecommerce', label: 'E-commerce', icon: ShoppingCart },
+    { id: 'generic', label: 'Générique', icon: Wand2 },
+];
+
 
 type ImageHistoryItem = {
     imageUrl: string;
@@ -87,7 +100,7 @@ export default function EditImagePage() {
     const [hashtagsString, setHashtagsString] = useState('');
     const [wasGeneratedByAI, setWasGeneratedByAI] = useState(false);
     const [isSavingDescription, setIsSavingDescription] = useState(false);
-    const [generatingForPlatform, setGeneratingForPlatform] = useState<string | null>(null);
+    const [generatingForPlatform, setGeneratingForPlatform] = useState<Platform | null>(null);
 
 
     const imageDocRef = useMemoFirebase(() => {
@@ -110,6 +123,16 @@ export default function EditImagePage() {
         }
         return null;
     }, [generatedImageHistory, historyIndex]);
+    
+    useEffect(() => {
+        // Au chargement de l'image originale, on peuple les états pour la description
+        if (originalImage) {
+            setCurrentTitle(originalImage.title || '');
+            setCurrentDescription(originalImage.description || '');
+            setHashtagsString(originalImage.hashtags || '');
+        }
+    }, [originalImage]);
+
 
     useEffect(() => {
         if (!isUserLoading && !user) {
@@ -277,6 +300,35 @@ export default function EditImagePage() {
             setIsSavingPrompt(false);
         }
     };
+    
+    const handleGenerateDescription = async (platform: Platform) => {
+        if (!originalImage || !user || !userProfile) return;
+
+        if (totalAiTickets <= 0) {
+            toast({ variant: 'destructive', title: 'Tickets IA épuisés', description: (<Link href="/shop" className="font-bold underline text-white">Rechargez</Link>), });
+            return;
+        }
+
+        setGeneratingForPlatform(platform);
+        setWasGeneratedByAI(false);
+        try {
+            const result = await generateImageDescription({ imageUrl: originalImage.directUrl, platform: platform });
+            setCurrentTitle(result.title);
+            setCurrentDescription(result.description);
+            setHashtagsString(result.hashtags.map(h => `#${h.replace(/^#/, '')}`).join(' '));
+            setWasGeneratedByAI(true);
+            
+            await decrementAiTicketCount(firestore, user.uid, userProfile, 'edit');
+            refetchUserProfile();
+            
+            toast({ title: "Contenu généré !", description: `Un ticket IA a été utilisé.` });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur IA', description: "Le service de génération n'a pas pu répondre." });
+        } finally {
+            setGeneratingForPlatform(null);
+        }
+    };
+
 
     const openDeletePromptDialog = (p: CustomPrompt) => { setPromptToDelete(p); setIsDeletePromptDialogOpen(true); };
     const handleDeletePrompt = async () => {
@@ -354,93 +406,93 @@ export default function EditImagePage() {
                    </Button>
                 </header>
                 
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* --- AVANT --- */}
-                    <Card className="flex flex-col">
-                        <CardHeader className="p-2">
-                           <Badge variant="secondary" className="w-fit mx-auto">AVANT</Badge>
-                        </CardHeader>
-                        <CardContent className="flex-1 flex items-center justify-center p-2">
-                            <div className="aspect-square w-full relative">
-                                <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* --- APRÈS --- */}
-                    <Card className="flex flex-col">
-                        <CardHeader className="flex-row items-center justify-center gap-4 relative h-10 p-2">
-                            <Badge>APRÈS</Badge>
-                             {generatedImageHistory.length > 0 && (
-                                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
-                                    <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="h-7 w-7 bg-background/80" aria-label="Annuler" disabled={historyIndex < 0}>
-                                        <Undo2 className="h-5 w-5" />
-                                    </Button>
-                                    <Button variant="outline" size="icon" onClick={handleRedoGeneration} className="h-7 w-7 bg-background/80" aria-label="Rétablir" disabled={historyIndex >= generatedImageHistory.length - 1}>
-                                        <Redo2 className="h-5 w-5" />
+                 <div className="flex flex-col gap-6 flex-1">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                        <div className="flex flex-col">
+                            <div className="text-center py-1"><Badge variant="secondary">AVANT</Badge></div>
+                            <Card className="flex-1 flex flex-col">
+                                <CardContent className="flex-1 flex items-center justify-center p-2">
+                                    <div className="aspect-square w-full relative">
+                                        <Image src={originalImage.directUrl} alt="Image originale" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                        <div className="flex flex-col">
+                            <div className="text-center py-1"><Badge>APRÈS</Badge></div>
+                             <Card className="flex-1 flex flex-col">
+                                <CardContent className="flex-1 flex items-center justify-center p-2">
+                                    <div className="aspect-square w-full relative bg-muted/40 rounded-md">
+                                        {isGenerating ? (
+                                            <div className="flex items-center justify-center h-full"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>
+                                        ) : currentHistoryItem?.imageUrl ? (
+                                            <Image src={currentHistoryItem.imageUrl} alt="Image générée" fill className="object-contain" unoptimized />
+                                        ) : (
+                                            <div className="text-center text-muted-foreground p-4 flex flex-col items-center justify-center h-full">
+                                                <ImageIcon className="h-10 w-10 mx-auto mb-2"/>
+                                                <p className="text-sm">Votre création apparaîtra ici.</p>
+                                            </div>
+                                        )}
+                                        {generatedImageHistory.length > 0 && !isGenerating && (
+                                            <div className="absolute top-2 left-2 z-10 flex gap-1">
+                                                <Button variant="outline" size="icon" onClick={handleUndoGeneration} className="h-7 w-7 bg-background/80" aria-label="Annuler" disabled={historyIndex < 0}>
+                                                    <Undo2 className="h-5 w-5" />
+                                                </Button>
+                                                <Button variant="outline" size="icon" onClick={handleRedoGeneration} className="h-7 w-7 bg-background/80" aria-label="Rétablir" disabled={historyIndex >= generatedImageHistory.length - 1}>
+                                                    <Redo2 className="h-5 w-5" />
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+                    {currentHistoryItem && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Peaufiner & Sauvegarder</CardTitle>
+                                <CardDescription>Ajustez le résultat ou enregistrez votre création.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-3">
+                                    <Label htmlFor="refine-prompt" className="flex items-center gap-2 font-semibold">
+                                        <Wand2 className="h-4 w-4 text-primary" />
+                                        <span>Peaufiner ce Résultat</span>
+                                    </Label>
+                                    <Textarea
+                                        id="refine-prompt"
+                                        value={refinePrompt}
+                                        onChange={e => setRefinePrompt(e.target.value)}
+                                        placeholder="Ex: rends le fond plus flou, change le texte en bleu..."
+                                        rows={3}
+                                        disabled={isGenerating || isSaving}
+                                    />
+                                    <Button
+                                        onClick={handleRefineImage}
+                                        disabled={!refinePrompt.trim() || isGenerating || isSaving || !hasAiTickets}
+                                        className="w-full"
+                                    >
+                                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
+                                        Affiner (1 Ticket IA)
                                     </Button>
                                 </div>
-                            )}
-                        </CardHeader>
-                        <CardContent className="flex-1 flex items-center justify-center p-2">
-                            <div className="aspect-square w-full relative bg-muted/40 rounded-md">
-                                {isGenerating ? (
-                                    <div className="flex items-center justify-center h-full"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>
-                                ) : currentHistoryItem?.imageUrl ? (
-                                    <Image src={currentHistoryItem.imageUrl} alt="Image générée" fill className="object-contain" unoptimized />
-                                ) : (
-                                    <div className="text-center text-muted-foreground p-4 flex flex-col items-center justify-center h-full">
-                                        <ImageIcon className="h-10 w-10 mx-auto mb-2"/>
-                                        <p className="text-sm">Votre création apparaîtra ici.</p>
-                                    </div>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
+                                <div className="space-y-3 flex flex-col justify-end">
+                                    <DialogTrigger asChild>
+                                        <Button onClick={() => setIsDescriptionDialogOpen(true)} variant="outline" className="w-full">
+                                            <FileTextIcon className="mr-2 h-4 w-4" />
+                                            Modifier/Générer la description
+                                        </Button>
+                                    </DialogTrigger>
+                                    <Button onClick={handleSaveAiCreation} className="w-full bg-green-600 hover:bg-green-700" disabled={isGenerating || isSaving}>
+                                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                                        Enregistrer la création
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
-                
-                 {currentHistoryItem && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Peaufiner & Sauvegarder</CardTitle>
-                            <CardDescription>Ajustez le résultat ou enregistrez votre création.</CardDescription>
-                        </CardHeader>
-                         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-3">
-                                <Label htmlFor="refine-prompt" className="flex items-center gap-2 font-semibold">
-                                    <Wand2 className="h-4 w-4 text-primary" />
-                                    <span>Peaufiner ce Résultat</span>
-                                </Label>
-                                <Textarea
-                                    id="refine-prompt"
-                                    value={refinePrompt}
-                                    onChange={e => setRefinePrompt(e.target.value)}
-                                    placeholder="Ex: rends le fond plus flou, change le texte en bleu..."
-                                    rows={3}
-                                    disabled={isGenerating || isSaving}
-                                />
-                                <Button
-                                    onClick={handleRefineImage}
-                                    disabled={!refinePrompt.trim() || isGenerating || isSaving || !hasAiTickets}
-                                    className="w-full"
-                                >
-                                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
-                                    Affiner (1 Ticket IA)
-                                </Button>
-                            </div>
-                            <div className="space-y-3 flex flex-col justify-end">
-                                <Button onClick={() => setIsDescriptionDialogOpen(true)} variant="outline" className="w-full">
-                                    <FileTextIcon className="mr-2 h-4 w-4" />
-                                    Modifier/Générer la description
-                                </Button>
-                                <Button onClick={handleSaveAiCreation} className="w-full bg-green-600 hover:bg-green-700" disabled={isGenerating || isSaving}>
-                                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
-                                    Enregistrer la création
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
             </main>
 
             <aside className="w-full md:w-[380px] lg:w-[420px] flex-shrink-0 bg-muted/40 border-l flex flex-col h-full">
@@ -628,10 +680,64 @@ export default function EditImagePage() {
                         <DialogTitle>Générer ou Modifier le Contenu</DialogTitle>
                         <DialogDescription>Laissez l'IA rédiger un contenu optimisé, ou modifiez-le manuellement.</DialogDescription>
                     </DialogHeader>
-                    {/* Le contenu du dialogue de description sera ajouté ici */}
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="dialog-title">Titre</Label>
+                            <Input 
+                                id="dialog-title"
+                                value={currentTitle}
+                                onChange={(e) => setCurrentTitle(e.target.value)}
+                                disabled={!!generatingForPlatform || isSavingDescription}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="dialog-description">Description</Label>
+                            <Textarea 
+                                id="dialog-description"
+                                value={currentDescription}
+                                onChange={(e) => setCurrentDescription(e.target.value)}
+                                rows={4}
+                                disabled={!!generatingForPlatform || isSavingDescription}
+                            />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="dialog-hashtags">Hashtags</Label>
+                            <Textarea 
+                                id="dialog-hashtags"
+                                value={hashtagsString}
+                                onChange={(e) => setHashtagsString(e.target.value)}
+                                rows={2}
+                                disabled={!!generatingForPlatform || isSavingDescription}
+                            />
+                        </div>
+                        <Separator/>
+                        <div className="space-y-2">
+                            <Label>Générer avec l'IA (1 Ticket)</Label>
+                            <div className="grid grid-cols-2 gap-2">
+                                {platformOptions.map(({ id, label, icon: Icon }) => (
+                                    <Button
+                                        key={id}
+                                        variant="outline"
+                                        onClick={() => handleGenerateDescription(id as Platform)}
+                                        disabled={generatingForPlatform === id || isSavingDescription || !hasAiTickets}
+                                        className="justify-start"
+                                    >
+                                        {generatingForPlatform === id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Icon className="mr-2 h-4 w-4" />}
+                                        {label}
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild><Button variant="secondary" disabled={isSavingDescription}>Annuler</Button></DialogClose>
+                        <Button onClick={handleSaveDescription} disabled={isSavingDescription || !!generatingForPlatform}>
+                            {isSavingDescription && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                            Enregistrer
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>
     );
 }
-
