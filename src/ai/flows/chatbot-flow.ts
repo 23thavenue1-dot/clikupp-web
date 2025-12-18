@@ -160,15 +160,14 @@ const addImageToGalleryTool = ai.defineTool(
 
 export async function askChatbot(input: ChatbotInput): Promise<ChatbotOutput> {
   const { userId, history } = input;
+  
+  // Création du prompt simple pour l'historique
   const historyPrompt = history
     .map(message => `${message.role}: ${message.content}`)
     .join('\n');
     
-  const fullPrompt = `
-    Conversation History:
-    ${historyPrompt}
-    assistant:
-  `;
+  // Le prompt complet est juste l'historique, suivi du tour de l'assistant
+  const fullPrompt = `${historyPrompt}\nassistant:`;
 
   const llmResponse = await ai.generate({
     prompt: fullPrompt,
@@ -209,7 +208,7 @@ export async function askChatbot(input: ChatbotInput): Promise<ChatbotOutput> {
 ---`,
     model: 'googleai/gemini-2.5-flash',
     tools: [createGalleryTool, listGalleriesTool, addImageToGalleryTool],
-    context: { userId: userId },
+    context: { userId: userId }, // Passage direct et simple du contexte
   });
 
   return { content: llmResponse.text };
