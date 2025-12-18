@@ -9,5 +9,5 @@ export const firebaseConfig = {
   "messagingSenderId": "339040917257"
 };
 
-// Exporter la clé API GenAI pour une utilisation explicite
+// L'exportation de la clé est maintenant gérée par le fichier .env, nous n'avons plus besoin de le faire ici.
 export const genAIApiKey = process.env.GEMINI_API_KEY;
