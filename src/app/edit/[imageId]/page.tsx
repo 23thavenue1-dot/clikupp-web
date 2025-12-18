@@ -8,7 +8,7 @@ import type { ImageMetadata, UserProfile, CustomPrompt } from '@/lib/firestore';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Star, Trash2, Pencil, X, HelpCircle, FileText as FileTextIcon } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Save, Wand2, ShoppingCart, Image as ImageIcon, Undo2, Redo2, Star, Trash2, Pencil, X, HelpCircle, FileText as FileTextIcon, Ticket } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,7 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { format, addMonths, startOfMonth } from "date-fns"
 import { fr } from "date-fns/locale"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -339,7 +339,7 @@ export default function EditImagePage() {
                         </div>
                     </div>
                      <div className="flex flex-col gap-2">
-                         <div className="flex items-center justify-center gap-4 relative h-6">
+                        <div className="flex items-center justify-center gap-4 relative h-6">
                             <Badge className="w-fit mx-auto">APRÈS</Badge>
                              {!isGenerating && generatedImageHistory.length > 0 && (
                                 <div className="absolute right-0 top-1/2 -translate-y-1/2 flex gap-1">
@@ -352,52 +352,53 @@ export default function EditImagePage() {
                                 </div>
                             )}
                         </div>
-                        <Card className="flex flex-col overflow-hidden flex-1">
-                            <CardContent className="p-0 flex-grow">
-                                <div className="aspect-square w-full relative rounded-t-lg bg-muted flex items-center justify-center">
-                                    {isGenerating && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
-                                    {!isGenerating && currentHistoryItem?.imageUrl && <Image src={currentHistoryItem.imageUrl} alt="Image générée par l'IA" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" unoptimized/>}
-                                    {!isGenerating && !currentHistoryItem?.imageUrl && <Wand2 className="h-12 w-12 text-muted-foreground/30"/>}
-                                </div>
-                            </CardContent>
-                            {currentHistoryItem && (
-                                <CardFooter className="flex-col items-start gap-3 p-4 border-t bg-muted/40">
-                                    <Label htmlFor="refine-prompt" className="text-base font-semibold flex items-center gap-2">
-                                        <Wand2 className="h-5 w-5 text-primary"/>
-                                        Peaufiner ce résultat
-                                    </Label>
-                                    <Textarea
-                                        id="refine-prompt"
-                                        value={refinePrompt}
-                                        onChange={e => setRefinePrompt(e.target.value)}
-                                        placeholder="Ex: rends le fond plus flou, change le texte en bleu..."
-                                        rows={2}
-                                        disabled={isGenerating}
-                                    />
-                                    <Button
-                                        onClick={handleRefineImage}
-                                        disabled={!refinePrompt.trim() || isGenerating || !hasAiTickets}
-                                        className="w-full mt-2"
-                                    >
-                                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
-                                        Affiner (1 Ticket IA)
-                                    </Button>
-
-                                    <Separator className="my-2" />
-                                    
-                                    <div className="w-full space-y-2">
-                                        <Button disabled={true} className="w-full" variant="outline">
-                                            <FileTextIcon className="mr-2 h-4 w-4" />
-                                            Modifier/Générer la description
-                                        </Button>
-                                        <Button disabled={true} className="w-full bg-green-600 hover:bg-green-700">
-                                            <Save className="mr-2 h-4 w-4" />
-                                            Enregistrer la création
-                                        </Button>
-                                    </div>
-                                </CardFooter>
+                        <div className="aspect-square w-full relative rounded-lg border bg-muted flex items-center justify-center shadow-inner mt-4">
+                            {isGenerating && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
+                            {!isGenerating && currentHistoryItem?.imageUrl && (
+                                <Image src={currentHistoryItem.imageUrl} alt="Image générée par l'IA" fill className="object-contain" unoptimized />
                             )}
-                        </Card>
+                            {!isGenerating && !currentHistoryItem?.imageUrl && (
+                                <div className="text-center text-muted-foreground p-4">
+                                    <ImageIcon className="h-10 w-10 mx-auto mb-2"/>
+                                    <p className="text-sm">Votre création apparaîtra ici.</p>
+                                </div>
+                            )}
+                        </div>
+                         {currentHistoryItem && (
+                            <div className="pt-4 space-y-3 border-t mt-4">
+                                <Label htmlFor="refine-prompt" className="text-sm font-semibold flex items-center gap-2">
+                                    <Wand2 className="h-4 w-4 text-primary" />
+                                    Peaufiner ce résultat
+                                </Label>
+                                <Textarea 
+                                    id="refine-prompt"
+                                    value={refinePrompt}
+                                    onChange={e => setRefinePrompt(e.target.value)}
+                                    placeholder="Ex: rends le fond plus flou, change le texte en bleu..."
+                                    rows={2}
+                                    disabled={isGenerating}
+                                />
+                                <Button
+                                    onClick={handleRefineImage}
+                                    disabled={!refinePrompt.trim() || isGenerating || !hasAiTickets}
+                                    className="w-full"
+                                >
+                                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
+                                    Affiner (1 Ticket IA)
+                                </Button>
+                                <Separator className="my-4 !mt-6" />
+                                <div className="space-y-2">
+                                    <Button disabled={true} className="w-full">
+                                        <FileTextIcon className="mr-2 h-4 w-4" />
+                                        Modifier/Générer la description
+                                    </Button>
+                                    <Button disabled={true} className="w-full bg-green-600 hover:bg-green-700">
+                                        <Save className="mr-2 h-4 w-4" />
+                                        Enregistrer la création
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </main>
