@@ -1,3 +1,4 @@
+
 export const firebaseConfig = {
   "projectId": "studio-9587105821-540bd",
   "appId": "1:339040917257:web:4f10eacce90f7aab4fe5d8",
@@ -7,3 +8,6 @@ export const firebaseConfig = {
   "measurementId": "",
   "messagingSenderId": "339040917257"
 };
+
+// Exporter la clé API GenAI pour une utilisation explicite
+export const genAIApiKey = process.env.GEMINI_API_KEY;
