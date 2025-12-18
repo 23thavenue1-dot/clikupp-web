@@ -351,13 +351,13 @@ export async function deleteMultipleImages(firestore: Firestore, storage: Storag
     if (error) throw error;
 }
 
-export async function saveNote(firestore: Firestore, user: User, text: string): Promise<void> {
+export async function saveNote(firestore: Firestore, userId: string, text: string): Promise<void> {
     const { error } = await withErrorHandling(async () => {
-        const notesCollectionRef = collection(firestore, 'users', user.uid, 'notes');
-        const dataToSave = { userId: user.uid, text: text, completed: false, createdAt: serverTimestamp() };
+        const notesCollectionRef = collection(firestore, 'users', userId, 'notes');
+        const dataToSave = { userId, text, completed: false, createdAt: serverTimestamp() };
         const docRef = await addDoc(notesCollectionRef, dataToSave);
         await updateDoc(docRef, { id: docRef.id });
-    }, { operation: 'saveNote', userId: user.uid });
+    }, { operation: 'saveNote', userId });
     if (error) throw error;
 }
 

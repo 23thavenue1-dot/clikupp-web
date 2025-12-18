@@ -58,7 +58,7 @@ export function NotesSection() {
     const handleSaveNote = async () => {
         if (!noteText.trim() || !user || !firestore) return;
         setIsSaving(true);
-        const { error } = await withErrorHandling(() => saveNote(firestore, user, noteText));
+        const { error } = await withErrorHandling(() => saveNote(firestore, user.uid, noteText));
         
         if (!error) {
             setNoteText('');
