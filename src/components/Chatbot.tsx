@@ -44,13 +44,12 @@ export function Chatbot() {
     setIsLoading(true);
 
     try {
+        const idToken = await user.getIdToken();
         const response = await askChatbot({
-          userId: user.uid, // On passe l'ID de l'utilisateur
-          history: newMessages
+          history: newMessages,
+          token: idToken,
         });
 
-        // La réponse peut contenir du texte ou être vide si un outil a été appelé.
-        // On affiche la réponse textuelle si elle existe.
         if (response.content) {
             const assistantMessage: Message = { role: 'assistant', content: response.content };
             setMessages(prev => [...prev, assistantMessage]);

@@ -9,7 +9,7 @@ export const MessageSchema = z.object({
 export type Message = z.infer<typeof MessageSchema>;
 
 export const ChatbotInputSchema = z.object({
-  userId: z.string().describe("The authenticated user's ID."),
+  token: z.string().describe("The Firebase ID Token for the authenticated user."),
   history: z.array(MessageSchema),
 });
 export type ChatbotInput = z.infer<typeof ChatbotInputSchema>;

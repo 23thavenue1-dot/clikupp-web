@@ -2,11 +2,11 @@
 'use server';
 
 import { ai } from '@/ai/genkit';
-import { type ChatbotOutput, type ChatbotInput } from '@/ai/schemas/chatbot-schemas';
+import { type ChatbotOutput, ChatbotInputSchema } from '@/ai/schemas/chatbot-schemas';
 import { z } from 'genkit';
 import * as admin from 'firebase-admin';
 
-// --- Définition des Outils avec userId explicite dans le schéma ---
+// --- Définition des Outils ---
 
 const createGalleryTool = ai.defineTool(
   {
@@ -14,20 +14,16 @@ const createGalleryTool = ai.defineTool(
     description: "Crée un nouvel album ou une nouvelle galerie d'images pour l'utilisateur.",
     inputSchema: z.object({
       name: z.string().describe("Le nom de la galerie à créer."),
-      userId: z.string().describe("L'ID de l'utilisateur qui effectue l'action."),
     }),
     outputSchema: z.string(),
   },
-  async ({ name, userId }) => {
+  async ({ name }, { auth }) => {
+    const userId = auth?.uid;
     if (!userId) {
-      return "Erreur critique : L'ID utilisateur est manquant pour l'outil.";
+      return "Erreur d'identification. Impossible de créer la galerie.";
     }
     
-    if (admin.apps.length === 0) {
-      admin.initializeApp();
-    }
     const db = admin.firestore();
-
     try {
       const galleriesCollectionRef = db.collection('users').doc(userId).collection('galleries');
       const docRef = await galleriesCollectionRef.add({ 
@@ -51,21 +47,16 @@ const listGalleriesTool = ai.defineTool(
   {
     name: 'listGalleries',
     description: "Récupère et liste toutes les galeries créées par l'utilisateur.",
-    inputSchema: z.object({
-      userId: z.string().describe("L'ID de l'utilisateur."),
-    }),
+    inputSchema: z.object({}), // Pas besoin d'input, l'userId vient du contexte
     outputSchema: z.string(),
   },
-  async ({ userId }) => {
+  async (_, { auth }) => {
+     const userId = auth?.uid;
     if (!userId) {
-      return "Erreur critique : L'ID utilisateur est manquant pour l'outil.";
+      return "Erreur d'identification. Impossible de lister les galeries.";
     }
     
-    if (admin.apps.length === 0) {
-      admin.initializeApp();
-    }
     const db = admin.firestore();
-
     try {
       const galleriesRef = db.collection(`users/${userId}/galleries`);
       const q = galleriesRef.orderBy('createdAt', 'desc');
@@ -84,7 +75,6 @@ const listGalleriesTool = ai.defineTool(
   }
 );
 
-
 const addImageToGalleryTool = ai.defineTool(
   {
     name: 'addImageToGallery',
@@ -92,20 +82,16 @@ const addImageToGalleryTool = ai.defineTool(
     inputSchema: z.object({
       imageName: z.string().describe("Le nom (titre ou nom de fichier) de l'image à ajouter."),
       galleryName: z.string().describe("Le nom de la galerie de destination."),
-      userId: z.string().describe("L'ID de l'utilisateur."),
     }),
     outputSchema: z.string(),
   },
-  async ({ imageName, galleryName, userId }) => {
+  async ({ imageName, galleryName }, { auth }) => {
+    const userId = auth?.uid;
     if (!userId) {
         return "Erreur critique : L'ID utilisateur est manquant pour l'outil.";
     }
     
-    if (admin.apps.length === 0) {
-      admin.initializeApp();
-    }
     const db = admin.firestore();
-
     try {
       const galleriesRef = db.collection(`users/${userId}/galleries`);
       const galleryQuery = galleriesRef.where('name', '==', galleryName).limit(1);
@@ -140,33 +126,51 @@ const addImageToGalleryTool = ai.defineTool(
   }
 );
 
-export async function askChatbot(input: ChatbotInput): Promise<ChatbotOutput> {
-  const { userId, history } = input;
-  
-  const historyPrompt = history
-    .map(message => `${message.role}: ${message.content}`)
-    .join('\n');
-    
-  const fullPrompt = `${historyPrompt}\nassistant:`;
 
-  const llmResponse = await ai.generate({
-    prompt: fullPrompt,
-    system: `You are a helpful and friendly assistant for an application called Clikup. Your goal is to answer user questions, guide them, and perform actions on their behalf using the tools you have available.
+export const askChatbot = ai.defineFlow(
+  {
+    name: 'askChatbotFlow',
+    inputSchema: ChatbotInputSchema,
+    outputSchema: z.object({ content: z.string() }),
+    auth: {
+      // Cette politique attend un ID Token et le vérifie.
+      // Le `uid` sera disponible dans le `auth` du contexte de l'outil.
+      // @ts-ignore
+      policy: async (token) => {
+        if (admin.apps.length === 0) {
+          admin.initializeApp();
+        }
+        const decodedToken = await admin.auth().verifyIdToken(token);
+        return { uid: decodedToken.uid, email: decodedToken.email };
+      }
+    }
+  },
+  async (input) => {
+    const { history } = input;
+    
+    const historyPrompt = history
+      .map(message => `${message.role}: ${message.content}`)
+      .join('\n');
+      
+    const fullPrompt = `${historyPrompt}\nassistant:`;
+
+    const llmResponse = await ai.generate({
+      prompt: fullPrompt,
+      system: `You are a helpful and friendly assistant for an application called Clikup. Your goal is to answer user questions, guide them, and perform actions on their behalf using the tools you have available.
 
 - **Listen to the user's need, not just their words.** If a user asks "quels sont mes albums ?", use the listGalleries tool. If they say "je veux vendre plus", recommend the "E-commerce" description generation. If they say "je suis à court d'idées", recommend the "Coach Stratégique".
-- **Use your tools when appropriate.** If the user asks to perform an action you are capable of, use the corresponding tool.
-- **You have been given a USER_ID. You MUST provide this ID in the 'userId' parameter for ANY tool you call.**
-- **Clarify if needed.** If a tool requires information the user hasn't provided (e.g., asking to add an image without saying which one), ask for the missing details.
+- **Use your tools when appropriate.** When you decide to use a tool, you will be given an authenticated user context.
+- **Clarify if needed.** If a tool requires information the user hasn't provided, ask for the missing details.
 - **Confirm your actions.** After using a tool, present the result clearly to the user.
 - **Be concise and helpful.**
 
 ---
 ## DOCUMENTATION CLIKUP & OUTILS DISPONIBLES
 
-### Outils (IMPORTANT: toujours fournir le 'userId'!)
-- **createGallery(name: string, userId: string):** Utilise cet outil pour créer un nouvel album ou une galerie.
-- **listGalleries(userId: string):** Utilise cet outil pour lister les galeries de l'utilisateur.
-- **addImageToGallery(imageName: string, galleryName: string, userId: string):** Ajoute une image à une galerie.
+### Outils disponibles
+- **createGallery(name: string):** Utilise cet outil pour créer un nouvel album ou une galerie.
+- **listGalleries():** Utilise cet outil pour lister les galeries de l'utilisateur.
+- **addImageToGallery(imageName: string, galleryName: string):** Ajoute une image à une galerie.
 
 ### 1. Gestion des Médias
 - **Organisation:** Créez des **Galeries** pour classer les images. L'accueil montre toutes les images. Possibilité d'épingler les favoris.
@@ -185,25 +189,19 @@ export async function askChatbot(input: ChatbotInput): Promise<ChatbotOutput> {
 
 ### 4. Profil & Boutique
 - **Tableau de Bord:** Suivi de votre progression (niveau, XP, succès). Débloque des "Tips de Créateur".
-- **Boutique:** Achetez des packs de tickets (Upload ou IA) ou des abonnements pour augmenter vos quotas.
----
-USER_ID: ${userId}`,
-    model: 'googleai/gemini-2.5-flash',
-    tools: [createGalleryTool, listGalleriesTool, addImageToGalleryTool],
-  });
+- **Boutique:** Achetez des packs de tickets (Upload ou IA) ou des abonnements pour augmenter vos quotas.`,
+      model: 'googleai/gemini-2.5-flash',
+      tools: [createGalleryTool, listGalleriesTool, addImageToGalleryTool],
+    });
 
-  // Gestion manuelle de l'appel d'outil si Genkit ne le fait pas automatiquement
-  // à cause d'une configuration ou d'une version spécifique.
-  const toolRequest = llmResponse.toolRequest;
-  if (toolRequest) {
-      const tool = llmResponse.tools?.find(t => t.name === toolRequest.name);
-      if (tool) {
-        // Injection manuelle et forcée du userId
-        const augmentedInput = { ...toolRequest.input, userId };
-        const output = await (tool as any).func(augmentedInput);
-        return { content: output as string };
-      }
+    const toolRequest = llmResponse.toolRequest;
+    if (toolRequest) {
+      // Genkit gère automatiquement l'appel de l'outil ici,
+      // et le `auth` contexte sera fourni à l'outil.
+      const toolResponse = await llmResponse.performToolRequest(toolRequest);
+      return { content: toolResponse as string };
+    }
+
+    return { content: llmResponse.text };
   }
-
-  return { content: llmResponse.text };
-}
+);
