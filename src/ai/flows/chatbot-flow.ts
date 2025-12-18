@@ -5,6 +5,7 @@ import { ai } from '@/ai/genkit';
 import { type ChatbotOutput, type ChatbotInput } from '@/ai/schemas/chatbot-schemas';
 import { initializeFirebase } from '@/firebase';
 import { createGallery } from '@/lib/firestore';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { z } from 'zod';
 
 const createGalleryTool = ai.defineTool(
@@ -35,6 +36,39 @@ const createGalleryTool = ai.defineTool(
 );
 
 
+const listGalleriesTool = ai.defineTool(
+  {
+    name: 'listGalleries',
+    description: "Récupère et liste toutes les galeries créées par l'utilisateur.",
+    inputSchema: z.object({}), // Pas d'input nécessaire
+    outputSchema: z.string(),
+  },
+  async (_, context) => {
+    const userId = context?.auth?.userId;
+    if (!userId) {
+      return "Erreur : Je ne parviens pas à vous identifier pour lister les galeries.";
+    }
+
+    const { firestore } = initializeFirebase();
+    try {
+      const galleriesRef = collection(firestore, `users/${userId}/galleries`);
+      const q = query(galleriesRef, orderBy('createdAt', 'desc'));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        return "Vous n'avez aucune galerie pour le moment.";
+      }
+      
+      const galleryNames = querySnapshot.docs.map(doc => `- ${doc.data().name}`);
+      return `Voici la liste de vos galeries :\n${galleryNames.join('\n')}`;
+    } catch (error) {
+      console.error("Erreur de l'outil listGalleries:", error);
+      return "Désolé, je n'ai pas pu récupérer la liste de vos galeries.";
+    }
+  }
+);
+
+
 export async function askChatbot(input: ChatbotInput): Promise<ChatbotOutput> {
   const historyPrompt = input.history
     .map(message => `${message.role}: ${message.content}`)
@@ -50,9 +84,9 @@ assistant:
     prompt: fullPrompt,
     system: `You are a helpful and friendly assistant for an application called Clikup. Your goal is to answer user questions, guide them, and perform actions on their behalf using the tools you have available.
 
-- **Listen to the user's need, not just their words.** If they say "I want to sell more", recommend the "E-commerce" description generation. If they say "I'm out of ideas", recommend the "Coach Stratégique".
-- **Use your tools when appropriate.** If a user asks to create something, use the createGallery tool.
-- **Confirm your actions.** After using a tool, confirm to the user what you have done.
+- **Listen to the user's need, not just their words.** If a user asks "quels sont mes albums ?", use the listGalleries tool. If they say "je veux vendre plus", recommend the "E-commerce" description generation. If they say "je suis à court d'idées", recommend the "Coach Stratégique".
+- **Use your tools when appropriate.** If a user asks to create something, use the createGallery tool. If they ask to see their albums, use listGalleries.
+- **Confirm your actions.** After using a tool, present the result clearly to the user.
 - **Be concise and helpful.**
 
 ---
@@ -60,6 +94,7 @@ assistant:
 
 ### Outils
 - **createGallery(name: string):** Utilise cet outil pour créer un nouvel album ou une galerie.
+- **listGalleries():** Utilise cet outil pour lister les noms de toutes les galeries de l'utilisateur.
 
 ### 1. Gestion des Médias
 - **Organisation:** Créez des **Galeries** pour classer les images. L'accueil montre toutes les images. Possibilité d'épingler les favoris.
@@ -81,7 +116,7 @@ assistant:
 - **Boutique:** Achetez des packs de tickets (Upload ou IA) ou des abonnements pour augmenter vos quotas.
 ---`,
     model: 'googleai/gemini-2.5-flash',
-    tools: [createGalleryTool],
+    tools: [createGalleryTool, listGalleriesTool],
     context: { auth: { userId: input.userId, authenticated: true } },
   });
 
